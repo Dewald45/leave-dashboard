@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 import AddEmployeeForm from "./AddEmployeeForm";
+import DeleteEmployeeButton from "./DeleteEmployeeButton";
+import ResetPasswordForm from "./ResetPasswordForm";
 import { updateEmployee, updateBalance } from "./actions";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -192,6 +194,29 @@ export default async function AdminPage() {
                       ))}
                     </div>
                   </div>
+
+                  {/* Reset password */}
+                  <div className="mt-5">
+                    <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                      Reset password
+                    </h3>
+                    <ResetPasswordForm id={p.id} />
+                  </div>
+
+                  {/* Danger zone */}
+                  {p.id !== profile.id ? (
+                    <div className="mt-5 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-rose-100 bg-rose-50/50 px-3 py-3">
+                      <p className="text-xs text-rose-700/90">
+                        Removing an employee permanently deletes their account,
+                        balances and leave history.
+                      </p>
+                      <DeleteEmployeeButton id={p.id} name={p.full_name} />
+                    </div>
+                  ) : (
+                    <p className="mt-5 text-xs text-slate-400">
+                      This is your own account — it can&apos;t be deleted here.
+                    </p>
+                  )}
                 </div>
               </details>
             );

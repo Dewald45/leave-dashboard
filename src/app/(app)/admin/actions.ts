@@ -123,3 +123,59 @@ export async function updateBalance(formData: FormData): Promise<void> {
   revalidatePath("/admin");
   revalidatePath("/dashboard");
 }
+
+/**
+ * Permanently delete an employee: removes their auth account, which cascades to
+ * their profile, balances and leave history. Their reports' manager_id is set
+ * to null. Admins cannot delete themselves.
+ */
+export async function deleteEmployee(formData: FormData): Promise<AdminResult> {
+  let adminId: string;
+  try {
+    adminId = await assertAdmin();
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+
+  const id = String(formData.get("id") || "");
+  if (!id) return { error: "No employee specified." };
+  if (id === adminId) {
+    return { error: "You can't delete your own account." };
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin.auth.admin.deleteUser(id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin");
+  revalidatePath("/team");
+  return { success: "Employee removed." };
+}
+
+/**
+ * Admin sets a new password for an employee (e.g. a forgotten-password reset).
+ * The employee signs in immediately with the new password — share it securely.
+ */
+export async function resetPassword(
+  _prev: AdminResult,
+  formData: FormData
+): Promise<AdminResult> {
+  try {
+    await assertAdmin();
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+
+  const id = String(formData.get("id") || "");
+  const password = String(formData.get("password") || "");
+  if (!id) return { error: "No employee specified." };
+  if (password.length < 8) {
+    return { error: "New password must be at least 8 characters." };
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin.auth.admin.updateUserById(id, { password });
+  if (error) return { error: error.message };
+
+  return { success: "Password updated — share it securely with the employee." };
+}

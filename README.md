@@ -101,9 +101,16 @@ To re-apply on a fresh project, run the SQL in the Supabase SQL editor.
 
 ## First sign-in
 
-The first account created becomes the **admin**. From **Admin** you can add the
-rest of your staff (each gets a temporary password to share securely), set their
-managers, and adjust allocations.
+The first account created becomes the **admin**. From **Admin** you can:
+
+- **Add** staff (each gets a temporary password to share securely)
+- Set their **role**, **line manager** and **department**
+- Adjust **leave allocations** (entitled / reserved days per type)
+- **Reset a password** — set a new password for any user (immediate; share it
+  securely). Handy when someone is locked out.
+- **Remove an employee** — permanently deletes their account, balances and leave
+  history (cascades in the database; their reports' manager link is cleared).
+  Admins can't delete their own account.
 
 ## Deploy
 
