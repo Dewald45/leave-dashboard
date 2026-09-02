@@ -48,6 +48,26 @@ export function isWeekendOrHoliday(iso: string): boolean {
   return dow === 0 || dow === 6 || HOLIDAY_SET.has(iso);
 }
 
+/**
+ * Card accents. The DB still carries the original per-type colours (blue,
+ * amber, purple); these override them so the dashboard reads in the brand's
+ * three-colour language. Chosen for legibility on the black cards:
+ *   green  = leave you've earned and can spend
+ *   red    = leave you only touch when something's wrong
+ *   orange = statutory leave with strings attached
+ */
+export const LEAVE_ACCENTS: Record<string, string> = {
+  annual: "#22c55e",
+  closure: "#22c55e",
+  sick: "#ef4444",
+  family: "#ff6440",
+  parental: "#ff6440",
+};
+
+export function leaveAccent(code: string, fallback: string): string {
+  return LEAVE_ACCENTS[code] ?? fallback;
+}
+
 export const STATUS_STYLES: Record<
   string,
   { label: string; className: string }

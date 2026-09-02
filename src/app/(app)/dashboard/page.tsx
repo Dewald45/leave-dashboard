@@ -63,29 +63,57 @@ export default async function DashboardPage() {
       </div>
 
       {/* Year-end closure notice */}
-      <div className="rounded-2xl border border-sand-200 bg-white p-4">
-        <div className="flex flex-wrap items-start gap-3">
-          <span className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg bg-ink-900 text-white">
+      <div className="rounded-2xl border border-sand-200 bg-white p-5">
+        <div className="flex items-center gap-2">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-ink-900 text-xs text-white">
             ❄
           </span>
-          <div className="text-sm text-ink-800">
-            <p className="font-semibold text-ink-900">
-              The December shutdown, explained
-            </p>
-            <p className="mt-0.5 text-sand-600">
-              The office goes dark for <strong>10 working days</strong>. Five
-              come out of your annual leave whether you like it or not (already
-              reserved — don&apos;t go spending them). The other five are on
-              the company, which is as close to free money as this page gets.
-              Annual leave trickles in at{" "}
-              <strong>1.25 days a month</strong>, because the BCEA says so, and
-              wipes clean every 1 January.
-              {annual
-                ? ` You've banked ${Number(annual.accrued_days)} of ${annual.entitled_days}, with ${Number(annual.available_days)} actually bookable today.`
-                : ""}
-            </p>
-          </div>
+          <h2 className="text-sm font-semibold text-ink-900">
+            The December shutdown
+          </h2>
         </div>
+
+        <dl className="mt-4 grid gap-4 sm:grid-cols-3">
+          <div className="border-l-2 border-[#ff6440] pl-3">
+            <dt className="text-xs font-semibold uppercase tracking-wide text-sand-600">
+              5 days — yours
+            </dt>
+            <dd className="mt-1 text-sm text-ink-800">
+              Deducted from annual leave. Already reserved, so don&apos;t go
+              spending them.
+            </dd>
+          </div>
+          <div className="border-l-2 border-[#22c55e] pl-3">
+            <dt className="text-xs font-semibold uppercase tracking-wide text-sand-600">
+              5 days — on us
+            </dt>
+            <dd className="mt-1 text-sm text-ink-800">
+              Company-paid. As close to free money as this page gets.
+            </dd>
+          </div>
+          <div className="border-l-2 border-sand-300 pl-3">
+            <dt className="text-xs font-semibold uppercase tracking-wide text-sand-600">
+              How it builds
+            </dt>
+            <dd className="mt-1 text-sm text-ink-800">
+              1.25 days a month (BCEA), wiped clean every 1 January.
+            </dd>
+          </div>
+        </dl>
+
+        {annual ? (
+          <p className="mt-4 border-t border-sand-200 pt-3 text-sm text-sand-600">
+            You&apos;ve banked{" "}
+            <strong className="text-ink-900">
+              {Number(annual.accrued_days)} of {annual.entitled_days}
+            </strong>
+            , with{" "}
+            <strong className="text-ink-900">
+              {Number(annual.available_days)}
+            </strong>{" "}
+            bookable today.
+          </p>
+        ) : null}
       </div>
 
       <section>
