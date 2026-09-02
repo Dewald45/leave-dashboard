@@ -21,6 +21,7 @@ export interface LeaveType {
   default_days: number | null;
   default_reserved: number;
   deducts_balance: boolean;
+  accrues: boolean;
   color: string;
   sort_order: number;
 }
@@ -48,9 +49,11 @@ export interface BalanceSummary {
   leave_name: string;
   leave_color: string;
   deducts_balance: boolean;
+  accrues: boolean;
   year: number;
   entitled_days: number;
   reserved_days: number;
+  accrued_days: number;
   used_days: number;
   pending_days: number;
   available_days: number;

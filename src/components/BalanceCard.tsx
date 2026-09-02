@@ -6,6 +6,10 @@ export default function BalanceCard({ b }: { b: BalanceSummary }) {
   const used = Number(b.used_days);
   const pending = Number(b.pending_days);
   const reserved = Number(b.reserved_days);
+  const accrued = Number(b.accrued_days);
+
+  const fmt = (n: number) =>
+    Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/0$/, "");
 
   const pct =
     total > 0 ? Math.max(0, Math.min(100, (available / total) * 100)) : 0;
@@ -31,12 +35,18 @@ export default function BalanceCard({ b }: { b: BalanceSummary }) {
 
       <div className="mt-3 flex items-baseline gap-1">
         <span className="text-3xl font-bold text-slate-900">
-          {b.deducts_balance ? available : total}
+          {b.deducts_balance ? fmt(available) : total}
         </span>
         <span className="text-sm text-slate-400">
           / {total} days {b.deducts_balance ? "available" : ""}
         </span>
       </div>
+
+      {b.accrues ? (
+        <p className="mt-1 text-xs text-slate-400">
+          Accrued to date: {fmt(accrued)} of {total} (1.25 days/month)
+        </p>
+      ) : null}
 
       <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
         <div

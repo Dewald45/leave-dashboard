@@ -10,6 +10,9 @@ export default async function DashboardPage() {
   const { profile, userId } = await requireProfile();
   const supabase = createClient();
 
+  // Ensure the current year's balances exist (annual reset / new-year rollover).
+  await supabase.rpc("ensure_my_year_balances");
+
   const [{ data: balances }, { data: requests }, { data: pendingForMe }] =
     await Promise.all([
       supabase
@@ -67,11 +70,12 @@ export default async function DashboardPage() {
             <p className="mt-0.5 text-emerald-800/90">
               The company closes for <strong>10 working days</strong> over the
               festive season: <strong>5 days</strong> are deducted from your
-              annual leave (already reserved on your Annual Leave balance) and{" "}
+              annual leave (reserved on your Annual Leave balance) and{" "}
               <strong>5 days</strong> are company-paid and don&apos;t reduce
-              your balance.
+              your balance. Annual leave <strong>accrues at 1.25 days/month</strong>{" "}
+              (BCEA) and resets every 1 January.
               {annual
-                ? ` You have ${annual.available_days} annual day(s) freely available after the reservation.`
+                ? ` You've accrued ${Number(annual.accrued_days)} of ${annual.entitled_days} days so far, with ${Number(annual.available_days)} available to book now.`
                 : ""}
             </p>
           </div>

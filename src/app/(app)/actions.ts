@@ -3,6 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { workingDaysBetween } from "@/lib/leave";
+import {
+  notifyManagerOfRequest,
+  notifyEmployeeOfDecision,
+} from "@/lib/email";
 
 export type ActionResult = { error?: string; success?: string };
 
@@ -34,19 +38,22 @@ export async function createRequest(
     return { error: "The selected range has no working days (weekends/holidays only)." };
   }
 
-  // Balance guard for deductible leave types.
+  // Balance guard for deductible leave types — accrued minus already-pending.
   const { data: bal } = await supabase
     .from("balance_summary")
-    .select("available_days, deducts_balance, leave_name")
+    .select("available_days, pending_days, deducts_balance, leave_name")
     .eq("profile_id", user.id)
     .eq("leave_type_id", leaveTypeId)
     .eq("year", new Date(startDate).getUTCFullYear())
     .maybeSingle();
 
-  if (bal && bal.deducts_balance && days > Number(bal.available_days)) {
-    return {
-      error: `Not enough ${bal.leave_name}: ${days} working day(s) requested but only ${bal.available_days} available.`,
-    };
+  if (bal && bal.deducts_balance) {
+    const remaining = Number(bal.available_days) - Number(bal.pending_days);
+    if (days > remaining) {
+      return {
+        error: `Not enough ${bal.leave_name}: ${days} working day(s) requested but only ${remaining} available (after accrual and pending requests).`,
+      };
+    }
   }
 
   const { error } = await supabase.from("leave_requests").insert({
@@ -59,6 +66,43 @@ export async function createRequest(
   });
 
   if (error) return { error: error.message };
+
+  // Notify the line manager (best-effort).
+  try {
+    const { data: me } = await supabase
+      .from("profiles")
+      .select("full_name, manager_id")
+      .eq("id", user.id)
+      .single();
+    if (me?.manager_id) {
+      const [{ data: mgr }, { data: lt }] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("email, full_name")
+          .eq("id", me.manager_id)
+          .single(),
+        supabase
+          .from("leave_types")
+          .select("name")
+          .eq("id", leaveTypeId)
+          .single(),
+      ]);
+      if (mgr?.email) {
+        await notifyManagerOfRequest({
+          managerEmail: mgr.email,
+          managerName: mgr.full_name,
+          employeeName: me.full_name,
+          leaveType: lt?.name ?? "Leave",
+          startDate,
+          endDate,
+          days,
+          reason,
+        });
+      }
+    }
+  } catch (e) {
+    console.error("[createRequest] manager notification failed:", e);
+  }
 
   revalidatePath("/dashboard");
   revalidatePath("/requests");
@@ -82,15 +126,55 @@ export async function cancelRequest(formData: FormData): Promise<void> {
 /** Manager/admin approves or rejects a report's request. */
 export async function decideRequest(formData: FormData): Promise<void> {
   const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   const id = String(formData.get("id") || "");
   const decision = String(formData.get("decision") || "");
   const note = String(formData.get("note") || "").trim() || null;
   if (!id || !["approved", "rejected"].includes(decision)) return;
 
-  await supabase
+  const { error } = await supabase
     .from("leave_requests")
     .update({ status: decision, decision_note: note })
     .eq("id", id);
+
+  if (!error) {
+    // Notify the employee of the outcome (best-effort).
+    try {
+      const { data: req } = await supabase
+        .from("leave_requests")
+        .select(
+          "start_date,end_date,days,decision_note,status,profiles:profiles!profile_id(email,full_name),leave_types(name)"
+        )
+        .eq("id", id)
+        .single();
+      const { data: decider } = user
+        ? await supabase
+            .from("profiles")
+            .select("full_name")
+            .eq("id", user.id)
+            .single()
+        : { data: null };
+
+      const emp = (req as any)?.profiles;
+      if (emp?.email) {
+        await notifyEmployeeOfDecision({
+          employeeEmail: emp.email,
+          employeeName: emp.full_name,
+          leaveType: (req as any)?.leave_types?.name ?? "Leave",
+          startDate: (req as any).start_date,
+          endDate: (req as any).end_date,
+          days: Number((req as any).days),
+          decision: decision as "approved" | "rejected",
+          note,
+          deciderName: decider?.full_name ?? "Your manager",
+        });
+      }
+    } catch (e) {
+      console.error("[decideRequest] employee notification failed:", e);
+    }
+  }
 
   revalidatePath("/approvals");
   revalidatePath("/team");

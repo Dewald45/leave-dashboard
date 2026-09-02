@@ -8,6 +8,8 @@ export default async function ApplyPage() {
   const { userId } = await requireProfile();
   const supabase = createClient();
 
+  await supabase.rpc("ensure_my_year_balances");
+
   const [{ data: types }, { data: balances }] = await Promise.all([
     supabase.from("leave_types").select("*").order("sort_order"),
     supabase
