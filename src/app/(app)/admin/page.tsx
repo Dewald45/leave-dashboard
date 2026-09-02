@@ -31,21 +31,21 @@ export default async function AdminPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Administration</h1>
-        <p className="text-sm text-slate-500">
+        <h1 className="text-2xl font-bold text-ink-900">Administration</h1>
+        <p className="text-sm text-sand-600">
           Manage staff, roles, reporting lines and leave allocations.
         </p>
       </div>
 
       <section>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-sand-600">
           Add an employee
         </h2>
         <AddEmployeeForm managers={managers} />
       </section>
 
       <section>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-sand-600">
           Employees ({profiles.length})
         </h2>
         <div className="space-y-3">
@@ -56,19 +56,19 @@ export default async function AdminPage() {
             return (
               <details
                 key={p.id}
-                className="rounded-2xl border border-slate-200 bg-white shadow-sm"
+                className="rounded-2xl border border-sand-200 bg-white shadow-sm"
               >
                 <summary className="flex cursor-pointer flex-wrap items-center justify-between gap-2 px-5 py-4">
                   <div>
-                    <span className="font-semibold text-slate-800">
+                    <span className="font-semibold text-ink-900">
                       {p.full_name}
                     </span>
-                    <span className="ml-2 text-xs text-slate-400">
+                    <span className="ml-2 text-xs text-sand-500">
                       {p.email}
                     </span>
                   </div>
-                  <div className="flex items-center gap-3 text-xs text-slate-500">
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5 capitalize">
+                  <div className="flex items-center gap-3 text-xs text-sand-600">
+                    <span className="rounded-full bg-sand-100 px-2 py-0.5 capitalize">
                       {p.role}
                     </span>
                     <span>
@@ -78,7 +78,7 @@ export default async function AdminPage() {
                   </div>
                 </summary>
 
-                <div className="border-t border-slate-100 px-5 py-4">
+                <div className="border-t border-sand-100 px-5 py-4">
                   {/* Edit profile */}
                   <form
                     action={updateEmployee}
@@ -86,13 +86,13 @@ export default async function AdminPage() {
                   >
                     <input type="hidden" name="id" value={p.id} />
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-slate-500">
+                      <label className="mb-1 block text-xs font-medium text-sand-600">
                         Role
                       </label>
                       <select
                         name="role"
                         defaultValue={p.role}
-                        className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm"
+                        className="rounded-lg border border-sand-300 px-3 py-1.5 text-sm"
                       >
                         <option value="employee">Employee</option>
                         <option value="manager">Manager</option>
@@ -100,13 +100,13 @@ export default async function AdminPage() {
                       </select>
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-slate-500">
+                      <label className="mb-1 block text-xs font-medium text-sand-600">
                         Line manager
                       </label>
                       <select
                         name="manager_id"
                         defaultValue={p.manager_id ?? ""}
-                        className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm"
+                        className="rounded-lg border border-sand-300 px-3 py-1.5 text-sm"
                       >
                         <option value="">— None —</option>
                         {managers
@@ -119,18 +119,18 @@ export default async function AdminPage() {
                       </select>
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-slate-500">
+                      <label className="mb-1 block text-xs font-medium text-sand-600">
                         Department
                       </label>
                       <input
                         name="department"
                         defaultValue={p.department ?? ""}
-                        className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm"
+                        className="rounded-lg border border-sand-300 px-3 py-1.5 text-sm"
                       />
                     </div>
                     <button
                       type="submit"
-                      className="rounded-lg bg-slate-800 px-4 py-1.5 text-sm font-semibold text-white hover:bg-slate-700"
+                      className="rounded-lg bg-ink-900 px-4 py-1.5 text-sm font-semibold text-white hover:bg-ink-800"
                     >
                       Save
                     </button>
@@ -138,7 +138,7 @@ export default async function AdminPage() {
 
                   {/* Balances */}
                   <div className="mt-5">
-                    <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                    <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-sand-500">
                       {CURRENT_YEAR} allocations
                     </h3>
                     <div className="grid gap-2 sm:grid-cols-2">
@@ -146,7 +146,7 @@ export default async function AdminPage() {
                         <form
                           key={b.id}
                           action={updateBalance}
-                          className="flex items-end gap-2 rounded-lg border border-slate-100 bg-slate-50 p-3"
+                          className="flex items-end gap-2 rounded-lg border border-sand-100 bg-sand-50 p-3"
                         >
                           <input
                             type="hidden"
@@ -154,7 +154,7 @@ export default async function AdminPage() {
                             value={b.id}
                           />
                           <div className="flex-1">
-                            <div className="mb-1 flex items-center gap-1.5 text-xs font-medium text-slate-600">
+                            <div className="mb-1 flex items-center gap-1.5 text-xs font-medium text-sand-600">
                               <span
                                 className="h-2 w-2 rounded-full"
                                 style={{ backgroundColor: b.leave_color }}
@@ -162,31 +162,31 @@ export default async function AdminPage() {
                               {b.leave_name}
                             </div>
                             <div className="flex gap-2">
-                              <label className="text-[11px] text-slate-400">
+                              <label className="text-[11px] text-sand-500">
                                 Entitled
                                 <input
                                   name="entitled_days"
                                   type="number"
                                   step="0.5"
                                   defaultValue={b.entitled_days}
-                                  className="mt-0.5 w-20 rounded border border-slate-300 px-2 py-1 text-sm"
+                                  className="mt-0.5 w-20 rounded border border-sand-300 px-2 py-1 text-sm"
                                 />
                               </label>
-                              <label className="text-[11px] text-slate-400">
+                              <label className="text-[11px] text-sand-500">
                                 Reserved
                                 <input
                                   name="reserved_days"
                                   type="number"
                                   step="0.5"
                                   defaultValue={b.reserved_days}
-                                  className="mt-0.5 w-20 rounded border border-slate-300 px-2 py-1 text-sm"
+                                  className="mt-0.5 w-20 rounded border border-sand-300 px-2 py-1 text-sm"
                                 />
                               </label>
                             </div>
                           </div>
                           <button
                             type="submit"
-                            className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100"
+                            className="rounded-lg border border-sand-300 bg-white px-3 py-1.5 text-xs font-medium text-sand-600 hover:bg-sand-100"
                           >
                             Update
                           </button>
@@ -197,7 +197,7 @@ export default async function AdminPage() {
 
                   {/* Reset password */}
                   <div className="mt-5">
-                    <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                    <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-sand-500">
                       Reset password
                     </h3>
                     <ResetPasswordForm id={p.id} />
@@ -213,7 +213,7 @@ export default async function AdminPage() {
                       <DeleteEmployeeButton id={p.id} name={p.full_name} />
                     </div>
                   ) : (
-                    <p className="mt-5 text-xs text-slate-400">
+                    <p className="mt-5 text-xs text-sand-500">
                       This is your own account — it can&apos;t be deleted here.
                     </p>
                   )}

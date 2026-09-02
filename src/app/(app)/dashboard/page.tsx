@@ -44,16 +44,16 @@ export default async function DashboardPage() {
     <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">
+          <h1 className="text-2xl font-bold text-ink-900">
             Welcome, {profile.full_name.split(" ")[0]}
           </h1>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-sand-600">
             Your {CURRENT_YEAR} leave balances and recent activity.
           </p>
         </div>
         <Link
           href="/apply"
-          className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-600"
+          className="rounded-lg bg-ink-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-ink-800"
         >
           + Apply for leave
         </Link>
@@ -83,7 +83,7 @@ export default async function DashboardPage() {
       </div>
 
       <section>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-sand-600">
           Leave balances
         </h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -95,7 +95,7 @@ export default async function DashboardPage() {
 
       <section>
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-sand-600">
             Recent requests
           </h2>
           <Link

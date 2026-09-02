@@ -30,3 +30,11 @@ scratchpad/
 
 # typescript
 *.tsbuildinfo
+
+# Logo source exports — heavy binaries (.ai/.eps/.pdf/.jpg/.png).
+# The vector source lives in Logos/SVG and the app assets in public/brand.
+Logos/AI/
+Logos/EPS/
+Logos/PDF/
+Logos/JPG/
+Logos/PNG/

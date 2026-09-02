@@ -16,16 +16,16 @@ export default function RequestsTable({
 }) {
   if (!rows.length) {
     return (
-      <div className="rounded-xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-400">
+      <div className="rounded-xl border border-dashed border-sand-200 bg-white p-8 text-center text-sm text-sand-500">
         {emptyLabel}
       </div>
     );
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-      <table className="min-w-full divide-y divide-slate-100 text-sm">
-        <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+    <div className="overflow-x-auto rounded-xl border border-sand-200 bg-white">
+      <table className="min-w-full divide-y divide-sand-100 text-sm">
+        <thead className="bg-sand-50 text-left text-xs uppercase tracking-wide text-sand-600">
           <tr>
             {showEmployee ? <th className="px-4 py-3">Employee</th> : null}
             <th className="px-4 py-3">Type</th>
@@ -36,15 +36,15 @@ export default function RequestsTable({
             {allowCancel ? <th className="px-4 py-3"></th> : null}
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-sand-100">
           {rows.map((r) => (
-            <tr key={r.id} className="hover:bg-slate-50/60">
+            <tr key={r.id} className="hover:bg-sand-50/60">
               {showEmployee ? (
                 <td className="px-4 py-3">
-                  <div className="font-medium text-slate-800">
+                  <div className="font-medium text-ink-900">
                     {r.profiles?.full_name ?? "—"}
                   </div>
-                  <div className="text-xs text-slate-400">
+                  <div className="text-xs text-sand-500">
                     {r.profiles?.department ?? ""}
                   </div>
                 </td>
@@ -58,23 +58,23 @@ export default function RequestsTable({
                   {r.leave_types?.name ?? "—"}
                 </span>
               </td>
-              <td className="px-4 py-3 text-slate-600">
+              <td className="px-4 py-3 text-sand-600">
                 {formatDate(r.start_date)} → {formatDate(r.end_date)}
               </td>
-              <td className="px-4 py-3 font-medium text-slate-800">{r.days}</td>
+              <td className="px-4 py-3 font-medium text-ink-900">{r.days}</td>
               <td className="px-4 py-3">
                 <StatusBadge status={r.status} />
               </td>
-              <td className="px-4 py-3 max-w-[16rem] text-slate-500">
+              <td className="px-4 py-3 max-w-[16rem] text-sand-600">
                 {r.reason ? (
                   <span title={r.reason} className="line-clamp-2">
                     {r.reason}
                   </span>
                 ) : (
-                  <span className="text-slate-300">—</span>
+                  <span className="text-sand-300">—</span>
                 )}
                 {r.decision_note ? (
-                  <div className="mt-0.5 text-xs italic text-slate-400">
+                  <div className="mt-0.5 text-xs italic text-sand-500">
                     Manager: {r.decision_note}
                   </div>
                 ) : null}
@@ -86,7 +86,7 @@ export default function RequestsTable({
                       <input type="hidden" name="id" value={r.id} />
                       <button
                         type="submit"
-                        className="rounded-md border border-slate-200 px-2.5 py-1 text-xs text-slate-600 hover:bg-rose-50 hover:text-rose-600"
+                        className="rounded-md border border-sand-200 px-2.5 py-1 text-xs text-sand-600 hover:bg-rose-50 hover:text-rose-600"
                       >
                         Cancel
                       </button>

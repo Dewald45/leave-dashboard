@@ -34,8 +34,8 @@ export default async function ApprovalsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Approvals</h1>
-        <p className="text-sm text-slate-500">
+        <h1 className="text-2xl font-bold text-ink-900">Approvals</h1>
+        <p className="text-sm text-sand-600">
           {profile.role === "admin"
             ? "All pending leave requests across the company."
             : "Leave requests awaiting your approval from your direct reports."}
@@ -44,7 +44,7 @@ export default async function ApprovalsPage() {
 
       <section>
         <div className="mb-3 flex items-center gap-2">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-sand-600">
             Awaiting decision
           </h2>
           <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
@@ -58,14 +58,14 @@ export default async function ApprovalsPage() {
             ))}
           </div>
         ) : (
-          <div className="rounded-xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-400">
+          <div className="rounded-xl border border-dashed border-sand-200 bg-white p-8 text-center text-sm text-sand-500">
             Nothing awaiting your approval. 🎉
           </div>
         )}
       </section>
 
       <section>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-sand-600">
           Recently decided
         </h2>
         <RequestsTable

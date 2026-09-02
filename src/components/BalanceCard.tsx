@@ -15,14 +15,14 @@ export default function BalanceCard({ b }: { b: BalanceSummary }) {
     total > 0 ? Math.max(0, Math.min(100, (available / total) * 100)) : 0;
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="rounded-2xl border border-sand-200 bg-white p-5 shadow-sm">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span
             className="h-3 w-3 rounded-full"
             style={{ backgroundColor: b.leave_color }}
           />
-          <h3 className="text-sm font-semibold text-slate-800">
+          <h3 className="text-sm font-semibold text-ink-900">
             {b.leave_name}
           </h3>
         </div>
@@ -34,21 +34,21 @@ export default function BalanceCard({ b }: { b: BalanceSummary }) {
       </div>
 
       <div className="mt-3 flex items-baseline gap-1">
-        <span className="text-3xl font-bold text-slate-900">
+        <span className="text-3xl font-bold text-ink-900">
           {b.deducts_balance ? fmt(available) : total}
         </span>
-        <span className="text-sm text-slate-400">
+        <span className="text-sm text-sand-500">
           / {total} days {b.deducts_balance ? "available" : ""}
         </span>
       </div>
 
       {b.accrues ? (
-        <p className="mt-1 text-xs text-slate-400">
+        <p className="mt-1 text-xs text-sand-500">
           Accrued to date: {fmt(accrued)} of {total} (1.25 days/month)
         </p>
       ) : null}
 
-      <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+      <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-sand-100">
         <div
           className="h-full rounded-full"
           style={{ width: `${pct}%`, backgroundColor: b.leave_color }}
@@ -57,16 +57,16 @@ export default function BalanceCard({ b }: { b: BalanceSummary }) {
 
       <dl className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
         <div>
-          <dt className="text-slate-400">Used</dt>
-          <dd className="font-semibold text-slate-700">{used}</dd>
+          <dt className="text-sand-500">Used</dt>
+          <dd className="font-semibold text-ink-800">{used}</dd>
         </div>
         <div>
-          <dt className="text-slate-400">Pending</dt>
-          <dd className="font-semibold text-slate-700">{pending}</dd>
+          <dt className="text-sand-500">Pending</dt>
+          <dd className="font-semibold text-ink-800">{pending}</dd>
         </div>
         <div>
-          <dt className="text-slate-400">Reserved</dt>
-          <dd className="font-semibold text-slate-700">{reserved}</dd>
+          <dt className="text-sand-500">Reserved</dt>
+          <dd className="font-semibold text-ink-800">{reserved}</dd>
         </div>
       </dl>
     </div>

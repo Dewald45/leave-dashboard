@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Profile } from "@/lib/types";
+import { LogoMark } from "@/components/Logo";
 
 const roleLabels: Record<string, string> = {
   employee: "Employee",
@@ -32,14 +33,12 @@ export default function NavBar({ profile }: { profile: Profile }) {
     .toUpperCase();
 
   return (
-    <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur">
+    <header className="sticky top-0 z-20 border-b border-sand-200 bg-white/90 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
         <div className="flex items-center gap-6">
           <Link href="/dashboard" className="flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500 text-sm font-bold text-white">
-              L
-            </span>
-            <span className="text-sm font-bold text-slate-900">
+            <LogoMark className="h-7 w-7 text-brand-500" />
+            <span className="text-sm font-bold text-ink-900">
               Leave Dashboard
             </span>
           </Link>
@@ -54,7 +53,7 @@ export default function NavBar({ profile }: { profile: Profile }) {
                   className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
                     active
                       ? "bg-brand-50 text-brand-700"
-                      : "text-slate-600 hover:bg-slate-100"
+                      : "text-sand-600 hover:bg-sand-100 hover:text-ink-900"
                   }`}
                 >
                   {l.label}
@@ -66,20 +65,20 @@ export default function NavBar({ profile }: { profile: Profile }) {
 
         <div className="flex items-center gap-3">
           <div className="hidden text-right sm:block">
-            <div className="text-sm font-medium text-slate-800">
+            <div className="text-sm font-medium text-ink-900">
               {profile.full_name}
             </div>
-            <div className="text-xs text-slate-400">
+            <div className="text-xs text-sand-500">
               {roleLabels[profile.role]}
             </div>
           </div>
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-600">
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-ink-900 text-xs font-semibold text-white">
             {initials}
           </span>
           <form action="/auth/signout" method="post">
             <button
               type="submit"
-              className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-600 transition hover:bg-slate-100"
+              className="rounded-lg border border-sand-200 px-3 py-1.5 text-sm text-sand-600 transition hover:bg-sand-100 hover:text-ink-900"
             >
               Sign out
             </button>
@@ -88,7 +87,7 @@ export default function NavBar({ profile }: { profile: Profile }) {
       </div>
 
       {/* Mobile nav */}
-      <nav className="flex items-center gap-1 overflow-x-auto border-t border-slate-100 px-4 py-2 md:hidden">
+      <nav className="flex items-center gap-1 overflow-x-auto border-t border-sand-100 px-4 py-2 md:hidden">
         {links.map((l) => {
           const active =
             pathname === l.href || pathname.startsWith(l.href + "/");
@@ -99,7 +98,7 @@ export default function NavBar({ profile }: { profile: Profile }) {
               className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium ${
                 active
                   ? "bg-brand-50 text-brand-700"
-                  : "text-slate-600 hover:bg-slate-100"
+                  : "text-sand-600 hover:bg-sand-100 hover:text-ink-900"
               }`}
             >
               {l.label}

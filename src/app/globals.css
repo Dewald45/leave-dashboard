@@ -7,5 +7,16 @@
 }
 
 body {
-  @apply bg-slate-50 text-slate-900 antialiased;
+  @apply bg-sand-100 font-sans text-ink-900 antialiased;
+}
+
+/*
+ * Accessibility rule 37: every interactive element keeps a visible focus ring.
+ * The brand accent is used here deliberately — as a UI component colour it only
+ * needs 3:1, which #ff3300 clears at 3.67:1.
+ */
+@layer base {
+  :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+    @apply outline-none ring-2 ring-brand-500 ring-offset-2 ring-offset-white;
+  }
 }

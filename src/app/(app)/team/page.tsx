@@ -50,8 +50,8 @@ export default async function TeamPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Team</h1>
-        <p className="text-sm text-slate-500">
+        <h1 className="text-2xl font-bold text-ink-900">Team</h1>
+        <p className="text-sm text-sand-600">
           {isAdmin
             ? "Everyone in the company and their annual leave standing."
             : "Your direct reports and their annual leave standing."}
@@ -59,12 +59,12 @@ export default async function TeamPage() {
       </div>
 
       <section>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-sand-600">
           People ({team.length})
         </h2>
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-          <table className="min-w-full divide-y divide-slate-100 text-sm">
-            <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+        <div className="overflow-x-auto rounded-xl border border-sand-200 bg-white">
+          <table className="min-w-full divide-y divide-sand-100 text-sm">
+            <thead className="bg-sand-50 text-left text-xs uppercase tracking-wide text-sand-600">
               <tr>
                 <th className="px-4 py-3">Name</th>
                 <th className="px-4 py-3">Role</th>
@@ -72,34 +72,34 @@ export default async function TeamPage() {
                 <th className="px-4 py-3">Annual available</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-sand-100">
               {team.map((m) => {
                 const b = annualByProfile.get(m.id);
                 return (
-                  <tr key={m.id} className="hover:bg-slate-50/60">
+                  <tr key={m.id} className="hover:bg-sand-50/60">
                     <td className="px-4 py-3">
-                      <div className="font-medium text-slate-800">
+                      <div className="font-medium text-ink-900">
                         {m.full_name}
                       </div>
-                      <div className="text-xs text-slate-400">{m.email}</div>
+                      <div className="text-xs text-sand-500">{m.email}</div>
                     </td>
-                    <td className="px-4 py-3 capitalize text-slate-600">
+                    <td className="px-4 py-3 capitalize text-sand-600">
                       {m.role}
                     </td>
-                    <td className="px-4 py-3 text-slate-600">
+                    <td className="px-4 py-3 text-sand-600">
                       {m.department ?? "—"}
                     </td>
                     <td className="px-4 py-3">
                       {b ? (
-                        <span className="font-semibold text-slate-800">
+                        <span className="font-semibold text-ink-900">
                           {b.available_days}
-                          <span className="font-normal text-slate-400">
+                          <span className="font-normal text-sand-500">
                             {" "}
                             / {b.entitled_days}
                           </span>
                         </span>
                       ) : (
-                        <span className="text-slate-300">—</span>
+                        <span className="text-sand-300">—</span>
                       )}
                     </td>
                   </tr>
@@ -109,7 +109,7 @@ export default async function TeamPage() {
                 <tr>
                   <td
                     colSpan={4}
-                    className="px-4 py-8 text-center text-sm text-slate-400"
+                    className="px-4 py-8 text-center text-sm text-sand-500"
                   >
                     No team members yet.
                   </td>
@@ -121,7 +121,7 @@ export default async function TeamPage() {
       </section>
 
       <section>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-sand-600">
           Upcoming approved leave
         </h2>
         <RequestsTable

@@ -12,7 +12,7 @@ function SubmitButton({ disabled }: { disabled: boolean }) {
     <button
       type="submit"
       disabled={pending || disabled}
-      className="rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-600 disabled:opacity-50"
+      className="rounded-lg bg-ink-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-ink-800 disabled:opacity-50"
     >
       {pending ? "Submitting…" : "Submit request"}
     </button>
@@ -47,18 +47,18 @@ export default function ApplyForm({
   return (
     <form
       action={formAction}
-      className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+      className="space-y-5 rounded-2xl border border-sand-200 bg-white p-6 shadow-sm"
     >
       {/* Leave type */}
       <div>
-        <label className="mb-1 block text-sm font-medium text-slate-700">
+        <label className="mb-1 block text-sm font-medium text-ink-800">
           Leave type
         </label>
         <select
           name="leave_type_id"
           value={typeId}
           onChange={(e) => setTypeId(Number(e.target.value))}
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+          className="w-full rounded-lg border border-sand-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
         >
           {types.map((t) => (
             <option key={t.id} value={t.id}>
@@ -67,7 +67,7 @@ export default function ApplyForm({
           ))}
         </select>
         {selectedType?.description ? (
-          <p className="mt-1 text-xs text-slate-400">
+          <p className="mt-1 text-xs text-sand-500">
             {selectedType.description}
           </p>
         ) : null}
@@ -76,7 +76,7 @@ export default function ApplyForm({
       {/* Dates */}
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">
+          <label className="mb-1 block text-sm font-medium text-ink-800">
             Start date
           </label>
           <input
@@ -85,11 +85,11 @@ export default function ApplyForm({
             value={start}
             onChange={(e) => setStart(e.target.value)}
             required
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+            className="w-full rounded-lg border border-sand-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">
+          <label className="mb-1 block text-sm font-medium text-ink-800">
             End date
           </label>
           <input
@@ -99,21 +99,21 @@ export default function ApplyForm({
             min={start || undefined}
             onChange={(e) => setEnd(e.target.value)}
             required
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+            className="w-full rounded-lg border border-sand-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
           />
         </div>
       </div>
 
       {/* Live summary */}
-      <div className="flex flex-wrap items-center gap-4 rounded-lg bg-slate-50 px-4 py-3 text-sm">
+      <div className="flex flex-wrap items-center gap-4 rounded-lg bg-sand-50 px-4 py-3 text-sm">
         <div>
-          <span className="text-slate-400">Working days: </span>
-          <span className="font-semibold text-slate-800">{days}</span>
+          <span className="text-sand-500">Working days: </span>
+          <span className="font-semibold text-ink-900">{days}</span>
         </div>
         {balance ? (
           <div>
-            <span className="text-slate-400">Available: </span>
-            <span className="font-semibold text-slate-800">
+            <span className="text-sand-500">Available: </span>
+            <span className="font-semibold text-ink-900">
               {selectedType?.deducts_balance
                 ? balance.available_days
                 : `${balance.entitled_days} (company paid)`}
@@ -129,14 +129,14 @@ export default function ApplyForm({
 
       {/* Reason */}
       <div>
-        <label className="mb-1 block text-sm font-medium text-slate-700">
+        <label className="mb-1 block text-sm font-medium text-ink-800">
           Reason / notes{" "}
-          <span className="font-normal text-slate-400">(optional)</span>
+          <span className="font-normal text-sand-500">(optional)</span>
         </label>
         <textarea
           name="reason"
           rows={3}
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+          className="w-full rounded-lg border border-sand-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
           placeholder="e.g. Family holiday, medical appointment…"
         />
       </div>

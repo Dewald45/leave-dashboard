@@ -19,8 +19,8 @@ export default async function RequestsPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">My requests</h1>
-        <p className="text-sm text-slate-500">
+        <h1 className="text-2xl font-bold text-ink-900">My requests</h1>
+        <p className="text-sm text-sand-600">
           Every leave request you&apos;ve submitted, with its approval status.
         </p>
       </div>

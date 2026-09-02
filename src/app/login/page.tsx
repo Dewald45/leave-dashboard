@@ -2,6 +2,7 @@
 
 import { useFormState, useFormStatus } from "react-dom";
 import { signIn } from "./actions";
+import { LogoWordmark } from "@/components/Logo";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -9,7 +10,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="w-full rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-600 disabled:opacity-60"
+      className="w-full rounded-lg bg-ink-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-ink-800 disabled:opacity-60"
     >
       {pending ? "Signing in…" : "Sign in"}
     </button>
@@ -22,24 +23,22 @@ export default function LoginPage() {
   });
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 px-4">
+    <main className="flex min-h-screen items-center justify-center bg-ink-900 px-4">
       <div className="w-full max-w-md">
         <div className="mb-6 text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-500 text-lg font-bold text-white">
-            L
-          </div>
-          <h1 className="text-2xl font-bold text-slate-900">Leave Dashboard</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <LogoWordmark className="mx-auto mb-6 h-10 w-auto text-white" />
+          <h1 className="text-2xl font-bold text-white">Leave Dashboard</h1>
+          <p className="mt-1 text-sm text-sand-400">
             Sign in to apply for and manage leave.
           </p>
         </div>
 
         <form
           action={formAction}
-          className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+          className="space-y-4 rounded-2xl border border-sand-200 bg-white p-6 shadow-sm"
         >
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">
+            <label className="mb-1 block text-sm font-medium text-ink-800">
               Email
             </label>
             <input
@@ -47,12 +46,12 @@ export default function LoginPage() {
               type="email"
               autoComplete="email"
               required
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+              className="w-full rounded-lg border border-sand-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
               placeholder="you@company.co.za"
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">
+            <label className="mb-1 block text-sm font-medium text-ink-800">
               Password
             </label>
             <input
@@ -60,7 +59,7 @@ export default function LoginPage() {
               type="password"
               autoComplete="current-password"
               required
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+              className="w-full rounded-lg border border-sand-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
               placeholder="••••••••"
             />
           </div>
@@ -74,7 +73,7 @@ export default function LoginPage() {
           <SubmitButton />
         </form>
 
-        <p className="mt-4 text-center text-xs text-slate-400">
+        <p className="mt-4 text-center text-xs text-sand-500">
           Accounts are created by your HR administrator.
         </p>
       </div>
