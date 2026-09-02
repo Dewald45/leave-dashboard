@@ -5,6 +5,7 @@ import { requireProfile, isManagerOrAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { REQUEST_SELECT } from "@/lib/queries";
 import type { RequestWithRelations } from "@/lib/types";
+import PageHeader from "@/components/PageHeader";
 
 export default async function ApprovalsPage() {
   const { profile, userId } = await requireProfile();
@@ -33,14 +34,11 @@ export default async function ApprovalsPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-ink-900">Approvals</h1>
-        <p className="text-sm text-sand-600">
-          {profile.role === "admin"
-            ? "All pending leave requests across the company."
-            : "Leave requests awaiting your approval from your direct reports."}
-        </p>
-      </div>
+      <PageHeader title="Approvals">
+        {profile.role === "admin"
+          ? "Every request in the building, awaiting your royal assent."
+          : "Your reports would like to leave. You get to decide how they feel about it."}
+      </PageHeader>
 
       <section>
         <div className="mb-3 flex items-center gap-2">
@@ -71,7 +69,7 @@ export default async function ApprovalsPage() {
         <RequestsTable
           rows={decidedRows}
           showEmployee
-          emptyLabel="No decisions yet."
+          emptyLabel="No verdicts handed down yet."
         />
       </section>
     </div>

@@ -3,6 +3,7 @@ import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { CURRENT_YEAR } from "@/lib/queries";
 import type { BalanceSummary, LeaveType } from "@/lib/types";
+import PageHeader from "@/components/PageHeader";
 
 export default async function ApplyPage() {
   const { userId } = await requireProfile();
@@ -21,12 +22,11 @@ export default async function ApplyPage() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="text-2xl font-bold text-ink-900">Apply for leave</h1>
-      <p className="mt-1 text-sm text-sand-600">
-        Working days are calculated automatically, excluding weekends and South
-        African public holidays. Your request goes to your line manager for
-        approval.
-      </p>
+      <PageHeader title="Plot your escape">
+        We count the working days for you — weekends and South African public
+        holidays don&apos;t count against you, so no need to do sneaky maths.
+        Your manager gets the final word.
+      </PageHeader>
       <div className="mt-6">
         <ApplyForm
           types={(types ?? []) as LeaveType[]}

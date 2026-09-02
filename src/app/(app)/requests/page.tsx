@@ -3,6 +3,7 @@ import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { REQUEST_SELECT } from "@/lib/queries";
 import type { RequestWithRelations } from "@/lib/types";
+import PageHeader from "@/components/PageHeader";
 
 export default async function RequestsPage() {
   const { userId } = await requireProfile();
@@ -18,16 +19,13 @@ export default async function RequestsPage() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold text-ink-900">My requests</h1>
-        <p className="text-sm text-sand-600">
-          Every leave request you&apos;ve submitted, with its approval status.
-        </p>
-      </div>
+      <PageHeader title="My requests">
+        Every escape you&apos;ve ever attempted, and how it went.
+      </PageHeader>
       <RequestsTable
         rows={rows}
         allowCancel
-        emptyLabel="You haven't applied for any leave yet."
+        emptyLabel="Nothing here. Either you love this place or you're due a break."
       />
     </div>
   );

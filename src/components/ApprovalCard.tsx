@@ -46,7 +46,7 @@ export default function ApprovalCard({ r }: { r: RequestWithRelations }) {
           <input
             name="note"
             type="text"
-            placeholder="Reason for decision…"
+            placeholder="Justify yourself (optional, but kind)…"
             className="w-full rounded-lg border border-sand-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
           />
         </div>

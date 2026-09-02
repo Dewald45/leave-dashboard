@@ -7,6 +7,7 @@ import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { CURRENT_YEAR } from "@/lib/queries";
 import type { BalanceSummary, Profile } from "@/lib/types";
+import PageHeader from "@/components/PageHeader";
 
 export default async function AdminPage() {
   const { profile } = await requireProfile();
@@ -30,12 +31,10 @@ export default async function AdminPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-ink-900">Administration</h1>
-        <p className="text-sm text-sand-600">
-          Manage staff, roles, reporting lines and leave allocations.
-        </p>
-      </div>
+      <PageHeader title="Administration">
+        Staff, roles, reporting lines and allocations. Try not to enjoy the
+        power too much.
+      </PageHeader>
 
       <section>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-sand-600">

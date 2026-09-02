@@ -3,6 +3,7 @@ import RequestsTable from "@/components/RequestsTable";
 import { requireProfile, isManagerOrAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { REQUEST_SELECT, CURRENT_YEAR } from "@/lib/queries";
+import PageHeader from "@/components/PageHeader";
 import type {
   BalanceSummary,
   Profile,
@@ -49,14 +50,11 @@ export default async function TeamPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-ink-900">Team</h1>
-        <p className="text-sm text-sand-600">
-          {isAdmin
-            ? "Everyone in the company and their annual leave standing."
-            : "Your direct reports and their annual leave standing."}
-        </p>
-      </div>
+      <PageHeader title="Team">
+        {isAdmin
+          ? "The whole roster, and exactly how much holiday each of them is sitting on."
+          : "Your reports, and how much holiday they're quietly hoarding."}
+      </PageHeader>
 
       <section>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-sand-600">
@@ -127,7 +125,7 @@ export default async function TeamPage() {
         <RequestsTable
           rows={upcomingRows}
           showEmployee
-          emptyLabel="No upcoming approved leave."
+          emptyLabel="Nobody's going anywhere. Suspicious."
         />
       </section>
     </div>

@@ -12,7 +12,7 @@ function SubmitButton() {
       disabled={pending}
       className="w-full rounded-lg bg-ink-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-ink-800 disabled:opacity-60"
     >
-      {pending ? "Signing in…" : "Sign in"}
+      {pending ? "Verifying…" : "Let me in"}
     </button>
   );
 }
@@ -29,7 +29,7 @@ export default function LoginPage() {
           <LogoWordmark className="mx-auto mb-6 h-10 w-auto text-white" />
           <h1 className="text-2xl font-bold text-white">Leave Dashboard</h1>
           <p className="mt-1 text-sm text-sand-400">
-            Sign in to apply for and manage leave.
+            Where good intentions go to get approved.
           </p>
         </div>
 
@@ -74,7 +74,7 @@ export default function LoginPage() {
         </form>
 
         <p className="mt-4 text-center text-xs text-sand-500">
-          Accounts are created by your HR administrator.
+          Accounts are handed out by HR. We don&apos;t do self-service here.
         </p>
       </div>
     </main>

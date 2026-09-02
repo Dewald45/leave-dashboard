@@ -22,6 +22,8 @@ export interface LeaveType {
   default_reserved: number;
   deducts_balance: boolean;
   accrues: boolean;
+  cycle_months: number;
+  min_service_months: number;
   color: string;
   sort_order: number;
 }
@@ -50,6 +52,16 @@ export interface BalanceSummary {
   leave_color: string;
   deducts_balance: boolean;
   accrues: boolean;
+  /** 12 for calendar-year types, 36 for sick leave (BCEA s22). */
+  cycle_months: number;
+  /** Months of service required before this type may be taken (BCEA s27). */
+  min_service_months: number;
+  /** True once the employee has served long enough to use this type. */
+  service_met: boolean;
+  /** Start of the cycle this balance belongs to (ISO date). */
+  cycle_start: string;
+  /** Last day of that cycle (ISO date). */
+  cycle_end: string;
   year: number;
   entitled_days: number;
   reserved_days: number;

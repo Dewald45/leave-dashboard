@@ -42,40 +42,46 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-ink-900">
-            Welcome, {profile.full_name.split(" ")[0]}
-          </h1>
-          <p className="text-sm text-sand-600">
-            Your {CURRENT_YEAR} leave balances and recent activity.
-          </p>
+      <div className="rounded-2xl bg-ink-900 p-6 sm:p-8">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-white">
+              Right then, {profile.full_name.split(" ")[0]}.
+            </h1>
+            <p className="mt-1 text-sm text-sand-500">
+              Everything you&apos;re owed in {CURRENT_YEAR}, and everything
+              you&apos;ve already spent. No judgement. Some judgement.
+            </p>
+          </div>
+          <Link
+            href="/apply"
+            className="rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-brand-600"
+          >
+            Plot an escape →
+          </Link>
         </div>
-        <Link
-          href="/apply"
-          className="rounded-lg bg-ink-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-ink-800"
-        >
-          + Apply for leave
-        </Link>
       </div>
 
       {/* Year-end closure notice */}
-      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+      <div className="rounded-2xl border border-sand-200 bg-white p-4">
         <div className="flex flex-wrap items-start gap-3">
-          <span className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500 text-white">
+          <span className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg bg-ink-900 text-white">
             ❄
           </span>
-          <div className="text-sm text-emerald-900">
-            <p className="font-semibold">Year-end closure</p>
-            <p className="mt-0.5 text-emerald-800/90">
-              The company closes for <strong>10 working days</strong> over the
-              festive season: <strong>5 days</strong> are deducted from your
-              annual leave (reserved on your Annual Leave balance) and{" "}
-              <strong>5 days</strong> are company-paid and don&apos;t reduce
-              your balance. Annual leave <strong>accrues at 1.25 days/month</strong>{" "}
-              (BCEA) and resets every 1 January.
+          <div className="text-sm text-ink-800">
+            <p className="font-semibold text-ink-900">
+              The December shutdown, explained
+            </p>
+            <p className="mt-0.5 text-sand-600">
+              The office goes dark for <strong>10 working days</strong>. Five
+              come out of your annual leave whether you like it or not (already
+              reserved — don&apos;t go spending them). The other five are on
+              the company, which is as close to free money as this page gets.
+              Annual leave trickles in at{" "}
+              <strong>1.25 days a month</strong>, because the BCEA says so, and
+              wipes clean every 1 January.
               {annual
-                ? ` You've accrued ${Number(annual.accrued_days)} of ${annual.entitled_days} days so far, with ${Number(annual.available_days)} available to book now.`
+                ? ` You've banked ${Number(annual.accrued_days)} of ${annual.entitled_days}, with ${Number(annual.available_days)} actually bookable today.`
                 : ""}
             </p>
           </div>
@@ -84,7 +90,7 @@ export default async function DashboardPage() {
 
       <section>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-sand-600">
-          Leave balances
+          What you&apos;re working with
         </h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {bs.map((b) => (
@@ -96,19 +102,19 @@ export default async function DashboardPage() {
       <section>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-sand-600">
-            Recent requests
+            Recently attempted
           </h2>
           <Link
             href="/requests"
             className="text-sm font-medium text-brand-600 hover:underline"
           >
-            View all →
+            See the full history →
           </Link>
         </div>
         <RequestsTable
           rows={reqs}
           allowCancel
-          emptyLabel="You haven't applied for any leave yet."
+          emptyLabel="Nothing here. Either you love this place or you're due a break."
         />
       </section>
     </div>
