@@ -120,7 +120,7 @@ export default async function DashboardPage() {
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-sand-600">
           What you&apos;re working with
         </h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2">
           {bs.map((b) => (
             <BalanceCard key={b.id} b={b} />
           ))}

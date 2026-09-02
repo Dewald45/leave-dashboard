@@ -60,8 +60,8 @@ export const LEAVE_ACCENTS: Record<string, string> = {
   annual: "#22c55e",
   closure: "#22c55e",
   sick: "#ef4444",
-  family: "#ff6440",
-  parental: "#ff6440",
+  family: "#ff9500",
+  parental: "#ff9500",
 };
 
 export function leaveAccent(code: string, fallback: string): string {
