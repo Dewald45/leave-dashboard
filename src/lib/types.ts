@@ -24,6 +24,8 @@ export interface LeaveType {
   default_reserved: number;
   deducts_balance: boolean;
   accrues: boolean;
+  /** False for auto-granted leave (e.g. year-end closure) that can't be applied for. */
+  bookable: boolean;
   cycle_months: number;
   min_service_months: number;
   /** Which gender this type is offered to: "all", "male" or "female". */
@@ -56,6 +58,8 @@ export interface BalanceSummary {
   leave_color: string;
   deducts_balance: boolean;
   accrues: boolean;
+  /** False for auto-granted leave (e.g. year-end closure) — shown, not applied for. */
+  bookable: boolean;
   /** 12 for calendar-year types, 36 for sick leave (BCEA s22). */
   cycle_months: number;
   /** Months of service required before this type may be taken (BCEA s27). */

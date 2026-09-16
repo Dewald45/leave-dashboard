@@ -19,6 +19,41 @@ export default function BalanceCard({ b }: { b: BalanceSummary }) {
   // reads as "available now", which it isn't.
   const accent = locked ? "#7a7a7a" : leaveAccent(b.leave_code, b.leave_color);
 
+  // Auto-granted leave (e.g. the year-end closure): everyone gets it, nobody
+  // applies for it. Show the headline number only — no used / pending / held.
+  if (b.bookable === false) {
+    return (
+      <div className="rounded-2xl border border-ink-800 bg-ink-900 p-5">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span
+              className="h-2.5 w-2.5 shrink-0 rounded-full"
+              style={{ backgroundColor: accent }}
+            />
+            <h3 className="text-sm font-semibold text-white">{b.leave_name}</h3>
+          </div>
+          <span className="shrink-0 rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sand-400">
+            Automatic
+          </span>
+        </div>
+
+        <div className="mt-4 flex items-baseline gap-1.5">
+          <span
+            className="text-4xl font-bold leading-none"
+            style={{ color: accent }}
+          >
+            {fmt(total)}
+          </span>
+          <span className="text-sm text-sand-600">days</span>
+        </div>
+
+        <p className="mt-1.5 text-xs text-sand-600">
+          Everyone gets these. No applying, no maths — just enjoy the shutdown.
+        </p>
+      </div>
+    );
+  }
+
   // cycle_months / cycle_end arrive with migration 0003; fall back quietly.
   const isLongCycle = Number(b.cycle_months ?? 12) > 12;
 

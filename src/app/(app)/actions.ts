@@ -38,6 +38,19 @@ export async function createRequest(
     return { error: "The selected range has no working days (weekends/holidays only)." };
   }
 
+  // Some leave is granted automatically (e.g. the year-end closure) and can't
+  // be applied for — reject it server-side even if the UI is bypassed.
+  const { data: lt } = await supabase
+    .from("leave_types")
+    .select("name, bookable")
+    .eq("id", leaveTypeId)
+    .maybeSingle();
+  if (lt && lt.bookable === false) {
+    return {
+      error: `${lt.name} is granted to everyone automatically — no need to apply for it.`,
+    };
+  }
+
   // Balance guard for deductible leave types — accrued minus already-pending.
   const { data: bal } = await supabase
     .from("balance_summary")

@@ -21,11 +21,12 @@ export default async function ApplyPage() {
   ]);
 
   const balanceRows = (balances ?? []) as BalanceSummary[];
-  // Only offer leave the employee is actually entitled to — this scopes
-  // parental (fathers) vs maternity (mothers) to the right person.
+  // Only offer leave the employee is actually entitled to (scopes parental vs
+  // maternity to the right person) AND that can be applied for — auto-granted
+  // leave like the year-end closure is shown on the dashboard, never booked.
   const eligibleTypeIds = new Set(balanceRows.map((b) => b.leave_type_id));
-  const eligibleTypes = ((types ?? []) as LeaveType[]).filter((t) =>
-    eligibleTypeIds.has(t.id)
+  const eligibleTypes = ((types ?? []) as LeaveType[]).filter(
+    (t) => eligibleTypeIds.has(t.id) && t.bookable
   );
 
   return (
