@@ -20,6 +20,14 @@ export default async function ApplyPage() {
       .eq("year", CURRENT_YEAR),
   ]);
 
+  const balanceRows = (balances ?? []) as BalanceSummary[];
+  // Only offer leave the employee is actually entitled to — this scopes
+  // parental (fathers) vs maternity (mothers) to the right person.
+  const eligibleTypeIds = new Set(balanceRows.map((b) => b.leave_type_id));
+  const eligibleTypes = ((types ?? []) as LeaveType[]).filter((t) =>
+    eligibleTypeIds.has(t.id)
+  );
+
   return (
     <div className="mx-auto max-w-2xl">
       <PageHeader title="Plot your escape">
@@ -28,10 +36,7 @@ export default async function ApplyPage() {
         Your manager gets the final word.
       </PageHeader>
       <div className="mt-6">
-        <ApplyForm
-          types={(types ?? []) as LeaveType[]}
-          balances={(balances ?? []) as BalanceSummary[]}
-        />
+        <ApplyForm types={eligibleTypes} balances={balanceRows} />
       </div>
     </div>
   );

@@ -5,6 +5,12 @@ import { createClient, createAdminClient } from "@/lib/supabase/server";
 
 export type AdminResult = { error?: string; success?: string };
 
+/** Coerce a form value into a valid gender or null. */
+function normaliseGender(value: FormDataEntryValue | null): "male" | "female" | null {
+  const g = String(value || "").trim().toLowerCase();
+  return g === "male" || g === "female" ? g : null;
+}
+
 /** Verify the caller is an admin (server actions are not covered by middleware). */
 async function assertAdmin(): Promise<string> {
   const supabase = createClient();
@@ -40,6 +46,7 @@ export async function createEmployee(
   const department = String(formData.get("department") || "").trim() || null;
   const jobTitle = String(formData.get("job_title") || "").trim() || null;
   const managerId = String(formData.get("manager_id") || "") || null;
+  const gender = normaliseGender(formData.get("gender"));
   const startDate =
     String(formData.get("employment_start_date") || "") ||
     new Date().toISOString().slice(0, 10);
@@ -73,11 +80,15 @@ export async function createEmployee(
       department,
       job_title: jobTitle,
       manager_id: managerId,
+      gender,
       employment_start_date: startDate,
     })
     .eq("id", created.user.id);
 
   if (updErr) return { error: updErr.message };
+
+  // Grant the gender-appropriate leave (parental vs maternity).
+  await admin.rpc("sync_leave_eligibility", { p_profile: created.user.id });
 
   revalidatePath("/admin");
   revalidatePath("/team");
@@ -93,14 +104,19 @@ export async function updateEmployee(formData: FormData): Promise<void> {
   const role = String(formData.get("role") || "employee");
   const managerId = String(formData.get("manager_id") || "") || null;
   const department = String(formData.get("department") || "").trim() || null;
+  const gender = normaliseGender(formData.get("gender"));
 
   await admin
     .from("profiles")
-    .update({ role, manager_id: managerId, department })
+    .update({ role, manager_id: managerId, department, gender })
     .eq("id", id);
+
+  // Re-grant / remove parental vs maternity to match the (possibly new) gender.
+  await admin.rpc("sync_leave_eligibility", { p_profile: id });
 
   revalidatePath("/admin");
   revalidatePath("/team");
+  revalidatePath("/dashboard");
 }
 
 export async function updateBalance(formData: FormData): Promise<void> {

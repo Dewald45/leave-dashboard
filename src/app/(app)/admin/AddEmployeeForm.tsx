@@ -100,6 +100,20 @@ export default function AddEmployeeForm({
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium text-ink-800">
+            Gender <span className="font-normal text-sand-500">(sets parental vs maternity leave)</span>
+          </label>
+          <select
+            name="gender"
+            defaultValue=""
+            className="w-full rounded-lg border border-sand-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+          >
+            <option value="">— Prefer not to say —</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+          </select>
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium text-ink-800">
             Line manager
           </label>
           <select

@@ -1,5 +1,6 @@
 export type UserRole = "employee" | "manager" | "admin";
 export type RequestStatus = "pending" | "approved" | "rejected" | "cancelled";
+export type Gender = "male" | "female";
 
 export interface Profile {
   id: string;
@@ -9,6 +10,7 @@ export interface Profile {
   manager_id: string | null;
   department: string | null;
   job_title: string | null;
+  gender: Gender | null;
   employment_start_date: string;
   created_at: string;
 }
@@ -24,6 +26,8 @@ export interface LeaveType {
   accrues: boolean;
   cycle_months: number;
   min_service_months: number;
+  /** Which gender this type is offered to: "all", "male" or "female". */
+  applies_to: "all" | Gender;
   color: string;
   sort_order: number;
 }

@@ -127,6 +127,20 @@ export default async function AdminPage() {
                         className="rounded-lg border border-sand-300 px-3 py-1.5 text-sm"
                       />
                     </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-sand-600">
+                        Gender
+                      </label>
+                      <select
+                        name="gender"
+                        defaultValue={p.gender ?? ""}
+                        className="rounded-lg border border-sand-300 px-3 py-1.5 text-sm"
+                      >
+                        <option value="">— Unset —</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                      </select>
+                    </div>
                     <button
                       type="submit"
                       className="rounded-lg bg-ink-900 px-4 py-1.5 text-sm font-semibold text-white hover:bg-ink-800"
