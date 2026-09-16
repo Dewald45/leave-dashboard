@@ -1,52 +1,31 @@
 import { redirect } from "next/navigation";
 import RequestsTable from "@/components/RequestsTable";
 import { requireProfile, isManagerOrAdmin } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
-import { REQUEST_SELECT, CURRENT_YEAR } from "@/lib/queries";
+import { CURRENT_YEAR } from "@/lib/queries";
+import {
+  getTeamMembers,
+  getAnnualBalances,
+  getUpcomingApproved,
+} from "@/lib/data";
 import PageHeader from "@/components/PageHeader";
-import type {
-  BalanceSummary,
-  Profile,
-  RequestWithRelations,
-} from "@/lib/types";
+import type { BalanceSummary } from "@/lib/types";
 
 export default async function TeamPage() {
-  const { profile, userId } = await requireProfile();
+  const { profile } = await requireProfile();
   if (!isManagerOrAdmin(profile.role)) redirect("/dashboard");
 
-  const supabase = createClient();
   const isAdmin = profile.role === "admin";
+  const team = await getTeamMembers(profile);
+  const [balances, upcomingRows] = await Promise.all([
+    getAnnualBalances(
+      team.map((m) => m.id),
+      CURRENT_YEAR
+    ),
+    getUpcomingApproved(profile),
+  ]);
 
-  const membersQuery = supabase
-    .from("profiles")
-    .select("*")
-    .order("full_name");
-  if (!isAdmin) membersQuery.eq("manager_id", userId);
-
-  const [{ data: members }, { data: balances }, { data: upcoming }] =
-    await Promise.all([
-      membersQuery,
-      supabase
-        .from("balance_summary")
-        .select("*")
-        .eq("leave_code", "annual")
-        .eq("year", CURRENT_YEAR),
-      supabase
-        .from("leave_requests")
-        .select(REQUEST_SELECT)
-        .eq("status", "approved")
-        .gte("end_date", new Date().toISOString().slice(0, 10))
-        .neq("profile_id", userId)
-        .order("start_date", { ascending: true })
-        .limit(20),
-    ]);
-
-  const team = (members ?? []) as Profile[];
   const annualByProfile = new Map<string, BalanceSummary>();
-  ((balances ?? []) as BalanceSummary[]).forEach((b) =>
-    annualByProfile.set(b.profile_id, b)
-  );
-  const upcomingRows = (upcoming ?? []) as unknown as RequestWithRelations[];
+  balances.forEach((b) => annualByProfile.set(b.profile_id, b));
 
   return (
     <div className="space-y-8">

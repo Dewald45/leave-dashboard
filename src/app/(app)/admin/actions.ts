@@ -1,32 +1,27 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { q, q1 } from "@/lib/db";
+import { getSessionProfile } from "@/lib/session";
+import { hashPassword } from "@/lib/password";
 
 export type AdminResult = { error?: string; success?: string };
 
-/** Coerce a form value into a valid gender or null. */
+async function assertAdmin(): Promise<string> {
+  const me = await getSessionProfile();
+  if (!me) throw new Error("Not signed in.");
+  if (me.role !== "admin") throw new Error("Administrator access required.");
+  return me.id;
+}
+
 function normaliseGender(value: FormDataEntryValue | null): "male" | "female" | null {
   const g = String(value || "").trim().toLowerCase();
   return g === "male" || g === "female" ? g : null;
 }
 
-/** Verify the caller is an admin (server actions are not covered by middleware). */
-async function assertAdmin(): Promise<string> {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  if (!profile || profile.role !== "admin") {
-    throw new Error("Administrator access required.");
-  }
-  return user.id;
+function normaliseRole(value: FormDataEntryValue | null): string {
+  const r = String(value || "employee").trim();
+  return ["employee", "manager", "admin"].includes(r) ? r : "employee";
 }
 
 export async function createEmployee(
@@ -42,7 +37,7 @@ export async function createEmployee(
   const fullName = String(formData.get("full_name") || "").trim();
   const email = String(formData.get("email") || "").trim().toLowerCase();
   const password = String(formData.get("password") || "");
-  const role = String(formData.get("role") || "employee");
+  const role = normaliseRole(formData.get("role"));
   const department = String(formData.get("department") || "").trim() || null;
   const jobTitle = String(formData.get("job_title") || "").trim() || null;
   const managerId = String(formData.get("manager_id") || "") || null;
@@ -58,37 +53,26 @@ export async function createEmployee(
     return { error: "Temporary password must be at least 8 characters." };
   }
 
-  const admin = createAdminClient();
-
-  const { data: created, error: createErr } = await admin.auth.admin.createUser({
+  const existing = await q1("select id from users where lower(email) = lower($1)", [
     email,
-    password,
-    email_confirm: true,
-    user_metadata: { full_name: fullName },
-  });
+  ]);
+  if (existing) return { error: "A user with that email already exists." };
 
-  if (createErr || !created?.user) {
-    return { error: createErr?.message || "Could not create the account." };
-  }
+  const hash = await hashPassword(password);
+  const user = await q1<{ id: string }>(
+    "insert into users (email, password_hash) values ($1, $2) returning id",
+    [email, hash]
+  );
+  if (!user) return { error: "Could not create the account." };
 
-  // handle_new_user() created a base profile + balances; refine the details.
-  const { error: updErr } = await admin
-    .from("profiles")
-    .update({
-      full_name: fullName,
-      role,
-      department,
-      job_title: jobTitle,
-      manager_id: managerId,
-      gender,
-      employment_start_date: startDate,
-    })
-    .eq("id", created.user.id);
+  await q(
+    `insert into profiles (id, full_name, email, role, manager_id, department, job_title, gender, employment_start_date)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+    [user.id, fullName, email, role, managerId, department, jobTitle, gender, startDate]
+  );
 
-  if (updErr) return { error: updErr.message };
-
-  // Grant the gender-appropriate leave (parental vs maternity).
-  await admin.rpc("sync_leave_eligibility", { p_profile: created.user.id });
+  // Grant the gender-appropriate leave (parental vs maternity) + the rest.
+  await q("select public.sync_leave_eligibility($1)", [user.id]);
 
   revalidatePath("/admin");
   revalidatePath("/team");
@@ -97,22 +81,19 @@ export async function createEmployee(
 
 export async function updateEmployee(formData: FormData): Promise<void> {
   await assertAdmin();
-  const admin = createAdminClient();
   const id = String(formData.get("id") || "");
   if (!id) return;
 
-  const role = String(formData.get("role") || "employee");
+  const role = normaliseRole(formData.get("role"));
   const managerId = String(formData.get("manager_id") || "") || null;
   const department = String(formData.get("department") || "").trim() || null;
   const gender = normaliseGender(formData.get("gender"));
 
-  await admin
-    .from("profiles")
-    .update({ role, manager_id: managerId, department, gender })
-    .eq("id", id);
-
-  // Re-grant / remove parental vs maternity to match the (possibly new) gender.
-  await admin.rpc("sync_leave_eligibility", { p_profile: id });
+  await q(
+    "update profiles set role = $1, manager_id = $2, department = $3, gender = $4 where id = $5",
+    [role, managerId, department, gender, id]
+  );
+  await q("select public.sync_leave_eligibility($1)", [id]);
 
   revalidatePath("/admin");
   revalidatePath("/team");
@@ -121,30 +102,21 @@ export async function updateEmployee(formData: FormData): Promise<void> {
 
 export async function updateBalance(formData: FormData): Promise<void> {
   await assertAdmin();
-  const admin = createAdminClient();
   const id = String(formData.get("balance_id") || "");
   if (!id) return;
 
   const entitled = Number(formData.get("entitled_days"));
   const reserved = Number(formData.get("reserved_days"));
 
-  await admin
-    .from("leave_balances")
-    .update({
-      entitled_days: isNaN(entitled) ? 0 : entitled,
-      reserved_days: isNaN(reserved) ? 0 : reserved,
-    })
-    .eq("id", id);
+  await q(
+    "update leave_balances set entitled_days = $1, reserved_days = $2 where id = $3",
+    [isNaN(entitled) ? 0 : entitled, isNaN(reserved) ? 0 : reserved, id]
+  );
 
   revalidatePath("/admin");
   revalidatePath("/dashboard");
 }
 
-/**
- * Permanently delete an employee: removes their auth account, which cascades to
- * their profile, balances and leave history. Their reports' manager_id is set
- * to null. Admins cannot delete themselves.
- */
 export async function deleteEmployee(formData: FormData): Promise<AdminResult> {
   let adminId: string;
   try {
@@ -155,23 +127,16 @@ export async function deleteEmployee(formData: FormData): Promise<AdminResult> {
 
   const id = String(formData.get("id") || "");
   if (!id) return { error: "No employee specified." };
-  if (id === adminId) {
-    return { error: "You can't delete your own account." };
-  }
+  if (id === adminId) return { error: "You can't delete your own account." };
 
-  const admin = createAdminClient();
-  const { error } = await admin.auth.admin.deleteUser(id);
-  if (error) return { error: error.message };
+  // Deleting the user cascades to profile, sessions, balances and requests.
+  await q("delete from users where id = $1", [id]);
 
   revalidatePath("/admin");
   revalidatePath("/team");
   return { success: "Employee removed." };
 }
 
-/**
- * Admin sets a new password for an employee (e.g. a forgotten-password reset).
- * The employee signs in immediately with the new password — share it securely.
- */
 export async function resetPassword(
   _prev: AdminResult,
   formData: FormData
@@ -189,9 +154,15 @@ export async function resetPassword(
     return { error: "New password must be at least 8 characters." };
   }
 
-  const admin = createAdminClient();
-  const { error } = await admin.auth.admin.updateUserById(id, { password });
-  if (error) return { error: error.message };
+  const hash = await hashPassword(password);
+  const updated = await q(
+    "update users set password_hash = $1 where id = $2 returning id",
+    [hash, id]
+  );
+  if (updated.length === 0) return { error: "That employee no longer exists." };
+
+  // Force re-login everywhere with the new password.
+  await q("delete from sessions where user_id = $1", [id]);
 
   return { success: "Password updated — share it securely with the employee." };
 }

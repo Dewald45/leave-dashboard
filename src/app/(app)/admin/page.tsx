@@ -4,22 +4,19 @@ import DeleteEmployeeButton from "./DeleteEmployeeButton";
 import ResetPasswordForm from "./ResetPasswordForm";
 import { updateEmployee, updateBalance } from "./actions";
 import { requireProfile } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
 import { CURRENT_YEAR } from "@/lib/queries";
-import type { BalanceSummary, Profile } from "@/lib/types";
+import { getAllProfiles, getAllBalances } from "@/lib/data";
+import type { BalanceSummary } from "@/lib/types";
 import PageHeader from "@/components/PageHeader";
 
 export default async function AdminPage() {
   const { profile } = await requireProfile();
   if (profile.role !== "admin") redirect("/dashboard");
 
-  const supabase = createClient();
-  const [{ data: people }, { data: balances }] = await Promise.all([
-    supabase.from("profiles").select("*").order("full_name"),
-    supabase.from("balance_summary").select("*").eq("year", CURRENT_YEAR),
+  const [profiles, balances] = await Promise.all([
+    getAllProfiles(),
+    getAllBalances(CURRENT_YEAR),
   ]);
-
-  const profiles = (people ?? []) as Profile[];
   const managers = profiles.map((p) => ({ id: p.id, full_name: p.full_name }));
   const nameById = new Map(profiles.map((p) => [p.id, p.full_name]));
   const balancesByProfile = new Map<string, BalanceSummary[]>();

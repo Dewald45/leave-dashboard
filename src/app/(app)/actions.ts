@@ -1,8 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { q, q1 } from "@/lib/db";
+import { getSessionProfile } from "@/lib/session";
 import { workingDaysBetween } from "@/lib/leave";
+import {
+  getLeaveType,
+  getBalanceForType,
+  getRequestForDecision,
+} from "@/lib/data";
 import {
   notifyManagerOfRequest,
   notifyEmployeeOfDecision,
@@ -15,11 +21,8 @@ export async function createRequest(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Not signed in." };
+  const me = await getSessionProfile();
+  if (!me) return { error: "Not signed in." };
 
   const leaveTypeId = Number(formData.get("leave_type_id"));
   const startDate = String(formData.get("start_date") || "");
@@ -38,74 +41,47 @@ export async function createRequest(
     return { error: "The selected range has no working days (weekends/holidays only)." };
   }
 
-  // Some leave is granted automatically (e.g. the year-end closure) and can't
-  // be applied for — reject it server-side even if the UI is bypassed.
-  const { data: lt } = await supabase
-    .from("leave_types")
-    .select("name, bookable")
-    .eq("id", leaveTypeId)
-    .maybeSingle();
-  if (lt && lt.bookable === false) {
+  const lt = await getLeaveType(leaveTypeId);
+  if (!lt) return { error: "Unknown leave type." };
+  if (lt.bookable === false) {
     return {
       error: `${lt.name} is granted to everyone automatically — no need to apply for it.`,
     };
   }
 
-  // Balance guard for deductible leave types — accrued minus already-pending.
-  const { data: bal } = await supabase
-    .from("balance_summary")
-    .select("available_days, pending_days, deducts_balance, leave_name")
-    .eq("profile_id", user.id)
-    .eq("leave_type_id", leaveTypeId)
-    .eq("year", new Date(startDate).getUTCFullYear())
-    .maybeSingle();
-
-  if (bal && bal.deducts_balance) {
+  const year = new Date(startDate + "T00:00:00Z").getUTCFullYear();
+  const bal = await getBalanceForType(me.id, leaveTypeId, year);
+  if (!bal) {
+    return { error: `You're not eligible for ${lt.name}.` };
+  }
+  if (bal.deducts_balance) {
     const remaining = Number(bal.available_days) - Number(bal.pending_days);
     if (days > remaining) {
       return {
-        error: `Not enough ${bal.leave_name}: ${days} working day(s) requested but only ${remaining} available (after accrual and pending requests).`,
+        error: `Not enough ${lt.name}: ${days} working day(s) requested but only ${remaining} available (after accrual and pending requests).`,
       };
     }
   }
 
-  const { error } = await supabase.from("leave_requests").insert({
-    profile_id: user.id,
-    leave_type_id: leaveTypeId,
-    start_date: startDate,
-    end_date: endDate,
-    days,
-    reason,
-  });
-
-  if (error) return { error: error.message };
+  await q(
+    `insert into leave_requests (profile_id, leave_type_id, start_date, end_date, days, reason, status)
+     values ($1, $2, $3, $4, $5, $6, 'pending')`,
+    [me.id, leaveTypeId, startDate, endDate, days, reason]
+  );
 
   // Notify the line manager (best-effort).
   try {
-    const { data: me } = await supabase
-      .from("profiles")
-      .select("full_name, manager_id")
-      .eq("id", user.id)
-      .single();
-    if (me?.manager_id) {
-      const [{ data: mgr }, { data: lt }] = await Promise.all([
-        supabase
-          .from("profiles")
-          .select("email, full_name")
-          .eq("id", me.manager_id)
-          .single(),
-        supabase
-          .from("leave_types")
-          .select("name")
-          .eq("id", leaveTypeId)
-          .single(),
-      ]);
+    if (me.manager_id) {
+      const mgr = await q1<{ email: string; full_name: string }>(
+        "select email, full_name from profiles where id = $1",
+        [me.manager_id]
+      );
       if (mgr?.email) {
         await notifyManagerOfRequest({
           managerEmail: mgr.email,
           managerName: mgr.full_name,
           employeeName: me.full_name,
-          leaveType: lt?.name ?? "Leave",
+          leaveType: lt.name,
           startDate,
           endDate,
           days,
@@ -123,70 +99,65 @@ export async function createRequest(
   return { success: `Request submitted for ${days} working day(s).` };
 }
 
-/** Requester cancels their own pending request. */
+/** Requester cancels their own pending request (admins may cancel any pending). */
 export async function cancelRequest(formData: FormData): Promise<void> {
-  const supabase = createClient();
+  const me = await getSessionProfile();
+  if (!me) return;
   const id = String(formData.get("id") || "");
   if (!id) return;
-  await supabase
-    .from("leave_requests")
-    .update({ status: "cancelled" })
-    .eq("id", id);
+
+  await q(
+    `update leave_requests set status = 'cancelled'
+      where id = $1 and status = 'pending' and (profile_id = $2 or $3)`,
+    [id, me.id, me.role === "admin"]
+  );
+
   revalidatePath("/dashboard");
   revalidatePath("/requests");
+  revalidatePath("/approvals");
 }
 
 /** Manager/admin approves or rejects a report's request. */
 export async function decideRequest(formData: FormData): Promise<void> {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const me = await getSessionProfile();
+  if (!me) return;
   const id = String(formData.get("id") || "");
   const decision = String(formData.get("decision") || "");
   const note = String(formData.get("note") || "").trim() || null;
   if (!id || !["approved", "rejected"].includes(decision)) return;
 
-  const { error } = await supabase
-    .from("leave_requests")
-    .update({ status: decision, decision_note: note })
-    .eq("id", id);
+  const req = await getRequestForDecision(id);
+  if (!req) return;
 
-  if (!error) {
-    // Notify the employee of the outcome (best-effort).
-    try {
-      const { data: req } = await supabase
-        .from("leave_requests")
-        .select(
-          "start_date,end_date,days,decision_note,status,profiles:profiles!profile_id(email,full_name),leave_types(name)"
-        )
-        .eq("id", id)
-        .single();
-      const { data: decider } = user
-        ? await supabase
-            .from("profiles")
-            .select("full_name")
-            .eq("id", user.id)
-            .single()
-        : { data: null };
+  // Only the requester's line manager or an admin may decide.
+  const allowed = me.role === "admin" || req.manager_id === me.id;
+  if (!allowed) return;
 
-      const emp = (req as any)?.profiles;
-      if (emp?.email) {
-        await notifyEmployeeOfDecision({
-          employeeEmail: emp.email,
-          employeeName: emp.full_name,
-          leaveType: (req as any)?.leave_types?.name ?? "Leave",
-          startDate: (req as any).start_date,
-          endDate: (req as any).end_date,
-          days: Number((req as any).days),
-          decision: decision as "approved" | "rejected",
-          note,
-          deciderName: decider?.full_name ?? "Your manager",
-        });
-      }
-    } catch (e) {
-      console.error("[decideRequest] employee notification failed:", e);
+  const updated = await q(
+    `update leave_requests
+        set status = $1, decision_note = $2, approver_id = $3, decided_at = now()
+      where id = $4 and status = 'pending'
+      returning id`,
+    [decision, note, me.id, id]
+  );
+  if (updated.length === 0) return; // already decided / cancelled
+
+  try {
+    if (req.employee_email) {
+      await notifyEmployeeOfDecision({
+        employeeEmail: req.employee_email,
+        employeeName: req.employee_name,
+        leaveType: req.leave_name,
+        startDate: req.start_date,
+        endDate: req.end_date,
+        days: Number(req.days),
+        decision: decision as "approved" | "rejected",
+        note,
+        deciderName: me.full_name,
+      });
     }
+  } catch (e) {
+    console.error("[decideRequest] employee notification failed:", e);
   }
 
   revalidatePath("/approvals");

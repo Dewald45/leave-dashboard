@@ -2,41 +2,19 @@ import Link from "next/link";
 import BalanceCard from "@/components/BalanceCard";
 import RequestsTable from "@/components/RequestsTable";
 import { requireProfile } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
-import { REQUEST_SELECT, CURRENT_YEAR } from "@/lib/queries";
-import type { BalanceSummary, RequestWithRelations } from "@/lib/types";
+import { CURRENT_YEAR } from "@/lib/queries";
+import { ensureYearBalances, getBalances, getMyRequests } from "@/lib/data";
 
 export default async function DashboardPage() {
   const { profile, userId } = await requireProfile();
-  const supabase = createClient();
 
   // Ensure the current year's balances exist (annual reset / new-year rollover).
-  await supabase.rpc("ensure_my_year_balances");
+  await ensureYearBalances(userId);
 
-  const [{ data: balances }, { data: requests }, { data: pendingForMe }] =
-    await Promise.all([
-      supabase
-        .from("balance_summary")
-        .select("*")
-        .eq("profile_id", userId)
-        .eq("year", CURRENT_YEAR)
-        .order("leave_type_id"),
-      supabase
-        .from("leave_requests")
-        .select(REQUEST_SELECT)
-        .eq("profile_id", userId)
-        .order("created_at", { ascending: false })
-        .limit(5),
-      profile.role === "manager" || profile.role === "admin"
-        ? supabase
-            .from("leave_requests")
-            .select("id", { count: "exact", head: true })
-            .eq("status", "pending")
-        : Promise.resolve({ data: null, count: 0 } as any),
-    ]);
-
-  const bs = (balances ?? []) as BalanceSummary[];
-  const reqs = (requests ?? []) as unknown as RequestWithRelations[];
+  const [bs, reqs] = await Promise.all([
+    getBalances(userId, CURRENT_YEAR),
+    getMyRequests(userId, 5),
+  ]);
 
   const annual = bs.find((b) => b.leave_code === "annual");
 

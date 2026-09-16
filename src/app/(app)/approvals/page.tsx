@@ -2,35 +2,17 @@ import { redirect } from "next/navigation";
 import ApprovalCard from "@/components/ApprovalCard";
 import RequestsTable from "@/components/RequestsTable";
 import { requireProfile, isManagerOrAdmin } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
-import { REQUEST_SELECT } from "@/lib/queries";
-import type { RequestWithRelations } from "@/lib/types";
+import { getPendingApprovals, getRecentDecisions } from "@/lib/data";
 import PageHeader from "@/components/PageHeader";
 
 export default async function ApprovalsPage() {
-  const { profile, userId } = await requireProfile();
+  const { profile } = await requireProfile();
   if (!isManagerOrAdmin(profile.role)) redirect("/dashboard");
 
-  const supabase = createClient();
-
-  // RLS already limits a manager to their direct reports; admin sees all.
-  const { data: pending } = await supabase
-    .from("leave_requests")
-    .select(REQUEST_SELECT)
-    .eq("status", "pending")
-    .neq("profile_id", userId)
-    .order("created_at", { ascending: true });
-
-  const { data: decided } = await supabase
-    .from("leave_requests")
-    .select(REQUEST_SELECT)
-    .in("status", ["approved", "rejected"])
-    .neq("profile_id", userId)
-    .order("decided_at", { ascending: false })
-    .limit(15);
-
-  const pendingRows = (pending ?? []) as unknown as RequestWithRelations[];
-  const decidedRows = (decided ?? []) as unknown as RequestWithRelations[];
+  const [pendingRows, decidedRows] = await Promise.all([
+    getPendingApprovals(profile),
+    getRecentDecisions(profile),
+  ]);
 
   return (
     <div className="space-y-8">

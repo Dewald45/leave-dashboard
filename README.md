@@ -1,118 +1,80 @@
 # Leave Dashboard
 
 A company leave-application dashboard for a South African company — annual, sick,
-and family-responsibility leave with an employee → line-manager approval flow, and
-built-in handling of the **year-end closure** (5 days from annual leave + 5
-company-paid days).
+family-responsibility, parental/maternity and year-end-closure leave, with an
+employee → line-manager approval flow and email notifications.
 
-Built with **Next.js (App Router, TypeScript, Tailwind)** and **Supabase**
-(Postgres, Auth, Row-Level Security).
+**Fully self-hosted**: **Next.js** (App Router, TypeScript, Tailwind) + **plain
+PostgreSQL** + in-app authentication (bcrypt + database sessions). No third-party
+backend — runs anywhere Docker runs.
 
 ## Leave policy encoded
 
-| Leave type              | Allocation                        | Notes                                             |
-| ----------------------- | --------------------------------- | ------------------------------------------------- |
-| Annual leave            | 15 working days / year            | **Accrues** at 1.25 days/month; 5 days reserved for the year-end closure |
-| Year-end closure (paid) | 5 company-paid days               | Do **not** reduce the annual balance              |
-| Sick leave              | 30 days / 36-month cycle (BCEA)   | Granted in full                                   |
-| Family responsibility   | 3 days / year (BCEA)              | Granted in full                                   |
+| Leave type              | Allocation                                   | Notes |
+| ----------------------- | -------------------------------------------- | ----- |
+| Annual leave            | 15 working days/year, accrues 1.25/month     | 5 days held for the year-end closure |
+| Year-end closure (paid) | 5 company-paid days                          | Auto-granted — shown, never applied for |
+| Sick leave              | 30 days / 36-month cycle (BCEA)              | Throttled in the first 6 months |
+| Family responsibility   | 3 days/year (BCEA)                          | After 4 months' service |
+| Parental leave (fathers)| 10 days                                      | Male profiles; "speak to HR" note |
+| Maternity leave (mothers)| ~4 months (≈90 working days)                | Female profiles; "speak to HR" note |
 
-Working days are calculated automatically, excluding weekends and South African
-public holidays (see `src/lib/leave.ts`).
+Working days exclude weekends and South African public holidays. Parental vs
+maternity is scoped by the employee's `gender` on their profile.
 
-### Accrual & annual reset
+## Architecture
 
-Annual leave **accrues over the calendar year** at the BCEA rate (15 days ÷ 12 ≈
-1.25 days/month) rather than being available up front — so on 1 January an
-employee has ~0 bookable annual days, growing through the year. The bookable
-amount is `min(accrued-to-date, 15 − 5 reserved)` minus approved leave, i.e. at
-most 10 discretionary days, with 5 always held for the closure. Mid-year joiners
-are pro-rated by their employment start date.
+- **App**: Next.js server components + server actions. Authorization is enforced
+  server-side (no database RLS).
+- **Auth**: `users` table (bcrypt password hashes) + `sessions` table + a signed
+  HTTP-only cookie. See `src/lib/session.ts`.
+- **Data**: `node-postgres` (`pg`) over `src/lib/data.ts`. Schema, business-logic
+  functions and the `balance_summary` view live in [`db/schema.sql`](db/schema.sql)
+  (idempotent — applied on every boot by `scripts/migrate.mjs`).
+- **Email**: Resend (`src/lib/email.ts`), best-effort.
 
-The leave cycle is the calendar year, so **balances reset every 1 January**.
-New-year balances are created lazily when a user opens the app
-(`ensure_my_year_balances` RPC) and by a `pg_cron` job (`yearly-leave-rollover`)
-so managers see everyone immediately.
+## Run it with Docker (recommended)
 
-### Email notifications (Resend)
+```bash
+cp .env.docker.example .env      # fill in POSTGRES_PASSWORD, RESEND_*, SEED_ADMIN_*
+docker compose up -d --build
+```
 
-- **New application →** the employee's line manager is emailed.
-- **Approved / declined →** the employee is emailed the outcome and any note.
+This starts Postgres (with a persistent volume) and the app on `APP_PORT` (3000
+by default). On first boot the schema is created and — if `SEED_ADMIN_EMAIL`/
+`SEED_ADMIN_PASSWORD` are set and that user doesn't exist — an admin is seeded.
 
-Configured via `RESEND_API_KEY` and `RESEND_FROM` (see `.env.example`). Emails
-are best-effort — a Resend failure is logged but never blocks the leave action.
+See [DEPLOY.md](DEPLOY.md) for Portainer.
 
-> **Domain verification:** with Resend's sandbox sender (`onboarding@resend.dev`)
-> you can only deliver to your own Resend account email. To email all staff,
-> verify your domain at resend.com/domains and set
-> `RESEND_FROM="Leave Dashboard <leave@yourcompany.co.za>"`.
+## Local development
 
-## Roles & approval flow
+You need a Postgres for the app to talk to. Quickest:
 
-- **Employee** — applies for leave, sees own balances and requests.
-- **Manager** — everything above, plus approves/rejects their direct reports'
-  requests and sees their team.
-- **Admin (HR)** — full oversight: create staff, set roles and reporting lines,
-  adjust allocations, approve anything.
+```bash
+cp .env.docker.example .env         # sets POSTGRES_PASSWORD for the db container
+docker compose up -d db             # just Postgres, on localhost:5432
+cp .env.example .env.local          # DATABASE_URL etc. (already filled for this project)
+npm install
+npm run db:migrate                  # apply schema + seed the admin
+npm run dev                         # http://localhost:3000
+```
 
-An employee submits a request → it appears in their line manager's **Approvals**
-queue → the manager approves or rejects (optionally with a note). Balance checks
-and an approval-guard database trigger enforce the rules server-side.
+`.env.local` is gitignored and already contains this project's local values.
 
-## Local setup
+## Environment variables
 
-1. Install dependencies:
+| Variable | Used by | Notes |
+| --- | --- | --- |
+| `DATABASE_URL` | app + migrate | Postgres connection string |
+| `APP_URL` | emails | Base URL for links |
+| `RESEND_API_KEY` / `RESEND_FROM` | emails | Resend sender (verified domain) |
+| `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` / `SEED_ADMIN_NAME` | migrate | First-run admin (created once) |
 
-   ```bash
-   npm install
-   ```
-
-2. Copy the env template and fill it in from your Supabase project
-   (Project Settings → API):
-
-   ```bash
-   cp .env.example .env.local
-   ```
-
-   `.env.local` is gitignored and already populated for this project.
-
-3. Run the dev server:
-
-   ```bash
-   npm run dev
-   ```
-
-   Open http://localhost:3000.
-
-## Database
-
-The schema lives in `supabase/migrations/` (`0001_init.sql` +
-`0002_accrual_rollover.sql`) and is already applied to the Supabase project.
-It contains:
-
-- `profiles`, `leave_types`, `leave_balances`, `leave_requests`
-- `balance_summary` view (used/pending/available per person per type)
-- Row-Level Security on every table
-- `handle_new_user` trigger — auto-provisions a profile + balances on signup
-  (the **first** user becomes admin)
-- `guard_request_change` trigger — only a line manager or admin can approve/reject
-
-To re-apply on a fresh project, run the SQL in the Supabase SQL editor.
+For the Docker stack, `docker-compose.yml` builds `DATABASE_URL` from
+`POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB`.
 
 ## First sign-in
 
-The first account created becomes the **admin**. From **Admin** you can:
-
-- **Add** staff (each gets a temporary password to share securely)
-- Set their **role**, **line manager** and **department**
-- Adjust **leave allocations** (entitled / reserved days per type)
-- **Reset a password** — set a new password for any user (immediate; share it
-  securely). Handy when someone is locked out.
-- **Remove an employee** — permanently deletes their account, balances and leave
-  history (cascades in the database; their reports' manager link is cleared).
-  Admins can't delete their own account.
-
-## Deploy
-
-Deploy to Vercel and set the same three environment variables. Point the Supabase
-project's Auth → URL configuration at your deployed URL.
+Log in with the seeded `SEED_ADMIN_*` credentials, then add staff from **Admin**
+(set each person's role, line manager, department and **gender** so they get the
+right parental/maternity leave). Change your password after first sign-in.

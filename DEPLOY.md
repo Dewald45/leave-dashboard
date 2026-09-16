@@ -1,95 +1,57 @@
-# Deploying to a subdomain on xneelo
+# Deploying (self-hosted, Docker / Portainer)
 
-This app is a **Next.js server application** (SSR, server actions, auth cookies,
-middleware). It is **not** a static site, so it cannot run on xneelo's standard
-shared hosting (Apache/PHP). Pick one of the two options below.
+The app is a self-contained Docker image (Next.js standalone) plus a PostgreSQL
+container. No Supabase, no external backend. The schema is applied automatically
+on every start, so deploys are just "pull new image → recreate".
 
----
+## What's in the box
 
-## ✅ Option A (recommended): Host on Vercel, point the subdomain via xneelo DNS
+- `Dockerfile` — multi-stage build → small standalone runtime; on start it runs
+  `scripts/migrate.mjs` (applies `db/schema.sql`, seeds the admin once) then boots.
+- `docker-compose.yml` — two services: `db` (postgres:16 + named volume
+  `leave_pgdata`) and `app`.
+- `.env.docker.example` — the variables to provide.
 
-xneelo keeps hosting your main `mediarocket.co.za` site and DNS. You simply add a
-DNS record so `leave.mediarocket.co.za` resolves to the app running on Vercel
-(free, zero-config, built by the Next.js team). ~15 minutes.
+## Option A — Portainer stack from the Git repo (simplest)
 
-### 1. Deploy the app to Vercel
+1. In Portainer: **Stacks → Add stack → Git repository**.
+2. Repository URL: `https://github.com/Dewald45/leave-dashboard`, ref `main`,
+   compose path `docker-compose.yml`.
+3. Under **Environment variables**, add the keys from `.env.docker.example`:
+   - `POSTGRES_PASSWORD` (required, strong)
+   - `APP_URL` = `https://leave.zenithlabs.space`
+   - `RESEND_API_KEY`, `RESEND_FROM` = `Leave Dashboard <leave@mediarocket.co.za>`
+   - `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, `SEED_ADMIN_NAME` (first-run admin)
+   - optional: `APP_PORT`, `POSTGRES_USER`, `POSTGRES_DB`
+4. Deploy. Portainer builds the image and starts both containers. Point your
+   existing reverse proxy / domain (leave.zenithlabs.space) at the `app` service
+   on port 3000, as you already do.
 
-- Go to https://vercel.com and sign in with the **GitHub** account (`Dewald45`).
-- **Add New → Project → Import** `Dewald45/leave-dashboard`.
-- Framework preset auto-detects **Next.js**. Leave build settings as default.
-- Add the **Environment Variables** (copy the values from your `.env.local`):
-  - `NEXT_PUBLIC_SUPABASE_URL`
-  - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-  - `SUPABASE_SERVICE_ROLE_KEY`
-  - `RESEND_API_KEY`
-  - `RESEND_FROM`
-  - `APP_URL`  → set to `https://leave.mediarocket.co.za`
-- Click **Deploy**. You'll get a temporary `*.vercel.app` URL.
+To ship an update: **Pull and redeploy** the stack (Portainer rebuilds from the
+latest `main`). The volume persists data; the schema step is idempotent.
 
-### 2. Add the custom subdomain in Vercel
+## Option B — Prebuilt image from GHCR
 
-- Project → **Settings → Domains** → add `leave.mediarocket.co.za`.
-- Vercel shows the DNS record to create — for a subdomain it's a **CNAME**:
-  - **Name/Host:** `leave`
-  - **Value/Target:** `cname.vercel-dns.com`
+If you'd rather not build on the server, build in CI and pull the image:
 
-### 3. Add the DNS record in xneelo (konsoleH)
+1. Add a GitHub Actions workflow that builds and pushes
+   `ghcr.io/dewald45/leave-dashboard:latest` on push to `main` (happy to add this
+   — just say the word).
+2. In `docker-compose.yml`, comment out `build: .` under `app` and uncomment the
+   `image:` line.
+3. Point the Portainer stack at the compose file and enable its **webhook** so a
+   new push redeploys automatically.
 
-- Log in to **konsoleH** (xneelo's control panel).
-- Select the `mediarocket.co.za` domain → **DNS / Zone Editor** (sometimes under
-  "Advanced DNS" or "Manage DNS").
-- **Add a new record:**
-  - Type: `CNAME`
-  - Host/Name: `leave`
-  - Destination/Value: `cname.vercel-dns.com`  (a trailing dot is fine)
-  - TTL: default (e.g. 3600)
-- Save. DNS usually propagates in minutes (can take up to a few hours).
+## Data & backups
 
-> If konsoleH won't accept a CNAME on a subdomain, use Vercel's **A record**
-> alternative instead: Type `A`, Host `leave`, Value `76.76.21.21`.
+- All data lives in the `leave_pgdata` volume. Back it up with
+  `docker exec <db> pg_dump -U leave leave > backup.sql`.
+- The first-run seed only creates the admin if that email doesn't already exist —
+  safe to leave the `SEED_ADMIN_*` vars in place across redeploys.
 
-Vercel auto-issues a free SSL certificate once the record resolves — the site
-will be live at **https://leave.mediarocket.co.za**.
+## Notes
 
-### 4. Point Supabase Auth at the subdomain
-
-In the Supabase dashboard → **Authentication → URL Configuration**:
-
-- **Site URL:** `https://leave.mediarocket.co.za`
-- Add it under **Redirect URLs** too.
-
-That's it. Every `git push` to `main` now auto-deploys.
-
----
-
-## Option B: Run on an xneelo VPS / Cloud server (all-on-xneelo)
-
-Only if you specifically want everything hosted at xneelo. You need a VPS/Cloud
-plan with **Node.js** (shared hosting won't do).
-
-```bash
-# On the server (Node 18+ installed):
-git clone https://github.com/Dewald45/leave-dashboard.git
-cd leave-dashboard
-npm install
-cp .env.example .env.local     # fill in the same values as local
-npm run build
-
-# Keep it running with a process manager:
-npm i -g pm2
-pm2 start "npm start" --name leave-dashboard   # serves on port 3000
-pm2 save && pm2 startup
-```
-
-Then put **nginx** in front as a reverse proxy for `leave.mediarocket.co.za`
-(proxy_pass to `http://localhost:3000`) and issue SSL with **Let's Encrypt**
-(`certbot`). Point the `leave` DNS A record at the server's IP in konsoleH.
-Set `APP_URL` and the Supabase Auth URLs to the subdomain as in Option A step 4.
-
----
-
-## Why not xneelo shared hosting / a static export?
-
-`next export` (static HTML) would drop the login, approval flow, RLS-backed data
-access and email actions — all of which need a Node server. Shared hosting can't
-run that server, so Option A or B is required.
+- `APP_URL` must match the public URL (used in notification email links).
+- `RESEND_FROM` must be on your verified Resend domain to reach all staff.
+- Sessions are database-backed; no session secret to manage. Rotating
+  `POSTGRES_PASSWORD` requires updating it in the stack env.

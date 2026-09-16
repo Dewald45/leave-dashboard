@@ -1,26 +1,19 @@
 import ApplyForm from "./ApplyForm";
 import { requireProfile } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
 import { CURRENT_YEAR } from "@/lib/queries";
-import type { BalanceSummary, LeaveType } from "@/lib/types";
+import { ensureYearBalances, getBalances, getLeaveTypes } from "@/lib/data";
+import type { LeaveType } from "@/lib/types";
 import PageHeader from "@/components/PageHeader";
 
 export default async function ApplyPage() {
   const { userId } = await requireProfile();
-  const supabase = createClient();
 
-  await supabase.rpc("ensure_my_year_balances");
+  await ensureYearBalances(userId);
 
-  const [{ data: types }, { data: balances }] = await Promise.all([
-    supabase.from("leave_types").select("*").order("sort_order"),
-    supabase
-      .from("balance_summary")
-      .select("*")
-      .eq("profile_id", userId)
-      .eq("year", CURRENT_YEAR),
+  const [types, balanceRows] = await Promise.all([
+    getLeaveTypes(),
+    getBalances(userId, CURRENT_YEAR),
   ]);
-
-  const balanceRows = (balances ?? []) as BalanceSummary[];
   // Only offer leave the employee is actually entitled to (scopes parental vs
   // maternity to the right person) AND that can be applied for — auto-granted
   // leave like the year-end closure is shown on the dashboard, never booked.
