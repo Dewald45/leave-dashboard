@@ -69,7 +69,7 @@ export default function BalanceCard({ b }: { b: BalanceSummary }) {
       ? `Unlocks after ${b.min_service_months} months`
       : isLongCycle && b.cycle_end
         ? capped
-          ? `${fmt(total)} of ${fmt(fullTotal)} unlocked so far — it builds over your first 6 months · refills ${formatDate(b.cycle_end)}`
+          ? `${fmt(total)} of ${fmt(fullTotal)} unlocked so far (builds over your first 6 months)`
           : `${fmt(fullTotal)} days per ${Number(b.cycle_months) / 12}-year cycle · refills ${formatDate(b.cycle_end)}`
         : b.accrues
           ? `${fmt(Number(b.accrued_days))} of ${total} earned${
@@ -86,7 +86,7 @@ export default function BalanceCard({ b }: { b: BalanceSummary }) {
       : null;
 
   return (
-    <div className="rounded-3xl p-5" style={tint}>
+    <div className="flex h-full flex-col rounded-3xl p-5" style={tint}>
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2">
           <span
@@ -102,7 +102,7 @@ export default function BalanceCard({ b }: { b: BalanceSummary }) {
         ) : null}
       </div>
 
-      <div className="mt-4 flex items-baseline gap-1.5">
+      <div className="mt-3 flex items-baseline gap-1.5">
         <span className="text-4xl font-bold leading-none text-ink-900">
           {b.deducts_balance ? fmt(Math.max(0, available - pending)) : total}
         </span>
@@ -116,27 +116,31 @@ export default function BalanceCard({ b }: { b: BalanceSummary }) {
         </p>
       ) : null}
 
-      <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-ink-900/10">
+      <div className="mt-auto pt-3">
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-ink-900/10">
         <div
           className="h-full rounded-full"
           style={{ width: locked ? "0%" : `${pct}%`, backgroundColor: accent }}
         />
       </div>
 
-      <dl className="mt-4 grid grid-cols-3 gap-2 border-t border-ink-900/10 pt-3 text-center text-xs">
-        <div>
-          <dt className="text-[11px] text-ink-700">Used</dt>
+      <dl className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-700">
+        <div className="flex gap-1">
+          <dt>Used</dt>
           <dd className="font-semibold text-ink-900">{used}</dd>
         </div>
-        <div>
-          <dt className="text-[11px] text-ink-700">Pending</dt>
+        <div className="flex gap-1">
+          <dt>Pending</dt>
           <dd className="font-semibold text-ink-900">{pending}</dd>
         </div>
-        <div>
-          <dt className="text-[11px] text-ink-700">Held</dt>
-          <dd className="font-semibold text-ink-900">{reserved}</dd>
-        </div>
+        {reserved > 0 ? (
+          <div className="flex gap-1">
+            <dt>Held for closure</dt>
+            <dd className="font-semibold text-ink-900">{reserved}</dd>
+          </div>
+        ) : null}
       </dl>
+      </div>
     </div>
   );
 }

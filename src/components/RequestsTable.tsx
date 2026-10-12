@@ -27,20 +27,20 @@ export default function RequestsTable({
       <table className="min-w-full divide-y divide-sand-100 text-sm">
         <thead className="text-left text-xs font-medium text-sand-600">
           <tr>
-            {showEmployee ? <th className="px-5 py-4 font-medium">Employee</th> : null}
-            <th className="px-5 py-4 font-medium">Type</th>
-            <th className="px-5 py-4 font-medium">Dates</th>
-            <th className="px-5 py-4 font-medium">Days</th>
-            <th className="px-5 py-4 font-medium">Status</th>
-            <th className="px-5 py-4 font-medium">Note</th>
-            {allowCancel ? <th className="px-5 py-4 font-medium"></th> : null}
+            {showEmployee ? <th className="px-5 py-2.5 font-medium">Employee</th> : null}
+            <th className="px-5 py-2.5 font-medium">Type</th>
+            <th className="px-5 py-2.5 font-medium">Dates</th>
+            <th className="px-5 py-2.5 font-medium">Days</th>
+            <th className="px-5 py-2.5 font-medium">Status</th>
+            <th className="px-5 py-2.5 font-medium">Note</th>
+            {allowCancel ? <th className="px-5 py-2.5 font-medium"></th> : null}
           </tr>
         </thead>
         <tbody className="divide-y divide-sand-100">
           {rows.map((r) => (
             <tr key={r.id} className="hover:bg-sand-50/60">
               {showEmployee ? (
-                <td className="px-5 py-3.5">
+                <td className="px-5 py-2.5">
                   <div className="font-medium text-ink-900">
                     {r.profiles?.full_name ?? "—"}
                   </div>
@@ -49,7 +49,7 @@ export default function RequestsTable({
                   </div>
                 </td>
               ) : null}
-              <td className="px-5 py-3.5">
+              <td className="px-5 py-2.5">
                 <span className="inline-flex items-center gap-1.5">
                   <span
                     className="h-2.5 w-2.5 rounded-full"
@@ -58,14 +58,14 @@ export default function RequestsTable({
                   {r.leave_types?.name ?? "—"}
                 </span>
               </td>
-              <td className="px-5 py-3.5 text-sand-600">
+              <td className="px-5 py-2.5 text-sand-600">
                 {formatDate(r.start_date)} → {formatDate(r.end_date)}
               </td>
-              <td className="px-5 py-3.5 font-medium text-ink-900">{r.days}</td>
-              <td className="px-5 py-3.5">
+              <td className="px-5 py-2.5 font-medium text-ink-900">{r.days}</td>
+              <td className="px-5 py-2.5">
                 <StatusBadge status={r.status} />
               </td>
-              <td className="px-5 py-3.5 max-w-[16rem] text-sand-600">
+              <td className="px-5 py-2.5 max-w-[16rem] text-sand-600">
                 {r.reason ? (
                   <span title={r.reason} className="line-clamp-2">
                     {r.reason}
@@ -80,7 +80,7 @@ export default function RequestsTable({
                 ) : null}
               </td>
               {allowCancel ? (
-                <td className="px-5 py-3.5 text-right">
+                <td className="px-5 py-2.5 text-right">
                   {r.status === "pending" ? (
                     <form action={cancelRequest}>
                       <input type="hidden" name="id" value={r.id} />
