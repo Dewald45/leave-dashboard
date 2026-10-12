@@ -9,6 +9,12 @@ import {
 import PageHeader from "@/components/PageHeader";
 import type { BalanceSummary } from "@/lib/types";
 
+/** Annual days still bookable: after pending requests, including carry-over. */
+const left = (b: { available_days: number; pending_days: number }) => {
+  const n = Math.max(0, Number(b.available_days) - Number(b.pending_days));
+  return Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/0$/, "");
+};
+
 export default async function TeamPage() {
   const { profile } = await requireProfile();
   if (!isManagerOrAdmin(profile.role)) redirect("/dashboard");
@@ -35,14 +41,51 @@ export default async function TeamPage() {
         <h2 className="mb-3 text-lg font-semibold text-ink-900">
           People ({team.length})
         </h2>
-        <div className="overflow-x-auto rounded-3xl bg-white">
+        {/* Phones: stacked cards instead of a four-column table. */}
+        <ul className="divide-y divide-sand-100 rounded-3xl bg-white md:hidden">
+          {team.map((m) => {
+            const b = annualByProfile.get(m.id);
+            return (
+              <li
+                key={m.id}
+                className="flex items-center justify-between gap-3 px-4 py-3.5"
+              >
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-semibold text-ink-900">
+                    {m.full_name}
+                  </div>
+                  <div className="truncate text-xs text-sand-600">
+                    <span className="capitalize">{m.role}</span>
+                    {m.department ? ` · ${m.department}` : ""}
+                  </div>
+                </div>
+                <div className="shrink-0 text-right">
+                  <div className="text-sm font-semibold text-ink-900">
+                    {b ? (
+                      left(b)
+                    ) : (
+                      "—"
+                    )}
+                  </div>
+                  <div className="text-[11px] text-sand-600">annual days left</div>
+                </div>
+              </li>
+            );
+          })}
+          {!team.length ? (
+            <li className="px-4 py-8 text-center text-sm text-sand-500">
+              No team members yet.
+            </li>
+          ) : null}
+        </ul>
+        <div className="hidden md:block overflow-x-auto rounded-3xl bg-white">
           <table className="min-w-full divide-y divide-sand-100 text-sm">
             <thead className="text-left text-xs font-medium text-sand-600">
               <tr>
                 <th className="px-5 py-4 font-medium">Name</th>
                 <th className="px-5 py-4 font-medium">Role</th>
                 <th className="px-5 py-4 font-medium">Department</th>
-                <th className="px-5 py-4 font-medium">Annual available</th>
+                <th className="px-5 py-4 font-medium">Annual left to book</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-sand-100">
@@ -65,11 +108,8 @@ export default async function TeamPage() {
                     <td className="px-5 py-3.5">
                       {b ? (
                         <span className="font-semibold text-ink-900">
-                          {b.available_days}
-                          <span className="font-normal text-sand-500">
-                            {" "}
-                            / {b.entitled_days}
-                          </span>
+                          {left(b)}
+                          <span className="font-normal text-sand-600"> days</span>
                         </span>
                       ) : (
                         <span className="text-sand-300">—</span>

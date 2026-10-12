@@ -11,7 +11,7 @@ export default function PageHeader({
   return (
     <div className="flex flex-wrap items-end justify-between gap-4 pt-1">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-ink-900">
+        <h1 className="text-2xl font-bold tracking-tight text-ink-900 sm:text-3xl">
           {title}
         </h1>
         {children ? (

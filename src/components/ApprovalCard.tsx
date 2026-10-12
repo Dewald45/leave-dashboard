@@ -1,6 +1,12 @@
 import { decideRequest } from "@/app/(app)/actions";
-import { formatDate } from "@/lib/leave";
+import { formatDate, leaveAccent } from "@/lib/leave";
 import type { RequestWithRelations } from "@/lib/types";
+
+/** Same colour the balance cards use for this leave type. */
+const typeColor = (r: RequestWithRelations) =>
+  r.leave_types
+    ? leaveAccent(r.leave_types.code, r.leave_types.color)
+    : "#94a3b8";
 
 export default function ApprovalCard({ r }: { r: RequestWithRelations }) {
   return (
@@ -9,8 +15,8 @@ export default function ApprovalCard({ r }: { r: RequestWithRelations }) {
         <div>
           <div className="flex items-center gap-2">
             <span
-              className="h-2.5 w-2.5 rounded-full"
-              style={{ backgroundColor: r.leave_types?.color ?? "#94a3b8" }}
+              className="h-2.5 w-2.5 shrink-0 rounded-full"
+              style={{ backgroundColor: typeColor(r) }}
             />
             <span className="font-semibold text-ink-900">
               {r.profiles?.full_name ?? "—"}

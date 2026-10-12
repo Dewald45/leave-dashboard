@@ -98,7 +98,7 @@ export default async function DashboardPage() {
         ))}
       </section>
 
-      <section className="flex min-h-[8.5rem] flex-1 flex-col overflow-hidden rounded-3xl bg-white p-2">
+      <section className="flex flex-1 flex-col overflow-hidden rounded-3xl bg-white p-2 lg:min-h-[8.5rem]">
         <div className="flex items-center justify-between px-4 pb-1 pt-3">
           <h2 className="text-sm font-semibold text-ink-900">
             Recently attempted
@@ -107,7 +107,7 @@ export default async function DashboardPage() {
             href="/requests"
             className="text-sm font-medium text-brand-700 hover:underline"
           >
-            See the full history →
+            Full history →
           </Link>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto">
