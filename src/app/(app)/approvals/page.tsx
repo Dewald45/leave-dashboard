@@ -24,7 +24,7 @@ export default async function ApprovalsPage() {
 
       <section>
         <div className="mb-3 flex items-center gap-2">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-sand-600">
+          <h2 className="text-lg font-semibold text-ink-900">
             Awaiting decision
           </h2>
           <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
@@ -38,14 +38,14 @@ export default async function ApprovalsPage() {
             ))}
           </div>
         ) : (
-          <div className="rounded-xl border border-dashed border-sand-200 bg-white p-8 text-center text-sm text-sand-500">
+          <div className="rounded-3xl border border-dashed border-sand-300 bg-white/60 p-8 text-center text-sm text-sand-500">
             Nothing awaiting your approval. 🎉
           </div>
         )}
       </section>
 
       <section>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-sand-600">
+        <h2 className="mb-3 text-lg font-semibold text-ink-900">
           Recently decided
         </h2>
         <RequestsTable

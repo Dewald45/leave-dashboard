@@ -20,16 +20,17 @@ type SendArgs = {
   html: string;
 };
 
-export async function sendEmail({ to, subject, html }: SendArgs): Promise<void> {
+/** Resolves true only when Resend accepted the message. */
+export async function sendEmail({ to, subject, html }: SendArgs): Promise<boolean> {
   const key = process.env.RESEND_API_KEY;
   const from =
     process.env.RESEND_FROM || "TimeOff <onboarding@resend.dev>";
 
   if (!key) {
     console.warn("[email] RESEND_API_KEY not set — skipping email to", to);
-    return;
+    return false;
   }
-  if (!to) return;
+  if (!to) return false;
 
   try {
     const res = await fetch(RESEND_ENDPOINT, {
@@ -42,9 +43,12 @@ export async function sendEmail({ to, subject, html }: SendArgs): Promise<void> 
     });
     if (!res.ok) {
       console.error("[email] Resend responded", res.status, await res.text());
+      return false;
     }
+    return true;
   } catch (err) {
     console.error("[email] send failed:", err);
+    return false;
   }
 }
 
@@ -64,7 +68,7 @@ function layout(
       <!-- header -->
       <div style="background:#0a0a0a;padding:18px 24px">
         <span style="display:inline-block;height:9px;width:9px;border-radius:50%;background:#ff3300;margin-right:8px;vertical-align:middle"></span>
-        <span style="color:#ffffff;font-weight:800;font-size:16px;letter-spacing:-0.02em;vertical-align:middle">Leave</span>
+        <span style="color:#ffffff;font-weight:800;font-size:16px;letter-spacing:-0.02em;vertical-align:middle">TimeOff</span>
         <span style="color:#8f8f8f;font-size:12px;margin-left:8px;vertical-align:middle">Media Rocket</span>
       </div>
       <!-- body -->
@@ -186,6 +190,42 @@ export async function notifyEmployeeOfDecision(args: {
     html: layout(title, body, {
       href: `${appUrl()}/requests`,
       label: "View my requests",
+    }),
+  });
+}
+
+/** Carried-over leave is about to expire → warn the employee. */
+export async function notifyEmployeeOfExpiry(args: {
+  employeeEmail: string;
+  employeeName: string;
+  leaveType: string;
+  days: number;
+  expiresOn: string;
+  daysLeft: number;
+}): Promise<boolean> {
+  const dayWord = args.days === 1 ? "day" : "days";
+  const when =
+    args.daysLeft <= 0
+      ? "today"
+      : args.daysLeft === 1
+        ? "tomorrow"
+        : `in ${args.daysLeft} days`;
+
+  const body = `
+    <p style="margin:0 0 10px">Hi ${args.employeeName || "there"},</p>
+    <p style="margin:0">You still have <strong>${args.days} ${dayWord}</strong> of ${args.leaveType} left over from your last leave year, and they expire <strong style="color:#e02d00">${when}</strong>.</p>
+    ${detailRows([
+      ["Days about to expire", String(args.days)],
+      ["Leave must start on or before", fmt(args.expiresOn)],
+    ])}
+    <p style="margin:0;color:#7a7a7a">Leave carried over from one leave year has to be taken within six months of the next. After that it's gone — book it or wave it goodbye.</p>
+  `;
+  return sendEmail({
+    to: args.employeeEmail,
+    subject: `${args.days} leave ${dayWord} expire ${when} — use them or lose them`,
+    html: layout("Your leftover leave is about to expire", body, {
+      href: `${appUrl()}/apply`,
+      label: "Book it now",
     }),
   });
 }

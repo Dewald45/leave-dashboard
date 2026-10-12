@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import RequestsTable from "@/components/RequestsTable";
 import { requireProfile, isManagerOrAdmin } from "@/lib/auth";
-import { CURRENT_YEAR } from "@/lib/queries";
 import {
   getTeamMembers,
   getAnnualBalances,
@@ -17,10 +16,7 @@ export default async function TeamPage() {
   const isAdmin = profile.role === "admin";
   const team = await getTeamMembers(profile);
   const [balances, upcomingRows] = await Promise.all([
-    getAnnualBalances(
-      team.map((m) => m.id),
-      CURRENT_YEAR
-    ),
+    getAnnualBalances(team.map((m) => m.id)),
     getUpcomingApproved(profile),
   ]);
 
@@ -36,17 +32,17 @@ export default async function TeamPage() {
       </PageHeader>
 
       <section>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-sand-600">
+        <h2 className="mb-3 text-lg font-semibold text-ink-900">
           People ({team.length})
         </h2>
-        <div className="overflow-x-auto rounded-xl border border-sand-200 bg-white">
+        <div className="overflow-x-auto rounded-3xl bg-white">
           <table className="min-w-full divide-y divide-sand-100 text-sm">
-            <thead className="bg-sand-50 text-left text-xs uppercase tracking-wide text-sand-600">
+            <thead className="text-left text-xs font-medium text-sand-600">
               <tr>
-                <th className="px-4 py-3">Name</th>
-                <th className="px-4 py-3">Role</th>
-                <th className="px-4 py-3">Department</th>
-                <th className="px-4 py-3">Annual available</th>
+                <th className="px-5 py-4 font-medium">Name</th>
+                <th className="px-5 py-4 font-medium">Role</th>
+                <th className="px-5 py-4 font-medium">Department</th>
+                <th className="px-5 py-4 font-medium">Annual available</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-sand-100">
@@ -54,19 +50,19 @@ export default async function TeamPage() {
                 const b = annualByProfile.get(m.id);
                 return (
                   <tr key={m.id} className="hover:bg-sand-50/60">
-                    <td className="px-4 py-3">
+                    <td className="px-5 py-3.5">
                       <div className="font-medium text-ink-900">
                         {m.full_name}
                       </div>
                       <div className="text-xs text-sand-500">{m.email}</div>
                     </td>
-                    <td className="px-4 py-3 capitalize text-sand-600">
+                    <td className="px-5 py-3.5 capitalize text-sand-600">
                       {m.role}
                     </td>
-                    <td className="px-4 py-3 text-sand-600">
+                    <td className="px-5 py-3.5 text-sand-600">
                       {m.department ?? "—"}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-5 py-3.5">
                       {b ? (
                         <span className="font-semibold text-ink-900">
                           {b.available_days}
@@ -98,7 +94,7 @@ export default async function TeamPage() {
       </section>
 
       <section>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-sand-600">
+        <h2 className="mb-3 text-lg font-semibold text-ink-900">
           Upcoming approved leave
         </h2>
         <RequestsTable

@@ -4,7 +4,6 @@ import DeleteEmployeeButton from "./DeleteEmployeeButton";
 import ResetPasswordForm from "./ResetPasswordForm";
 import { updateEmployee, updateBalance } from "./actions";
 import { requireProfile } from "@/lib/auth";
-import { CURRENT_YEAR } from "@/lib/queries";
 import { getAllProfiles, getAllBalances } from "@/lib/data";
 import type { BalanceSummary } from "@/lib/types";
 import PageHeader from "@/components/PageHeader";
@@ -15,7 +14,7 @@ export default async function AdminPage() {
 
   const [profiles, balances] = await Promise.all([
     getAllProfiles(),
-    getAllBalances(CURRENT_YEAR),
+    getAllBalances(),
   ]);
   const managers = profiles.map((p) => ({ id: p.id, full_name: p.full_name }));
   const nameById = new Map(profiles.map((p) => [p.id, p.full_name]));
@@ -34,14 +33,14 @@ export default async function AdminPage() {
       </PageHeader>
 
       <section>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-sand-600">
+        <h2 className="mb-3 text-lg font-semibold text-ink-900">
           Add an employee
         </h2>
         <AddEmployeeForm managers={managers} />
       </section>
 
       <section>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-sand-600">
+        <h2 className="mb-3 text-lg font-semibold text-ink-900">
           Employees ({profiles.length})
         </h2>
         <div className="space-y-3">
@@ -52,7 +51,7 @@ export default async function AdminPage() {
             return (
               <details
                 key={p.id}
-                className="rounded-2xl border border-sand-200 bg-white shadow-sm"
+                className="rounded-3xl bg-white"
               >
                 <summary className="flex cursor-pointer flex-wrap items-center justify-between gap-2 px-5 py-4">
                   <div>
@@ -88,7 +87,7 @@ export default async function AdminPage() {
                       <select
                         name="role"
                         defaultValue={p.role}
-                        className="rounded-lg border border-sand-300 px-3 py-1.5 text-sm"
+                        className="rounded-xl border border-sand-300 px-3 py-1.5 text-sm"
                       >
                         <option value="employee">Employee</option>
                         <option value="manager">Manager</option>
@@ -102,7 +101,7 @@ export default async function AdminPage() {
                       <select
                         name="manager_id"
                         defaultValue={p.manager_id ?? ""}
-                        className="rounded-lg border border-sand-300 px-3 py-1.5 text-sm"
+                        className="rounded-xl border border-sand-300 px-3 py-1.5 text-sm"
                       >
                         <option value="">— None —</option>
                         {managers
@@ -121,7 +120,7 @@ export default async function AdminPage() {
                       <input
                         name="department"
                         defaultValue={p.department ?? ""}
-                        className="rounded-lg border border-sand-300 px-3 py-1.5 text-sm"
+                        className="rounded-xl border border-sand-300 px-3 py-1.5 text-sm"
                       />
                     </div>
                     <div>
@@ -131,7 +130,7 @@ export default async function AdminPage() {
                       <select
                         name="gender"
                         defaultValue={p.gender ?? ""}
-                        className="rounded-lg border border-sand-300 px-3 py-1.5 text-sm"
+                        className="rounded-xl border border-sand-300 px-3 py-1.5 text-sm"
                       >
                         <option value="">— Unset —</option>
                         <option value="male">Male</option>
@@ -140,7 +139,7 @@ export default async function AdminPage() {
                     </div>
                     <button
                       type="submit"
-                      className="rounded-lg bg-ink-900 px-4 py-1.5 text-sm font-semibold text-white hover:bg-ink-800"
+                      className="rounded-full bg-ink-900 px-4 py-1.5 text-sm font-semibold text-white hover:bg-ink-800"
                     >
                       Save
                     </button>
@@ -149,14 +148,14 @@ export default async function AdminPage() {
                   {/* Balances */}
                   <div className="mt-5">
                     <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-sand-500">
-                      {CURRENT_YEAR} allocations
+                      Current cycle allocations
                     </h3>
                     <div className="grid gap-2 sm:grid-cols-2">
                       {bs.map((b) => (
                         <form
                           key={b.id}
                           action={updateBalance}
-                          className="flex items-end gap-2 rounded-lg border border-sand-100 bg-sand-50 p-3"
+                          className="flex flex-wrap items-end gap-2 rounded-2xl border border-sand-100 bg-sand-50 p-3"
                         >
                           <input
                             type="hidden"
@@ -178,7 +177,7 @@ export default async function AdminPage() {
                                   name="entitled_days"
                                   type="number"
                                   step="0.5"
-                                  defaultValue={b.entitled_days}
+                                  defaultValue={b.full_entitled_days}
                                   className="mt-0.5 w-20 rounded border border-sand-300 px-2 py-1 text-sm"
                                 />
                               </label>
@@ -192,11 +191,24 @@ export default async function AdminPage() {
                                   className="mt-0.5 w-20 rounded border border-sand-300 px-2 py-1 text-sm"
                                 />
                               </label>
+                              {b.carry_months > 0 ? (
+                                <label className="text-[11px] text-sand-500">
+                                  Carried over
+                                  <input
+                                    name="carried_days"
+                                    type="number"
+                                    step="0.5"
+                                    min="0"
+                                    defaultValue={b.carried_days}
+                                    className="mt-0.5 w-20 rounded border border-sand-300 px-2 py-1 text-sm"
+                                  />
+                                </label>
+                              ) : null}
                             </div>
                           </div>
                           <button
                             type="submit"
-                            className="rounded-lg border border-sand-300 bg-white px-3 py-1.5 text-xs font-medium text-sand-600 hover:bg-sand-100"
+                            className="rounded-full border border-sand-300 bg-white px-3 py-1.5 text-xs font-medium text-sand-600 hover:bg-sand-100"
                           >
                             Update
                           </button>

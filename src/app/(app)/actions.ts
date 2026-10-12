@@ -49,18 +49,24 @@ export async function createRequest(
     };
   }
 
-  const year = new Date(startDate + "T00:00:00Z").getUTCFullYear();
-  const bal = await getBalanceForType(me.id, leaveTypeId, year);
+  // The request counts against the cycle its first day falls in.
+  const bal = await getBalanceForType(me.id, leaveTypeId, startDate);
   if (!bal) {
     return { error: `You're not eligible for ${lt.name}.` };
   }
+  let leftAfter: number | null = null;
   if (bal.deducts_balance) {
-    const remaining = Number(bal.available_days) - Number(bal.pending_days);
+    let remaining = Number(bal.available_days) - Number(bal.pending_days);
+    // Carried-over days can only pay for leave that starts before they expire.
+    if (bal.carry_expires && startDate > bal.carry_expires) {
+      remaining -= Number(bal.carry_left);
+    }
     if (days > remaining) {
       return {
-        error: `Not enough ${lt.name}: ${days} working day(s) requested but only ${remaining} available (after accrual and pending requests).`,
+        error: `Not enough ${lt.name}: ${days} working day(s) requested but only ${remaining} left to book in this leave cycle (after pending requests and any days held for the year-end closure).`,
       };
     }
+    leftAfter = remaining - days;
   }
 
   await q(
@@ -96,7 +102,15 @@ export async function createRequest(
   revalidatePath("/dashboard");
   revalidatePath("/requests");
   revalidatePath("/approvals");
-  return { success: `Request submitted for ${days} working day(s).` };
+  const fmt = (n: number) =>
+    Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/0$/, "");
+  return {
+    success:
+      `Request sent for ${fmt(days)} working day${days === 1 ? "" : "s"}.` +
+      (leftAfter === null
+        ? ""
+        : ` Counting this one, you have ${fmt(leftAfter)} day${leftAfter === 1 ? "" : "s"} of ${lt.name} left to book.`),
+  };
 }
 
 /** Requester cancels their own pending request (admins may cancel any pending). */

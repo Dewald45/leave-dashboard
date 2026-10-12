@@ -60,8 +60,12 @@ export interface BalanceSummary {
   accrues: boolean;
   /** False for auto-granted leave (e.g. year-end closure) — shown, not applied for. */
   bookable: boolean;
-  /** 12 for calendar-year types, 36 for sick leave (BCEA s22). */
+  /** 12 for annual-style types, 36 for sick leave (BCEA s22). */
   cycle_months: number;
+  /** "start" = cycle runs from the employee's start date; "calendar" = Jan–Dec. */
+  cycle_anchor: "start" | "calendar";
+  /** True when today falls inside this balance's cycle. */
+  is_current: boolean;
   /** Months of service required before this type may be taken (BCEA s27). */
   min_service_months: number;
   /** True once the employee has served long enough to use this type. */
@@ -71,12 +75,24 @@ export interface BalanceSummary {
   /** Last day of that cycle (ISO date). */
   cycle_end: string;
   year: number;
+  /** What may be used right now (sick leave is capped in the first six months). */
   entitled_days: number;
+  /** The cycle's full allocation, before that cap. */
+  full_entitled_days: number;
   reserved_days: number;
   accrued_days: number;
   used_days: number;
   pending_days: number;
+  /** Bookable before pending requests; includes carried-over days until they expire. */
   available_days: number;
+  /** Months unused days stay usable into the next cycle (0 = never carries over). */
+  carry_months: number;
+  /** Days brought in from the previous cycle. */
+  carried_days: number;
+  /** Last day carried-over leave may start on (ISO date); null if the type never carries over. */
+  carry_expires: string | null;
+  /** Carried-over days still unbooked and due to expire. */
+  carry_left: number;
 }
 
 /** Request joined with the requester profile and leave type — used in tables. */

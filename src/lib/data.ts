@@ -11,12 +11,15 @@ import type {
 
 const BALANCE_COLS = `
   b.id, b.profile_id, b.leave_type_id, b.leave_code, b.leave_name, b.leave_color,
-  b.deducts_balance, b.accrues, b.bookable, b.cycle_months, b.min_service_months, b.year,
-  b.cycle_start::text as cycle_start, b.cycle_end::text as cycle_end,
-  b.entitled_days::float8 as entitled_days, b.reserved_days::float8 as reserved_days,
+  b.deducts_balance, b.accrues, b.bookable, b.cycle_months, b.cycle_anchor, b.carry_months, b.min_service_months, b.year,
+  b.cycle_start::text as cycle_start, b.cycle_end::text as cycle_end, b.is_current,
+  b.entitled_days::float8 as entitled_days, b.full_entitled_days::float8 as full_entitled_days,
+  b.reserved_days::float8 as reserved_days,
   b.service_met,
   b.accrued_days::float8 as accrued_days, b.used_days::float8 as used_days,
-  b.pending_days::float8 as pending_days, b.available_days::float8 as available_days`;
+  b.pending_days::float8 as pending_days, b.available_days::float8 as available_days,
+  b.carried_days::float8 as carried_days, b.carry_expires::text as carry_expires,
+  b.carry_left::float8 as carry_left`;
 
 const REQUEST_SELECT = `
   select r.id, r.profile_id, r.leave_type_id,
@@ -38,43 +41,55 @@ const PROFILE_COLS = `
 
 // ---------- balances ----------
 
-/** Provision the current year's balances for a profile (idempotent). */
-export async function ensureYearBalances(profileId: string): Promise<void> {
-  await q("select public.provision_balances($1, extract(year from current_date)::int)", [
-    profileId,
-  ]);
+/**
+ * Provision a profile's balances for the cycles in progress today (idempotent).
+ * Cycles roll over on each person's own start-date anniversary, so this runs
+ * on page load rather than on 1 January.
+ */
+export async function ensureCurrentBalances(profileId: string): Promise<void> {
+  await q("select public.provision_balances($1, current_date)", [profileId]);
 }
 
-export function getBalances(profileId: string, year: number) {
+/** Same, for everyone — so admin and team views never miss someone whose cycle just rolled over. */
+export async function ensureAllCurrentBalances(): Promise<void> {
+  await q("select public.provision_balances(id, current_date) from profiles");
+}
+
+/** A profile's balances for the cycles in progress today. */
+export function getBalances(profileId: string) {
   return q<BalanceSummary>(
     `select ${BALANCE_COLS} from balance_summary b
-      where b.profile_id = $1 and b.year = $2 order by b.leave_type_id`,
-    [profileId, year]
+      where b.profile_id = $1 and b.is_current order by b.leave_type_id`,
+    [profileId]
   );
 }
 
-export function getAllBalances(year: number) {
+export async function getAllBalances() {
+  await ensureAllCurrentBalances();
   return q<BalanceSummary>(
-    `select ${BALANCE_COLS} from balance_summary b where b.year = $1 order by b.leave_type_id`,
-    [year]
+    `select ${BALANCE_COLS} from balance_summary b where b.is_current order by b.leave_type_id`
   );
 }
 
-/** Annual balances for a set of profiles (used on the Team page). */
-export function getAnnualBalances(profileIds: string[], year: number) {
-  if (profileIds.length === 0) return Promise.resolve([] as BalanceSummary[]);
+/** Current annual balances for a set of profiles (used on the Team page). */
+export async function getAnnualBalances(profileIds: string[]) {
+  if (profileIds.length === 0) return [] as BalanceSummary[];
+  await ensureAllCurrentBalances();
   return q<BalanceSummary>(
     `select ${BALANCE_COLS} from balance_summary b
-      where b.leave_code = 'annual' and b.year = $1 and b.profile_id = any($2::uuid[])`,
-    [year, profileIds]
+      where b.leave_code = 'annual' and b.is_current and b.profile_id = any($1::uuid[])`,
+    [profileIds]
   );
 }
 
-export function getBalanceForType(profileId: string, typeId: number, year: number) {
+/** The balance whose cycle contains `onDate` (ISO date) — provisioned on demand for future cycles. */
+export async function getBalanceForType(profileId: string, typeId: number, onDate: string) {
+  await q("select public.provision_balances($1, $2::date)", [profileId, onDate]);
   return q1<BalanceSummary>(
     `select ${BALANCE_COLS} from balance_summary b
-      where b.profile_id = $1 and b.leave_type_id = $2 and b.year = $3`,
-    [profileId, typeId, year]
+      where b.profile_id = $1 and b.leave_type_id = $2
+        and $3::date between b.cycle_start and b.cycle_end`,
+    [profileId, typeId, onDate]
   );
 }
 

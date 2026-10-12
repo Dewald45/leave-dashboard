@@ -10,7 +10,7 @@ function Submit() {
     <button
       type="submit"
       disabled={pending}
-      className="rounded-lg bg-ink-900 px-4 py-1.5 text-sm font-semibold text-white hover:bg-ink-800 disabled:opacity-50"
+      className="rounded-full bg-ink-900 px-4 py-1.5 text-sm font-semibold text-white hover:bg-ink-800 disabled:opacity-50"
     >
       {pending ? "Saving…" : "Set password"}
     </button>
@@ -43,13 +43,13 @@ export default function ResetPasswordForm({ id }: { id: string }) {
           minLength={8}
           required
           placeholder="At least 8 characters"
-          className="w-56 rounded-lg border border-sand-300 px-3 py-1.5 text-sm"
+          className="w-56 rounded-xl border border-sand-300 px-3 py-1.5 text-sm"
         />
       </div>
       <button
         type="button"
         onClick={() => setPw(randomPassword())}
-        className="rounded-lg border border-sand-200 px-3 py-1.5 text-xs font-medium text-sand-600 hover:bg-sand-50"
+        className="rounded-full border border-sand-200 px-3 py-1.5 text-xs font-medium text-sand-600 hover:bg-sand-50"
       >
         Generate
       </button>

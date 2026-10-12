@@ -55,7 +55,7 @@ async function main() {
         [user.id, name, email]
       );
       await client.query(
-        "select public.provision_balances($1, extract(year from current_date)::int)",
+        "select public.provision_balances($1, current_date)",
         [user.id]
       );
       console.log(`[migrate] seeded admin ${email}`);

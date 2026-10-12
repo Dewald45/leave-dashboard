@@ -7,7 +7,7 @@
 }
 
 body {
-  @apply bg-sand-100 font-sans text-ink-900 antialiased;
+  @apply bg-sand-200 font-sans text-ink-900 antialiased;
 }
 
 /*
