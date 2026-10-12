@@ -155,7 +155,7 @@ export default async function AdminPage() {
                         <form
                           key={b.id}
                           action={updateBalance}
-                          className="flex items-end gap-2 rounded-lg border border-sand-100 bg-sand-50 p-3"
+                          className="flex flex-wrap items-end gap-2 rounded-2xl border border-sand-100 bg-sand-50 p-3"
                         >
                           <input
                             type="hidden"
@@ -191,6 +191,19 @@ export default async function AdminPage() {
                                   className="mt-0.5 w-20 rounded border border-sand-300 px-2 py-1 text-sm"
                                 />
                               </label>
+                              {b.carry_months > 0 ? (
+                                <label className="text-[11px] text-sand-500">
+                                  Carried over
+                                  <input
+                                    name="carried_days"
+                                    type="number"
+                                    step="0.5"
+                                    min="0"
+                                    defaultValue={b.carried_days}
+                                    className="mt-0.5 w-20 rounded border border-sand-300 px-2 py-1 text-sm"
+                                  />
+                                </label>
+                              ) : null}
                             </div>
                           </div>
                           <button

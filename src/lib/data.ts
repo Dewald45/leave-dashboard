@@ -11,12 +11,14 @@ import type {
 
 const BALANCE_COLS = `
   b.id, b.profile_id, b.leave_type_id, b.leave_code, b.leave_name, b.leave_color,
-  b.deducts_balance, b.accrues, b.bookable, b.cycle_months, b.cycle_anchor, b.min_service_months, b.year,
+  b.deducts_balance, b.accrues, b.bookable, b.cycle_months, b.cycle_anchor, b.carry_months, b.min_service_months, b.year,
   b.cycle_start::text as cycle_start, b.cycle_end::text as cycle_end, b.is_current,
   b.entitled_days::float8 as entitled_days, b.reserved_days::float8 as reserved_days,
   b.service_met,
   b.accrued_days::float8 as accrued_days, b.used_days::float8 as used_days,
-  b.pending_days::float8 as pending_days, b.available_days::float8 as available_days`;
+  b.pending_days::float8 as pending_days, b.available_days::float8 as available_days,
+  b.carried_days::float8 as carried_days, b.carry_expires::text as carry_expires,
+  b.carry_left::float8 as carry_left`;
 
 const REQUEST_SELECT = `
   select r.id, r.profile_id, r.leave_type_id,
@@ -48,7 +50,7 @@ export async function ensureCurrentBalances(profileId: string): Promise<void> {
 }
 
 /** Same, for everyone — so admin and team views never miss someone whose cycle just rolled over. */
-async function ensureAllCurrentBalances(): Promise<void> {
+export async function ensureAllCurrentBalances(): Promise<void> {
   await q("select public.provision_balances(id, current_date) from profiles");
 }
 

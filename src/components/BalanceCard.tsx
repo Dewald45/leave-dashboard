@@ -71,6 +71,12 @@ export default function BalanceCard({ b }: { b: BalanceSummary }) {
             } · leave year ends ${formatDate(b.cycle_end)}`
           : null;
 
+  // Carried-over days that will vanish if they aren't booked in time.
+  const expiring =
+    !locked && Number(b.carry_left) > 0 && b.carry_expires
+      ? `${fmt(Number(b.carry_left))} carried over — use by ${formatDate(b.carry_expires)}`
+      : null;
+
   return (
     <div className="rounded-3xl p-5" style={tint}>
       <div className="flex items-start justify-between gap-2">
@@ -96,6 +102,11 @@ export default function BalanceCard({ b }: { b: BalanceSummary }) {
       </div>
 
       {meta ? <p className="mt-1.5 text-xs text-ink-700">{meta}</p> : null}
+      {expiring ? (
+        <p className="mt-2 inline-flex rounded-full bg-white/80 px-2.5 py-1 text-xs font-semibold text-brand-700">
+          {expiring}
+        </p>
+      ) : null}
 
       <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-ink-900/10">
         <div

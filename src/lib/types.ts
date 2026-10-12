@@ -80,7 +80,16 @@ export interface BalanceSummary {
   accrued_days: number;
   used_days: number;
   pending_days: number;
+  /** Bookable before pending requests; includes carried-over days until they expire. */
   available_days: number;
+  /** Months unused days stay usable into the next cycle (0 = never carries over). */
+  carry_months: number;
+  /** Days brought in from the previous cycle. */
+  carried_days: number;
+  /** Last day carried-over leave may start on (ISO date); null if the type never carries over. */
+  carry_expires: string | null;
+  /** Carried-over days still unbooked and due to expire. */
+  carry_left: number;
 }
 
 /** Request joined with the requester profile and leave type — used in tables. */

@@ -55,7 +55,11 @@ export async function createRequest(
     return { error: `You're not eligible for ${lt.name}.` };
   }
   if (bal.deducts_balance) {
-    const remaining = Number(bal.available_days) - Number(bal.pending_days);
+    let remaining = Number(bal.available_days) - Number(bal.pending_days);
+    // Carried-over days can only pay for leave that starts before they expire.
+    if (bal.carry_expires && startDate > bal.carry_expires) {
+      remaining -= Number(bal.carry_left);
+    }
     if (days > remaining) {
       return {
         error: `Not enough ${lt.name}: ${days} working day(s) requested but only ${remaining} left to book in this leave cycle (after pending requests and any days held for the year-end closure).`,

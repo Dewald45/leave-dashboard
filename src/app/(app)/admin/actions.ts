@@ -107,10 +107,22 @@ export async function updateBalance(formData: FormData): Promise<void> {
 
   const entitled = Number(formData.get("entitled_days"));
   const reserved = Number(formData.get("reserved_days"));
+  // Only sent for leave types that carry over; null leaves the stored value alone.
+  const carriedRaw = formData.get("carried_days");
+  const carried = carriedRaw === null ? null : Number(carriedRaw);
 
   await q(
-    "update leave_balances set entitled_days = $1, reserved_days = $2 where id = $3",
-    [isNaN(entitled) ? 0 : entitled, isNaN(reserved) ? 0 : reserved, id]
+    `update leave_balances
+        set entitled_days = $1, reserved_days = $2,
+            carried_days = coalesce($3, carried_days),
+            carry_settled = carry_settled or $3 is not null
+      where id = $4`,
+    [
+      isNaN(entitled) ? 0 : entitled,
+      isNaN(reserved) ? 0 : reserved,
+      carried === null || isNaN(carried) ? null : Math.max(0, carried),
+      id,
+    ]
   );
 
   revalidatePath("/admin");
