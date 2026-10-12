@@ -54,6 +54,7 @@ export async function createRequest(
   if (!bal) {
     return { error: `You're not eligible for ${lt.name}.` };
   }
+  let leftAfter: number | null = null;
   if (bal.deducts_balance) {
     let remaining = Number(bal.available_days) - Number(bal.pending_days);
     // Carried-over days can only pay for leave that starts before they expire.
@@ -65,6 +66,7 @@ export async function createRequest(
         error: `Not enough ${lt.name}: ${days} working day(s) requested but only ${remaining} left to book in this leave cycle (after pending requests and any days held for the year-end closure).`,
       };
     }
+    leftAfter = remaining - days;
   }
 
   await q(
@@ -100,7 +102,15 @@ export async function createRequest(
   revalidatePath("/dashboard");
   revalidatePath("/requests");
   revalidatePath("/approvals");
-  return { success: `Request submitted for ${days} working day(s).` };
+  const fmt = (n: number) =>
+    Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/0$/, "");
+  return {
+    success:
+      `Request sent for ${fmt(days)} working day${days === 1 ? "" : "s"}.` +
+      (leftAfter === null
+        ? ""
+        : ` Counting this one, you have ${fmt(leftAfter)} day${leftAfter === 1 ? "" : "s"} of ${lt.name} left to book.`),
+  };
 }
 
 /** Requester cancels their own pending request (admins may cancel any pending). */

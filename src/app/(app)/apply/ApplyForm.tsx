@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import { createRequest, type ActionResult } from "@/app/(app)/actions";
 import { workingDaysBetween } from "@/lib/leave";
@@ -31,6 +31,15 @@ export default function ApplyForm({
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
 
+  // Once a request has gone through, clear the dates so the summary doesn't
+  // look like a second request is being drafted.
+  useEffect(() => {
+    if (state?.success) {
+      setStart("");
+      setEnd("");
+    }
+  }, [state]);
+
   const selectedType = types.find((t) => t.id === typeId);
   const balance = balances.find((b) => b.leave_type_id === typeId);
 
@@ -39,10 +48,25 @@ export default function ApplyForm({
     return workingDaysBetween(start, end);
   }, [start, end]);
 
-  const overBalance =
-    !!balance &&
-    selectedType?.deducts_balance === true &&
-    days > Number(balance.available_days);
+  const deducts = selectedType?.deducts_balance === true;
+  // Leave starting after this cycle ends counts against the next one, which
+  // this page doesn't have the numbers for — the server checks it on submit.
+  const nextCycle = !!balance && !!start && start > balance.cycle_end;
+
+  // What can still be booked, after requests already waiting on a manager.
+  // Carried-over days only pay for leave that starts before they expire.
+  let bookable = 0;
+  if (balance) {
+    bookable = Number(balance.available_days) - Number(balance.pending_days);
+    if (balance.carry_expires && start && start > balance.carry_expires) {
+      bookable -= Number(balance.carry_left);
+    }
+  }
+  const showMaths = !!balance && deducts && !nextCycle;
+  const leftAfter = bookable - days;
+  const overBalance = showMaths && days > bookable;
+  const fmt = (n: number) =>
+    Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/0$/, "");
 
   return (
     <form
@@ -105,24 +129,44 @@ export default function ApplyForm({
       </div>
 
       {/* Live summary */}
-      <div className="flex flex-wrap items-center gap-4 rounded-lg bg-sand-50 px-4 py-3 text-sm">
+      <div className="flex flex-wrap items-center gap-4 rounded-2xl bg-sand-100 px-4 py-3 text-sm">
         <div>
           <span className="text-sand-500">Working days: </span>
           <span className="font-semibold text-ink-900">{days}</span>
         </div>
-        {balance ? (
+        {balance && !deducts ? (
           <div>
             <span className="text-sand-500">Available: </span>
             <span className="font-semibold text-ink-900">
-              {selectedType?.deducts_balance
-                ? balance.available_days
-                : `${balance.entitled_days} (company paid)`}
+              {balance.entitled_days} (company paid)
             </span>
           </div>
         ) : null}
+        {showMaths ? (
+          <>
+            <div>
+              <span className="text-sand-500">You have: </span>
+              <span className="font-semibold text-ink-900">{fmt(bookable)}</span>
+            </div>
+            {days > 0 && !overBalance ? (
+              <div>
+                <span className="text-sand-500">Left after this: </span>
+                <span className="font-semibold text-ink-900">
+                  {fmt(leftAfter)}
+                </span>
+              </div>
+            ) : null}
+          </>
+        ) : null}
+        {nextCycle && deducts ? (
+          <span className="text-xs text-sand-600">
+            This starts in your next leave year, so it comes off that
+            year&apos;s days.
+          </span>
+        ) : null}
         {overBalance ? (
           <span className="rounded bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-700">
-            Exceeds available balance
+            {fmt(days - bookable)} more than you have left
           </span>
         ) : null}
       </div>

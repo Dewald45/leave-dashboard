@@ -3,6 +3,10 @@ import { formatDate, leaveAccent } from "@/lib/leave";
 
 export default function BalanceCard({ b }: { b: BalanceSummary }) {
   const total = Number(b.entitled_days);
+  // The cycle's full allocation — more than `total` only while sick leave is
+  // still capped in the first six months.
+  const fullTotal = Number(b.full_entitled_days ?? b.entitled_days);
+  const capped = fullTotal > total;
   const available = Number(b.available_days);
   const used = Number(b.used_days);
   const pending = Number(b.pending_days);
@@ -12,7 +16,9 @@ export default function BalanceCard({ b }: { b: BalanceSummary }) {
     Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/0$/, "");
 
   const pct =
-    total > 0 ? Math.max(0, Math.min(100, (available / total) * 100)) : 0;
+    fullTotal > 0
+      ? Math.max(0, Math.min(100, ((available - pending) / fullTotal) * 100))
+      : 0;
 
   const locked = b.service_met === false;
   // A locked type still has an entitlement, but showing it in full colour
@@ -62,7 +68,9 @@ export default function BalanceCard({ b }: { b: BalanceSummary }) {
     locked
       ? `Unlocks after ${b.min_service_months} months`
       : isLongCycle && b.cycle_end
-        ? `Refills ${formatDate(b.cycle_end)}`
+        ? capped
+          ? `${fmt(total)} of ${fmt(fullTotal)} unlocked so far — it builds over your first 6 months · refills ${formatDate(b.cycle_end)}`
+          : `${fmt(fullTotal)} days per ${Number(b.cycle_months) / 12}-year cycle · refills ${formatDate(b.cycle_end)}`
         : b.accrues
           ? `${fmt(Number(b.accrued_days))} of ${total} earned${
               used + pending > Number(b.accrued_days)
@@ -96,9 +104,9 @@ export default function BalanceCard({ b }: { b: BalanceSummary }) {
 
       <div className="mt-4 flex items-baseline gap-1.5">
         <span className="text-4xl font-bold leading-none text-ink-900">
-          {b.deducts_balance ? fmt(available) : total}
+          {b.deducts_balance ? fmt(Math.max(0, available - pending)) : total}
         </span>
-        <span className="text-sm text-ink-700">/ {total}</span>
+        <span className="text-sm text-ink-700">/ {fmt(fullTotal)}</span>
       </div>
 
       {meta ? <p className="mt-1.5 text-xs text-ink-700">{meta}</p> : null}

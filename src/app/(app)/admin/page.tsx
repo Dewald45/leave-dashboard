@@ -177,7 +177,7 @@ export default async function AdminPage() {
                                   name="entitled_days"
                                   type="number"
                                   step="0.5"
-                                  defaultValue={b.entitled_days}
+                                  defaultValue={b.full_entitled_days}
                                   className="mt-0.5 w-20 rounded border border-sand-300 px-2 py-1 text-sm"
                                 />
                               </label>

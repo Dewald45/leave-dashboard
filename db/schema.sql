@@ -255,7 +255,7 @@ select
   c.deducts_balance, c.accrues, c.bookable, c.cycle_months, c.cycle_anchor, c.carry_months, c.min_service_months,
   c.year, c.cycle_start, c.cycle_end,
   (current_date between c.cycle_start and c.cycle_end) as is_current,
-  c.entitled_days, c.reserved_days, c.service_met,
+  c.entitled_days, c.full_entitled_days, c.reserved_days, c.service_met,
   public.leave_accrued(c.entitled_days, c.accrues, c.cycle_start, c.cycle_end) as accrued_days,
   coalesce(sum(r.days) filter (where r.status='approved'),0) as used_days,
   coalesce(sum(r.days) filter (where r.status='pending'),0)  as pending_days,
@@ -279,6 +279,8 @@ from (
     lt.deducts_balance, lt.accrues, lt.bookable, lt.cycle_months, lt.cycle_anchor, lt.carry_months, lt.min_service_months,
     case when lt.code = 'sick' then public.sick_entitlement(p.employment_start_date, b.entitled_days)
          else b.entitled_days end as entitled_days,
+    -- The cycle's full allocation, before the first-six-months sick leave cap.
+    b.entitled_days as full_entitled_days,
     case when lt.carry_months > 0 then b.carried_days else 0 end as carried_days,
     -- Last day carried-over leave may start on; null when the type never carries over.
     case when lt.carry_months > 0 then
@@ -298,7 +300,7 @@ left join public.leave_requests r
 where extract(year from c.cycle_start)::int = c.year
 group by c.id, c.profile_id, c.leave_type_id, c.year, c.reserved_days,
          c.leave_code, c.leave_name, c.leave_color, c.deducts_balance, c.accrues, c.bookable,
-         c.cycle_months, c.cycle_anchor, c.carry_months, c.min_service_months, c.entitled_days, c.service_met,
+         c.cycle_months, c.cycle_anchor, c.carry_months, c.min_service_months, c.entitled_days, c.full_entitled_days, c.service_met,
          c.carried_days, c.carry_expires, c.cycle_start, c.cycle_end;
 
 -- ============================================================================

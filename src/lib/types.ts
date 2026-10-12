@@ -75,7 +75,10 @@ export interface BalanceSummary {
   /** Last day of that cycle (ISO date). */
   cycle_end: string;
   year: number;
+  /** What may be used right now (sick leave is capped in the first six months). */
   entitled_days: number;
+  /** The cycle's full allocation, before that cap. */
+  full_entitled_days: number;
   reserved_days: number;
   accrued_days: number;
   used_days: number;
