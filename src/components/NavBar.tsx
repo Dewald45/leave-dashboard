@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Profile } from "@/lib/types";
-import { LogoMark } from "@/components/Logo";
+import { LogoWordmark } from "@/components/Logo";
 
 const roleLabels: Record<string, string> = {
   employee: "Employee",
@@ -36,11 +36,8 @@ export default function NavBar({ profile }: { profile: Profile }) {
     <header className="sticky top-0 z-20 border-b border-white/10 bg-ink-900/95 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
         <div className="flex items-center gap-6">
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <LogoMark className="h-7 w-7 text-brand-500" />
-            <span className="text-sm font-bold text-white">
-              Leave Dashboard
-            </span>
+          <Link href="/dashboard" className="flex items-center">
+            <LogoWordmark className="h-6 w-auto text-white" />
           </Link>
           <nav className="hidden items-center gap-1 md:flex">
             {links.map((l) => {

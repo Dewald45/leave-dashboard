@@ -20,7 +20,7 @@ on every start, so deploys are just "pull new image → recreate".
 3. Under **Environment variables**, add the keys from `.env.docker.example`:
    - `POSTGRES_PASSWORD` (required, strong)
    - `APP_URL` = `https://leave.zenithlabs.space`
-   - `RESEND_API_KEY`, `RESEND_FROM` = `Leave Dashboard <leave@mediarocket.co.za>`
+   - `RESEND_API_KEY`, `RESEND_FROM` = `TimeOff <leave@mediarocket.co.za>`
    - `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, `SEED_ADMIN_NAME` (first-run admin)
    - optional: `APP_PORT`, `POSTGRES_USER`, `POSTGRES_DB`
 4. Deploy. Portainer builds the image and starts both containers. Point your

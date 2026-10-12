@@ -26,8 +26,9 @@ export default function LoginPage() {
     <main className="flex min-h-screen items-center justify-center bg-ink-900 px-4">
       <div className="w-full max-w-md">
         <div className="mb-6 text-center">
-          <LogoWordmark className="mx-auto mb-6 h-10 w-auto text-white" />
-          <h1 className="text-2xl font-bold text-white">Leave Dashboard</h1>
+          <h1>
+            <LogoWordmark className="mx-auto mb-4 h-12 w-auto text-white" />
+          </h1>
           <p className="mt-1 text-sm text-sand-400">
             Where good intentions go to get approved.
           </p>

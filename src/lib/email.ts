@@ -5,7 +5,7 @@
  *
  * Env:
  *   RESEND_API_KEY  — required to actually send.
- *   RESEND_FROM     — verified sender, e.g. "Leave Dashboard <leave@yourco.co.za>".
+ *   RESEND_FROM     — verified sender, e.g. "TimeOff <leave@yourco.co.za>".
  *                     Defaults to Resend's sandbox sender (onboarding@resend.dev),
  *                     which can only deliver to your own Resend account email
  *                     until you verify a domain.
@@ -23,7 +23,7 @@ type SendArgs = {
 export async function sendEmail({ to, subject, html }: SendArgs): Promise<void> {
   const key = process.env.RESEND_API_KEY;
   const from =
-    process.env.RESEND_FROM || "Leave Dashboard <onboarding@resend.dev>";
+    process.env.RESEND_FROM || "TimeOff <onboarding@resend.dev>";
 
   if (!key) {
     console.warn("[email] RESEND_API_KEY not set — skipping email to", to);
@@ -56,7 +56,7 @@ function layout(
   title: string,
   bodyHtml: string,
   cta?: { href: string; label: string },
-  footer = "Automated by the Leave Dashboard. Replying to this email reaches no one — use the app."
+  footer = "Automated by TimeOff. Replying to this email reaches no one — use the app."
 ) {
   return `
   <div style="font-family:'Inter',-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#f5f5f5;padding:28px 16px">

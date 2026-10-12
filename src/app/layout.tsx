@@ -9,9 +9,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Leave Dashboard | Media Rocket",
+  title: "TimeOff | Media Rocket",
   description: "Company leave applications & approvals",
-  icons: { icon: "/brand/mark.svg" },
+  icons: { icon: "/brand/icon.svg" },
 };
 
 export default function RootLayout({
