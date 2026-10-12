@@ -4,6 +4,7 @@ import RequestsTable from "@/components/RequestsTable";
 import { requireProfile, isManagerOrAdmin } from "@/lib/auth";
 import { getPendingApprovals, getRecentDecisions } from "@/lib/data";
 import PageHeader from "@/components/PageHeader";
+import TeamTabs from "@/components/TeamTabs";
 
 export default async function ApprovalsPage() {
   const { profile } = await requireProfile();
@@ -15,12 +16,14 @@ export default async function ApprovalsPage() {
   ]);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <PageHeader title="Approvals">
         {profile.role === "admin"
           ? "Every request in the building, awaiting your royal assent."
           : "Your reports would like to leave. You get to decide how they feel about it."}
       </PageHeader>
+
+      <TeamTabs active="approvals" pending={pendingRows.length} />
 
       <section>
         <div className="mb-3 flex items-center gap-2">

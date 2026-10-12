@@ -7,6 +7,7 @@ import {
   getUpcomingApproved,
 } from "@/lib/data";
 import PageHeader from "@/components/PageHeader";
+import TeamTabs from "@/components/TeamTabs";
 import type { BalanceSummary } from "@/lib/types";
 
 /** Annual days still bookable: after pending requests, including carry-over. */
@@ -30,12 +31,14 @@ export default async function TeamPage() {
   balances.forEach((b) => annualByProfile.set(b.profile_id, b));
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <PageHeader title="Team">
         {isAdmin
           ? "The whole roster, and exactly how much holiday each of them is sitting on."
           : "Your reports, and how much holiday they're quietly hoarding."}
       </PageHeader>
+
+      <TeamTabs active="team" />
 
       <section>
         <h2 className="mb-3 text-lg font-semibold text-ink-900">

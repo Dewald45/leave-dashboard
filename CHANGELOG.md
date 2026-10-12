@@ -23,6 +23,16 @@ What changed in TimeOff, newest first.
   640px tall): greeting and closure, one card per leave type, recent requests.
   Smaller screens stack and scroll.
 
+### Later the same day
+- Pages fill the full width of the shell (the 5xl cap is gone). The apply page
+  gained a "What you have left" panel beside the form.
+- On phones the raised + opens a menu: apply for a specific leave type, and for
+  managers and admins, review requests, see who's off and add an employee.
+  `/apply?type=<id>` preselects a leave type.
+- Team now lives under Approvals: the two pages share sub-tabs and one nav item.
+- Request lists on phones and the dashboard history are a compact list with a
+  date chip instead of a table; the team list is cards on phones.
+
 ### Leave rules
 - **Leave years run from each employee's start date** instead of the calendar
   year, for annual, sick and family-responsibility leave.

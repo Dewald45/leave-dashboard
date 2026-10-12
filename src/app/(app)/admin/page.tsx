@@ -32,7 +32,7 @@ export default async function AdminPage() {
         power too much.
       </PageHeader>
 
-      <section>
+      <section id="add-employee" className="scroll-mt-20">
         <h2 className="mb-3 text-lg font-semibold text-ink-900">
           Add an employee
         </h2>

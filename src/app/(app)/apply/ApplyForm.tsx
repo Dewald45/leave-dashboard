@@ -22,12 +22,16 @@ function SubmitButton({ disabled }: { disabled: boolean }) {
 export default function ApplyForm({
   types,
   balances,
+  initialTypeId,
 }: {
   types: LeaveType[];
   balances: BalanceSummary[];
+  initialTypeId?: number;
 }) {
   const [state, formAction] = useFormState(createRequest, {} as ActionResult);
-  const [typeId, setTypeId] = useState<number>(types[0]?.id ?? 0);
+  const [typeId, setTypeId] = useState<number>(
+    initialTypeId ?? types[0]?.id ?? 0
+  );
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
 

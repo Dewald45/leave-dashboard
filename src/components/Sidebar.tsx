@@ -47,9 +47,28 @@ const icons = {
     "M9 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3M16 17l5-5-5-5M21 12H9",
 };
 
-export default function Sidebar({ profile }: { profile: Profile }) {
+export type ApplyType = { id: number; name: string; color: string };
+
+export default function Sidebar({
+  profile,
+  applyTypes,
+}: {
+  profile: Profile;
+  applyTypes: ApplyType[];
+}) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  // Mobile "+" menu
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // Close the + menu on navigation and on Escape.
+  useEffect(() => setMenuOpen(false), [pathname]);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMenuOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [menuOpen]);
 
   useEffect(() => {
     try {
@@ -80,12 +99,14 @@ export default function Sidebar({ profile }: { profile: Profile }) {
     { href: "/apply", label: "Apply", icon: icons.apply, show: true },
     { href: "/requests", label: "My Requests", shortLabel: "Requests", icon: icons.requests, show: true },
     { href: "/approvals", label: "Approvals", icon: icons.approvals, show: isManager },
-    { href: "/team", label: "Team", icon: icons.team, show: isManager },
     { href: "/admin", label: "Admin", icon: icons.admin, show: isAdmin },
   ].filter((l) => l.show);
 
+  // Team lives under Approvals (they share sub-tabs), so it lights up that item.
   const isActive = (href: string) =>
-    pathname === href || pathname.startsWith(href + "/");
+    pathname === href ||
+    pathname.startsWith(href + "/") ||
+    (href === "/approvals" && pathname.startsWith("/team"));
 
   const initials = profile.full_name
     .split(" ")
@@ -237,23 +258,103 @@ export default function Sidebar({ profile }: { profile: Profile }) {
         </div>
       </header>
 
-      {/* …and an app-style floating tab bar at the bottom, with Apply as the
-          raised button in the middle. */}
+      {/* …and an app-style floating tab bar at the bottom. The raised +
+          opens a menu of things this person can start. */}
+      {menuOpen ? (
+        <>
+          <button
+            type="button"
+            aria-label="Close menu"
+            onClick={() => setMenuOpen(false)}
+            className="fixed inset-0 z-30 cursor-default bg-ink-900/30 md:hidden"
+          />
+          <div
+            id="quick-actions"
+            role="menu"
+            aria-label="Start something"
+            className="fixed inset-x-3 bottom-[calc(5.75rem+env(safe-area-inset-bottom))] z-40 rounded-3xl bg-white p-2 shadow-[0_10px_40px_rgba(10,10,10,0.2)] md:hidden"
+          >
+            <div className="px-3 pb-1 pt-2 text-xs font-semibold text-sand-600">
+              Apply for leave
+            </div>
+            {applyTypes.map((t) => (
+              <Link
+                key={t.id}
+                role="menuitem"
+                href={`/apply?type=${t.id}`}
+                className="flex min-h-12 items-center gap-3 rounded-2xl px-3 text-sm font-medium text-ink-900 hover:bg-sand-100"
+              >
+                <span
+                  className="h-2.5 w-2.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: t.color }}
+                />
+                {t.name}
+              </Link>
+            ))}
+            {isManager || isAdmin ? (
+              <div className="mt-1 border-t border-sand-100 pt-1">
+                <div className="px-3 pb-1 pt-2 text-xs font-semibold text-sand-600">
+                  Manage
+                </div>
+                {isManager ? (
+                  <Link
+                    role="menuitem"
+                    href="/approvals"
+                    className="flex min-h-12 items-center gap-3 rounded-2xl px-3 text-sm font-medium text-ink-900 hover:bg-sand-100"
+                  >
+                    <Icon d={icons.approvals} className="text-sand-600" />
+                    Review leave requests
+                  </Link>
+                ) : null}
+                {isManager ? (
+                  <Link
+                    role="menuitem"
+                    href="/team"
+                    className="flex min-h-12 items-center gap-3 rounded-2xl px-3 text-sm font-medium text-ink-900 hover:bg-sand-100"
+                  >
+                    <Icon d={icons.team} className="text-sand-600" />
+                    See who&apos;s off
+                  </Link>
+                ) : null}
+                {isAdmin ? (
+                  <Link
+                    role="menuitem"
+                    href="/admin#add-employee"
+                    className="flex min-h-12 items-center gap-3 rounded-2xl px-3 text-sm font-medium text-ink-900 hover:bg-sand-100"
+                  >
+                    <Icon d={icons.plus} className="text-sand-600" />
+                    Add an employee
+                  </Link>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+        </>
+      ) : null}
+
       <nav
         aria-label="Main"
-        className="fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-30 grid h-16 grid-cols-[1fr_auto_1fr] items-center rounded-full border border-sand-200 bg-white px-1.5 shadow-[0_10px_30px_rgba(10,10,10,0.14)] md:hidden"
+        className="fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-40 grid h-16 grid-cols-[1fr_auto_1fr] items-center rounded-full border border-sand-200 bg-white px-1.5 shadow-[0_10px_30px_rgba(10,10,10,0.14)] md:hidden"
       >
         <div className="flex justify-around">{tabsLeft.map(tab)}</div>
-        <Link
-          href="/apply"
-          aria-label="Apply for leave"
-          aria-current={isActive("/apply") ? "page" : undefined}
+        <button
+          type="button"
+          onClick={() => setMenuOpen((o) => !o)}
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
+          aria-controls="quick-actions"
+          aria-label={menuOpen ? "Close menu" : "Start something: apply for leave and more"}
           className={`mx-1 -mt-7 flex h-14 w-14 items-center justify-center rounded-full text-white ring-4 ring-sand-100 transition-colors ${
-            isActive("/apply") ? "bg-ink-900" : "bg-brand-500"
+            menuOpen || isActive("/apply") ? "bg-ink-900" : "bg-brand-500"
           }`}
         >
-          <Icon d={icons.plus} className="!h-6 !w-6" />
-        </Link>
+          <Icon
+            d={icons.plus}
+            className={`!h-6 !w-6 transition-transform duration-200 ${
+              menuOpen ? "rotate-45" : ""
+            }`}
+          />
+        </button>
         <div className="flex justify-around">{tabsRight.map(tab)}</div>
       </nav>
     </>
