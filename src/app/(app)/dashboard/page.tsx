@@ -1,6 +1,6 @@
 import Link from "next/link";
 import BalanceCard from "@/components/BalanceCard";
-import RequestsTable from "@/components/RequestsTable";
+import RequestList from "@/components/RequestList";
 import { requireProfile } from "@/lib/auth";
 import { ensureCurrentBalances, getBalances, getMyRequests } from "@/lib/data";
 
@@ -111,11 +111,14 @@ export default async function DashboardPage() {
           </Link>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto">
-          <RequestsTable
-            rows={reqs}
-            allowCancel
-            emptyLabel="Nothing here. Either you love this place or you're due a break."
-          />
+          {reqs.length ? (
+            <RequestList rows={reqs} allowCancel />
+          ) : (
+            <p className="px-4 py-6 text-center text-sm text-sand-600">
+              Nothing here. Either you love this place or you&apos;re due a
+              break.
+            </p>
+          )}
         </div>
       </section>
     </div>

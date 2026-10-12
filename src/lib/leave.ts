@@ -98,3 +98,20 @@ export function formatDate(iso: string): string {
     timeZone: "UTC",
   });
 }
+
+/** A date range without repeating itself: "23 – 25 Nov 2026", "28 Nov – 2 Dec 2026". */
+export function formatDateRange(startISO: string, endISO: string): string {
+  if (startISO === endISO) return formatDate(startISO);
+  const s = new Date(startISO + "T00:00:00Z");
+  const e = new Date(endISO + "T00:00:00Z");
+  const part = (d: Date, opts: Intl.DateTimeFormatOptions) =>
+    d.toLocaleDateString("en-ZA", { ...opts, timeZone: "UTC" });
+  if (s.getUTCFullYear() !== e.getUTCFullYear()) {
+    return `${formatDate(startISO)} – ${formatDate(endISO)}`;
+  }
+  const startText =
+    s.getUTCMonth() === e.getUTCMonth()
+      ? part(s, { day: "numeric" })
+      : part(s, { day: "numeric", month: "short" });
+  return `${startText} – ${formatDate(endISO)}`;
+}
