@@ -1,4 +1,4 @@
-# TimeOff
+# timeoff
 
 A company leave-application dashboard for a South African company — annual, sick,
 family-responsibility, parental/maternity and year-end-closure leave, with an
