@@ -12,15 +12,37 @@ backend — runs anywhere Docker runs.
 
 | Leave type              | Allocation                                   | Notes |
 | ----------------------- | -------------------------------------------- | ----- |
-| Annual leave            | 15 working days/year, accrues 1.25/month     | 5 days held for the year-end closure |
-| Year-end closure (paid) | 5 company-paid days                          | Auto-granted — shown, never applied for |
+| Annual leave            | 15 working days per leave year, builds at 1.25/month | 5 days held for the year-end closure; see rules below |
+| Year-end closure (paid) | 5 company-paid days                          | Auto-granted — explained on the dashboard, never applied for |
 | Sick leave              | 30 days / 36-month cycle (BCEA)              | Throttled in the first 6 months |
-| Family responsibility   | 3 days/year (BCEA)                          | After 4 months' service |
+| Family responsibility   | 3 days per leave year (BCEA)                 | After 4 months' service |
 | Parental leave (fathers)| 10 days                                      | Male profiles; "speak to HR" note |
 | Maternity leave (mothers)| ~4 months (≈90 working days)                | Female profiles; "speak to HR" note |
 
 Working days exclude weekends and South African public holidays. Parental vs
 maternity is scoped by the employee's `gender` on their profile.
+
+### Annual leave rules
+
+- **The leave year runs from each employee's start date**, not 1 January. Sick and
+  family-responsibility leave use the same anchor; the company-paid closure days
+  stay on the calendar year (`leave_types.cycle_anchor`).
+- **5 days are held from day one of every leave year** for the December closure,
+  so at most 10 can be booked. The company adds 5 paid days on top.
+- **Booking ahead is allowed.** An employee may go into arrears (book days not yet
+  accrued) but never past the leave year's maximum.
+- **Unused bookable days carry over for six months, then expire**
+  (`leave_types.carry_months`, BCEA s20(4)). Carried days are used first, by leave
+  starting on or before the expiry date. The held closure days never carry over.
+  The carried amount is fixed when a leave year starts and can be corrected per
+  employee on the **Admin** page.
+- **Expiry reminders** are emailed to the employee when carried-over days have
+  90, 30 and 7 days left (`src/lib/expiry-alerts.ts`). The check runs inside the
+  app — a minute after boot and every six hours (`src/instrumentation.ts`) — and
+  each warning is sent once (`leave_expiry_alerts`).
+
+These rules are the company's reading of the BCEA; have them checked by whoever
+advises on labour law before relying on them.
 
 ## Architecture
 
@@ -32,6 +54,8 @@ maternity is scoped by the employee's `gender` on their profile.
   functions and the `balance_summary` view live in [`db/schema.sql`](db/schema.sql)
   (idempotent — applied on every boot by `scripts/migrate.mjs`).
 - **Email**: Resend (`src/lib/email.ts`), best-effort.
+- **UI**: collapsible sidebar on desktop, floating bottom tab bar on phones
+  (`src/components/Sidebar.tsx`). See [CHANGELOG.md](CHANGELOG.md) for history.
 
 ## Run it with Docker (recommended)
 
