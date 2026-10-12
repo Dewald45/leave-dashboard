@@ -25,8 +25,11 @@ export default function BalanceCard({ b }: { b: BalanceSummary }) {
   // reads as "available now", which it isn't.
   const accent = locked ? "#7a7a7a" : leaveAccent(b.leave_code, b.leave_color);
   // Pastel wash of the leave colour; text stays ink so it clears AA on any tint.
+  // Locked types get a flat mid-grey so they stand apart from the page.
   const tint = {
-    backgroundColor: `color-mix(in srgb, ${accent} ${locked ? 6 : 13}%, white)`,
+    backgroundColor: locked
+      ? "#dedede"
+      : `color-mix(in srgb, ${accent} 13%, white)`,
   };
 
   // Auto-granted leave (e.g. the year-end closure): everyone gets it, nobody

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 
@@ -13,6 +13,9 @@ export const metadata: Metadata = {
   description: "Company leave applications & approvals",
   icons: { icon: "/brand/icon.svg" },
 };
+
+// Lets the mobile tab bar sit above the home indicator on notched phones.
+export const viewport: Viewport = { viewportFit: "cover" };
 
 export default function RootLayout({
   children,
