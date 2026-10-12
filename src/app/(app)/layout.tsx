@@ -1,4 +1,4 @@
-import NavBar from "@/components/NavBar";
+import Sidebar from "@/components/Sidebar";
 import { requireProfile } from "@/lib/auth";
 
 export default async function AppLayout({
@@ -9,9 +9,14 @@ export default async function AppLayout({
   const { profile } = await requireProfile();
 
   return (
-    <div className="min-h-screen">
-      <NavBar profile={profile} />
-      <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
+    <div className="min-h-screen md:p-3">
+      {/* The app sits in one rounded shell on a slightly darker page. */}
+      <div className="min-h-screen bg-sand-100 md:flex md:min-h-[calc(100vh-1.5rem)] md:rounded-[28px]">
+        <Sidebar profile={profile} />
+        <main className="min-w-0 flex-1 px-4 py-6 md:px-6 md:py-7 lg:px-8">
+          <div className="mx-auto max-w-5xl">{children}</div>
+        </main>
+      </div>
     </div>
   );
 }

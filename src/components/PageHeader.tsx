@@ -1,4 +1,4 @@
-/** Black banner used at the top of every inner page. */
+/** Title row used at the top of every inner page. */
 export default function PageHeader({
   title,
   children,
@@ -9,16 +9,16 @@ export default function PageHeader({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl bg-ink-900 p-6 sm:p-8">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white">{title}</h1>
-          {children ? (
-            <p className="mt-1 text-sm text-sand-500">{children}</p>
-          ) : null}
-        </div>
-        {action}
+    <div className="flex flex-wrap items-end justify-between gap-4 pt-1">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight text-ink-900">
+          {title}
+        </h1>
+        {children ? (
+          <p className="mt-1.5 text-sm text-sand-600">{children}</p>
+        ) : null}
       </div>
+      {action}
     </div>
   );
 }

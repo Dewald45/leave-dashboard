@@ -4,7 +4,7 @@ import type { RequestWithRelations } from "@/lib/types";
 
 export default function ApprovalCard({ r }: { r: RequestWithRelations }) {
   return (
-    <div className="rounded-2xl border border-sand-200 bg-white p-5 shadow-sm">
+    <div className="rounded-3xl bg-white p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
@@ -47,7 +47,7 @@ export default function ApprovalCard({ r }: { r: RequestWithRelations }) {
             name="note"
             type="text"
             placeholder="Justify yourself (optional, but kind)…"
-            className="w-full rounded-lg border border-sand-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+            className="w-full rounded-xl border border-sand-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
           />
         </div>
         <div className="flex gap-2">
@@ -55,7 +55,7 @@ export default function ApprovalCard({ r }: { r: RequestWithRelations }) {
             type="submit"
             name="decision"
             value="rejected"
-            className="rounded-lg border border-rose-200 bg-white px-4 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50"
+            className="rounded-full border border-rose-200 bg-white px-4 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50"
           >
             Reject
           </button>
@@ -63,7 +63,7 @@ export default function ApprovalCard({ r }: { r: RequestWithRelations }) {
             type="submit"
             name="decision"
             value="approved"
-            className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600"
+            className="rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
           >
             Approve
           </button>

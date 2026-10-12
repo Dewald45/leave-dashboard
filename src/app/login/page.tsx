@@ -10,7 +10,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="w-full rounded-lg bg-ink-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-ink-800 disabled:opacity-60"
+      className="w-full rounded-full bg-ink-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-ink-800 disabled:opacity-60"
     >
       {pending ? "Verifying…" : "Let me in"}
     </button>
@@ -36,7 +36,7 @@ export default function LoginPage() {
 
         <form
           action={formAction}
-          className="space-y-4 rounded-2xl border border-sand-200 bg-white p-6 shadow-sm"
+          className="space-y-4 rounded-3xl bg-white p-6"
         >
           <div>
             <label className="mb-1 block text-sm font-medium text-ink-800">
@@ -47,7 +47,7 @@ export default function LoginPage() {
               type="email"
               autoComplete="email"
               required
-              className="w-full rounded-lg border border-sand-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+              className="w-full rounded-xl border border-sand-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
               placeholder="you@company.co.za"
             />
           </div>
@@ -60,7 +60,7 @@ export default function LoginPage() {
               type="password"
               autoComplete="current-password"
               required
-              className="w-full rounded-lg border border-sand-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+              className="w-full rounded-xl border border-sand-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
               placeholder="••••••••"
             />
           </div>

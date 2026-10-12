@@ -34,14 +34,14 @@ export default async function AdminPage() {
       </PageHeader>
 
       <section>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-sand-600">
+        <h2 className="mb-3 text-lg font-semibold text-ink-900">
           Add an employee
         </h2>
         <AddEmployeeForm managers={managers} />
       </section>
 
       <section>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-sand-600">
+        <h2 className="mb-3 text-lg font-semibold text-ink-900">
           Employees ({profiles.length})
         </h2>
         <div className="space-y-3">
@@ -52,7 +52,7 @@ export default async function AdminPage() {
             return (
               <details
                 key={p.id}
-                className="rounded-2xl border border-sand-200 bg-white shadow-sm"
+                className="rounded-3xl bg-white"
               >
                 <summary className="flex cursor-pointer flex-wrap items-center justify-between gap-2 px-5 py-4">
                   <div>
@@ -88,7 +88,7 @@ export default async function AdminPage() {
                       <select
                         name="role"
                         defaultValue={p.role}
-                        className="rounded-lg border border-sand-300 px-3 py-1.5 text-sm"
+                        className="rounded-xl border border-sand-300 px-3 py-1.5 text-sm"
                       >
                         <option value="employee">Employee</option>
                         <option value="manager">Manager</option>
@@ -102,7 +102,7 @@ export default async function AdminPage() {
                       <select
                         name="manager_id"
                         defaultValue={p.manager_id ?? ""}
-                        className="rounded-lg border border-sand-300 px-3 py-1.5 text-sm"
+                        className="rounded-xl border border-sand-300 px-3 py-1.5 text-sm"
                       >
                         <option value="">— None —</option>
                         {managers
@@ -121,7 +121,7 @@ export default async function AdminPage() {
                       <input
                         name="department"
                         defaultValue={p.department ?? ""}
-                        className="rounded-lg border border-sand-300 px-3 py-1.5 text-sm"
+                        className="rounded-xl border border-sand-300 px-3 py-1.5 text-sm"
                       />
                     </div>
                     <div>
@@ -131,7 +131,7 @@ export default async function AdminPage() {
                       <select
                         name="gender"
                         defaultValue={p.gender ?? ""}
-                        className="rounded-lg border border-sand-300 px-3 py-1.5 text-sm"
+                        className="rounded-xl border border-sand-300 px-3 py-1.5 text-sm"
                       >
                         <option value="">— Unset —</option>
                         <option value="male">Male</option>
@@ -140,7 +140,7 @@ export default async function AdminPage() {
                     </div>
                     <button
                       type="submit"
-                      className="rounded-lg bg-ink-900 px-4 py-1.5 text-sm font-semibold text-white hover:bg-ink-800"
+                      className="rounded-full bg-ink-900 px-4 py-1.5 text-sm font-semibold text-white hover:bg-ink-800"
                     >
                       Save
                     </button>
@@ -196,7 +196,7 @@ export default async function AdminPage() {
                           </div>
                           <button
                             type="submit"
-                            className="rounded-lg border border-sand-300 bg-white px-3 py-1.5 text-xs font-medium text-sand-600 hover:bg-sand-100"
+                            className="rounded-full border border-sand-300 bg-white px-3 py-1.5 text-xs font-medium text-sand-600 hover:bg-sand-100"
                           >
                             Update
                           </button>

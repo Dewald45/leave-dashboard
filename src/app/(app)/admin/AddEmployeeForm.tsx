@@ -11,7 +11,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="rounded-lg bg-ink-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-ink-800 disabled:opacity-50"
+      className="rounded-full bg-ink-900 px-6 py-2.5 text-sm font-semibold text-white hover:bg-ink-800 disabled:opacity-50"
     >
       {pending ? "Creating…" : "Add employee"}
     </button>
@@ -38,7 +38,7 @@ export default function AddEmployeeForm({
   return (
     <form
       action={formAction}
-      className="space-y-4 rounded-2xl border border-sand-200 bg-white p-6 shadow-sm"
+      className="space-y-4 rounded-3xl bg-white p-6"
     >
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
@@ -48,7 +48,7 @@ export default function AddEmployeeForm({
           <input
             name="full_name"
             required
-            className="w-full rounded-lg border border-sand-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+            className="w-full rounded-xl border border-sand-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
           />
         </div>
         <div>
@@ -59,7 +59,7 @@ export default function AddEmployeeForm({
             name="email"
             type="email"
             required
-            className="w-full rounded-lg border border-sand-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+            className="w-full rounded-xl border border-sand-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
           />
         </div>
         <div>
@@ -73,7 +73,7 @@ export default function AddEmployeeForm({
               onChange={(e) => setPw(e.target.value)}
               required
               minLength={8}
-              className="w-full rounded-lg border border-sand-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+              className="w-full rounded-xl border border-sand-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
             />
             <button
               type="button"
@@ -91,7 +91,7 @@ export default function AddEmployeeForm({
           <select
             name="role"
             defaultValue="employee"
-            className="w-full rounded-lg border border-sand-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+            className="w-full rounded-xl border border-sand-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
           >
             <option value="employee">Employee</option>
             <option value="manager">Manager</option>
@@ -105,7 +105,7 @@ export default function AddEmployeeForm({
           <select
             name="gender"
             defaultValue=""
-            className="w-full rounded-lg border border-sand-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+            className="w-full rounded-xl border border-sand-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
           >
             <option value="">— Prefer not to say —</option>
             <option value="male">Male</option>
@@ -119,7 +119,7 @@ export default function AddEmployeeForm({
           <select
             name="manager_id"
             defaultValue=""
-            className="w-full rounded-lg border border-sand-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+            className="w-full rounded-xl border border-sand-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
           >
             <option value="">— None —</option>
             {managers.map((m) => (
@@ -135,7 +135,7 @@ export default function AddEmployeeForm({
           </label>
           <input
             name="department"
-            className="w-full rounded-lg border border-sand-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+            className="w-full rounded-xl border border-sand-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
           />
         </div>
         <div>
@@ -144,7 +144,7 @@ export default function AddEmployeeForm({
           </label>
           <input
             name="job_title"
-            className="w-full rounded-lg border border-sand-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+            className="w-full rounded-xl border border-sand-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
           />
         </div>
         <div>
@@ -154,7 +154,7 @@ export default function AddEmployeeForm({
           <input
             name="employment_start_date"
             type="date"
-            className="w-full rounded-lg border border-sand-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+            className="w-full rounded-xl border border-sand-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
           />
         </div>
       </div>

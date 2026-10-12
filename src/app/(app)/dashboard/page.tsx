@@ -19,21 +19,21 @@ export default async function DashboardPage() {
   const annual = bs.find((b) => b.leave_code === "annual");
 
   return (
-    <div className="space-y-8">
-      <div className="rounded-2xl bg-ink-900 p-6 sm:p-8">
+    <div className="space-y-6">
+      <div className="rounded-3xl bg-ink-900 p-6 sm:p-8">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-white">
+            <h1 className="text-3xl font-bold tracking-tight text-white">
               Right then, {profile.full_name.split(" ")[0]}.
             </h1>
-            <p className="mt-1 text-sm text-sand-500">
+            <p className="mt-1.5 text-sm text-sand-400">
               Everything you&apos;re owed in {CURRENT_YEAR}, and everything
               you&apos;ve already spent. No judgement. Some judgement.
             </p>
           </div>
           <Link
             href="/apply"
-            className="rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-brand-600"
+            className="rounded-full bg-brand-500 px-5 py-3 text-sm font-bold text-white transition hover:bg-brand-600"
           >
             Plot an escape →
           </Link>
@@ -41,9 +41,9 @@ export default async function DashboardPage() {
       </div>
 
       {/* Year-end closure notice */}
-      <div className="rounded-2xl border border-sand-200 bg-white p-5">
+      <div className="rounded-3xl bg-white p-6">
         <div className="flex items-center gap-2">
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-ink-900 text-xs text-white">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-ink-900 text-xs text-white">
             ❄
           </span>
           <h2 className="text-sm font-semibold text-ink-900">
@@ -95,7 +95,7 @@ export default async function DashboardPage() {
       </div>
 
       <section>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-sand-600">
+        <h2 className="mb-3 text-lg font-semibold text-ink-900">
           What you&apos;re working with
         </h2>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -107,12 +107,12 @@ export default async function DashboardPage() {
 
       <section>
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-sand-600">
+          <h2 className="text-lg font-semibold text-ink-900">
             Recently attempted
           </h2>
           <Link
             href="/requests"
-            className="text-sm font-medium text-brand-600 hover:underline"
+            className="text-sm font-medium text-brand-700 hover:underline"
           >
             See the full history →
           </Link>
