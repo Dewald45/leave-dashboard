@@ -55,7 +55,6 @@ export default function BalanceCard({ b }: { b: BalanceSummary }) {
     );
   }
 
-  // cycle_months / cycle_end arrive with migration 0003; fall back quietly.
   const isLongCycle = Number(b.cycle_months ?? 12) > 12;
 
   // One short line, not a paragraph.
@@ -65,7 +64,11 @@ export default function BalanceCard({ b }: { b: BalanceSummary }) {
       : isLongCycle && b.cycle_end
         ? `Refills ${formatDate(b.cycle_end)}`
         : b.accrues
-          ? `${fmt(Number(b.accrued_days))} of ${total} earned`
+          ? `${fmt(Number(b.accrued_days))} of ${total} earned${
+              used + pending > Number(b.accrued_days)
+                ? ` · ${fmt(used + pending - Number(b.accrued_days))} borrowed ahead`
+                : ""
+            } · leave year ends ${formatDate(b.cycle_end)}`
           : null;
 
   return (

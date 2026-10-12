@@ -4,7 +4,6 @@ import DeleteEmployeeButton from "./DeleteEmployeeButton";
 import ResetPasswordForm from "./ResetPasswordForm";
 import { updateEmployee, updateBalance } from "./actions";
 import { requireProfile } from "@/lib/auth";
-import { CURRENT_YEAR } from "@/lib/queries";
 import { getAllProfiles, getAllBalances } from "@/lib/data";
 import type { BalanceSummary } from "@/lib/types";
 import PageHeader from "@/components/PageHeader";
@@ -15,7 +14,7 @@ export default async function AdminPage() {
 
   const [profiles, balances] = await Promise.all([
     getAllProfiles(),
-    getAllBalances(CURRENT_YEAR),
+    getAllBalances(),
   ]);
   const managers = profiles.map((p) => ({ id: p.id, full_name: p.full_name }));
   const nameById = new Map(profiles.map((p) => [p.id, p.full_name]));
@@ -149,7 +148,7 @@ export default async function AdminPage() {
                   {/* Balances */}
                   <div className="mt-5">
                     <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-sand-500">
-                      {CURRENT_YEAR} allocations
+                      Current cycle allocations
                     </h3>
                     <div className="grid gap-2 sm:grid-cols-2">
                       {bs.map((b) => (

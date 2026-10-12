@@ -49,8 +49,8 @@ export async function createRequest(
     };
   }
 
-  const year = new Date(startDate + "T00:00:00Z").getUTCFullYear();
-  const bal = await getBalanceForType(me.id, leaveTypeId, year);
+  // The request counts against the cycle its first day falls in.
+  const bal = await getBalanceForType(me.id, leaveTypeId, startDate);
   if (!bal) {
     return { error: `You're not eligible for ${lt.name}.` };
   }
@@ -58,7 +58,7 @@ export async function createRequest(
     const remaining = Number(bal.available_days) - Number(bal.pending_days);
     if (days > remaining) {
       return {
-        error: `Not enough ${lt.name}: ${days} working day(s) requested but only ${remaining} available (after accrual and pending requests).`,
+        error: `Not enough ${lt.name}: ${days} working day(s) requested but only ${remaining} left to book in this leave cycle (after pending requests and any days held for the year-end closure).`,
       };
     }
   }

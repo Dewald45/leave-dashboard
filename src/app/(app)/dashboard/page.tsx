@@ -2,17 +2,18 @@ import Link from "next/link";
 import BalanceCard from "@/components/BalanceCard";
 import RequestsTable from "@/components/RequestsTable";
 import { requireProfile } from "@/lib/auth";
-import { CURRENT_YEAR } from "@/lib/queries";
-import { ensureYearBalances, getBalances, getMyRequests } from "@/lib/data";
+import { ensureCurrentBalances, getBalances, getMyRequests } from "@/lib/data";
+import { formatDate } from "@/lib/leave";
 
 export default async function DashboardPage() {
   const { profile, userId } = await requireProfile();
 
-  // Ensure the current year's balances exist (annual reset / new-year rollover).
-  await ensureYearBalances(userId);
+  // Ensure balances exist for the cycles in progress (they roll over on the
+  // employee's own start-date anniversary).
+  await ensureCurrentBalances(userId);
 
   const [bs, reqs] = await Promise.all([
-    getBalances(userId, CURRENT_YEAR),
+    getBalances(userId),
     getMyRequests(userId, 5),
   ]);
 
@@ -28,7 +29,7 @@ export default async function DashboardPage() {
                 Right then, {profile.full_name.split(" ")[0]}.
               </h1>
               <p className="mt-1.5 text-sm text-sand-400">
-                Everything you&apos;re owed in {CURRENT_YEAR}, and everything
+                Everything you&apos;re owed this leave year, and everything
                 you&apos;ve already spent. No judgement. Some judgement.
               </p>
             </div>
@@ -75,22 +76,29 @@ export default async function DashboardPage() {
                 How it builds
               </dt>
               <dd className="mt-1 text-sm text-ink-800">
-                1.25 days a month (BCEA), wiped clean every 1 January.
+                1.25 days a month (BCEA). Your leave year runs from your start
+                date
+                {annual ? <> and ends {formatDate(annual.cycle_end)}</> : null}
+                .
               </dd>
             </div>
           </dl>
 
           {annual ? (
             <p className="mt-4 border-t border-sand-200 pt-3 text-sm text-sand-600">
-              You&apos;ve banked{" "}
+              You&apos;ve earned{" "}
               <strong className="text-ink-900">
                 {Number(annual.accrued_days)} of {annual.entitled_days}
-              </strong>
-              , with{" "}
-              <strong className="text-ink-900">
-                {Number(annual.available_days)}
               </strong>{" "}
-              bookable today.
+              so far and can still book{" "}
+              <strong className="text-ink-900">
+                {Math.max(
+                  0,
+                  Number(annual.available_days) - Number(annual.pending_days)
+                )}
+              </strong>{" "}
+              this leave year. Borrowing ahead is allowed; the closure days
+              are not.
             </p>
           ) : null}
         </div>

@@ -1,18 +1,17 @@
 import ApplyForm from "./ApplyForm";
 import { requireProfile } from "@/lib/auth";
-import { CURRENT_YEAR } from "@/lib/queries";
-import { ensureYearBalances, getBalances, getLeaveTypes } from "@/lib/data";
+import { ensureCurrentBalances, getBalances, getLeaveTypes } from "@/lib/data";
 import type { LeaveType } from "@/lib/types";
 import PageHeader from "@/components/PageHeader";
 
 export default async function ApplyPage() {
   const { userId } = await requireProfile();
 
-  await ensureYearBalances(userId);
+  await ensureCurrentBalances(userId);
 
   const [types, balanceRows] = await Promise.all([
     getLeaveTypes(),
-    getBalances(userId, CURRENT_YEAR),
+    getBalances(userId),
   ]);
   // Only offer leave the employee is actually entitled to (scopes parental vs
   // maternity to the right person) AND that can be applied for — auto-granted

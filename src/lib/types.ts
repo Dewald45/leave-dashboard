@@ -60,8 +60,12 @@ export interface BalanceSummary {
   accrues: boolean;
   /** False for auto-granted leave (e.g. year-end closure) — shown, not applied for. */
   bookable: boolean;
-  /** 12 for calendar-year types, 36 for sick leave (BCEA s22). */
+  /** 12 for annual-style types, 36 for sick leave (BCEA s22). */
   cycle_months: number;
+  /** "start" = cycle runs from the employee's start date; "calendar" = Jan–Dec. */
+  cycle_anchor: "start" | "calendar";
+  /** True when today falls inside this balance's cycle. */
+  is_current: boolean;
   /** Months of service required before this type may be taken (BCEA s27). */
   min_service_months: number;
   /** True once the employee has served long enough to use this type. */

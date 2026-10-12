@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import RequestsTable from "@/components/RequestsTable";
 import { requireProfile, isManagerOrAdmin } from "@/lib/auth";
-import { CURRENT_YEAR } from "@/lib/queries";
 import {
   getTeamMembers,
   getAnnualBalances,
@@ -17,10 +16,7 @@ export default async function TeamPage() {
   const isAdmin = profile.role === "admin";
   const team = await getTeamMembers(profile);
   const [balances, upcomingRows] = await Promise.all([
-    getAnnualBalances(
-      team.map((m) => m.id),
-      CURRENT_YEAR
-    ),
+    getAnnualBalances(team.map((m) => m.id)),
     getUpcomingApproved(profile),
   ]);
 
