@@ -4,6 +4,10 @@ The app is a self-contained Docker image (Next.js standalone) plus a PostgreSQL
 container. No Supabase, no external backend. The schema is applied automatically
 on every start, so deploys are just "pull new image → recreate".
 
+> **Who runs it:** the live server is a Portainer stack managed by Bjorn. Code
+> reaches it by merging to `main` on GitHub; settings (environment variables)
+> are added in the stack by Bjorn, never committed — the repo is public.
+
 ## What's in the box
 
 - `Dockerfile` — multi-stage build → small standalone runtime; on start it runs
