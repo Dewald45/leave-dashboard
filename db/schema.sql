@@ -194,6 +194,15 @@ $$;
 
 -- Provision the leave a profile's gender qualifies for, for the cycles that
 -- contain p_asof. A balance row's `year` is the year its cycle starts in.
+-- Per-person yearly allowance for a leave type, overriding leave_types.default_days
+-- for every leave year this person starts (set on Add employee or in Admin).
+create table if not exists public.profile_leave_entitlements (
+  profile_id    uuid not null references public.profiles(id) on delete cascade,
+  leave_type_id int  not null references public.leave_types(id) on delete cascade,
+  days          numeric not null check (days >= 0),
+  primary key (profile_id, leave_type_id)
+);
+
 create or replace function public.provision_balances(p_profile uuid, p_asof date default current_date)
 returns void language plpgsql as $$
 declare v_start date; v_gender text;
@@ -204,8 +213,10 @@ begin
   insert into public.leave_balances (profile_id, leave_type_id, year, entitled_days, reserved_days)
   select p_profile, lt.id,
     extract(year from public.leave_cycle_start(v_start, lt.cycle_months, lt.cycle_anchor, p_asof))::int,
-    coalesce(lt.default_days, 0), lt.default_reserved
+    coalesce(e.days, lt.default_days, 0), lt.default_reserved
   from public.leave_types lt
+  left join public.profile_leave_entitlements e
+    on e.profile_id = p_profile and e.leave_type_id = lt.id
   where lt.applies_to = 'all' or lt.applies_to = v_gender
   on conflict (profile_id, leave_type_id, year) do nothing;
 
@@ -315,10 +326,318 @@ values
   ('closure','Year-End Closure (Company Paid)','Company-paid festive shutdown. Granted automatically — everyone gets these, nobody applies.',5,0,false,false,false,12,'calendar',0,0,'all','#0ea5e9',4),
   ('parental','Parental Leave','10 days for new dads to meet the tiny human, panic quietly and lose all sleep. Take them within four months of the birth. None of this is set in stone — every family (and the law) is different, so come speak to HR before you bank on it.',10,0,true,false,true,12,'calendar',0,0,'male','#8b5cf6',5),
   ('maternity','Maternity Leave','Four consecutive months to grow, deliver and keep a brand-new human alive — the hardest leave you will ever earn (roughly 90 working days). None of this is set in stone — come speak to HR and they will sort the details with you.',90,0,true,false,true,12,'calendar',0,0,'female','#ec4899',6)
+-- default_days / default_reserved are only set when a type is first created:
+-- after that they're the company defaults edited on the Admin page.
 on conflict (code) do update set
-  name=excluded.name, description=excluded.description, default_days=excluded.default_days,
-  default_reserved=excluded.default_reserved, deducts_balance=excluded.deducts_balance,
+  name=excluded.name, description=excluded.description, deducts_balance=excluded.deducts_balance,
   accrues=excluded.accrues, bookable=excluded.bookable, cycle_months=excluded.cycle_months,
   cycle_anchor=excluded.cycle_anchor, carry_months=excluded.carry_months,
   min_service_months=excluded.min_service_months, applies_to=excluded.applies_to,
   color=excluded.color, sort_order=excluded.sort_order;
+
+-- ============================================================================
+-- v2: threads, sick notes, half days, reminders/backup approvers, calendar,
+--     password resets, admin-managed public holidays. All additive + idempotent.
+-- ============================================================================
+
+-- ---------- Profile extras ----------
+-- Stand-in who may approve this manager's reports while they're away.
+alter table public.profiles add column if not exists backup_approver_id uuid
+  references public.profiles(id) on delete set null;
+-- Secret token for the personal iCal subscription feed (/api/calendar/<token>).
+alter table public.profiles add column if not exists calendar_token text unique;
+
+-- ---------- Request extras ----------
+alter table public.leave_requests add column if not exists half_day text;
+do $$ begin
+  alter table public.leave_requests add constraint leave_requests_half_day_chk
+    check (half_day is null or (half_day in ('am','pm') and start_date = end_date));
+exception when duplicate_object then null; end $$;
+alter table public.leave_requests add column if not exists reminded_at  timestamptz;
+alter table public.leave_requests add column if not exists escalated_at timestamptz;
+-- Bumped on every change so calendar clients replace (not duplicate) the event.
+alter table public.leave_requests add column if not exists calendar_seq int not null default 0;
+
+-- ---------- Request threads ----------
+create table if not exists public.request_messages (
+  id         uuid primary key default gen_random_uuid(),
+  request_id uuid not null references public.leave_requests(id) on delete cascade,
+  author_id  uuid references public.profiles(id) on delete set null,
+  body       text not null check (char_length(body) between 1 and 4000),
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_messages_request on public.request_messages(request_id, created_at);
+
+-- Last time each person opened a request — drives the unread badges.
+create table if not exists public.request_reads (
+  request_id   uuid not null references public.leave_requests(id) on delete cascade,
+  profile_id   uuid not null references public.profiles(id) on delete cascade,
+  last_read_at timestamptz not null default now(),
+  primary key (request_id, profile_id)
+);
+
+-- ---------- Attachments (sick notes etc.) ----------
+-- Stored in Postgres so the single pgdata volume remains the only thing to back up.
+create table if not exists public.request_attachments (
+  id           uuid primary key default gen_random_uuid(),
+  request_id   uuid not null references public.leave_requests(id) on delete cascade,
+  uploaded_by  uuid references public.profiles(id) on delete set null,
+  filename     text not null,
+  content_type text not null,
+  size_bytes   int  not null,
+  data         bytea not null,
+  created_at   timestamptz not null default now()
+);
+create index if not exists idx_attachments_request on public.request_attachments(request_id);
+
+-- ---------- Password resets ----------
+create table if not exists public.password_resets (
+  token_hash text primary key,
+  user_id    uuid not null references public.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  expires_at timestamptz not null,
+  used_at    timestamptz
+);
+create index if not exists idx_password_resets_user on public.password_resets(user_id);
+
+-- ---------- Public holidays (edited in Admin) ----------
+create table if not exists public.public_holidays (
+  holiday_date date primary key,
+  name         text not null
+);
+-- 'auto' = calculated from the Public Holidays Act; 'manual' = added by an admin
+-- (e.g. a specially declared election day).
+alter table public.public_holidays add column if not exists source text not null default 'manual';
+
+-- Years already filled in automatically. Generating a year once (and never
+-- again) means a holiday an admin removes stays removed.
+create table if not exists public.holiday_years (
+  year         int primary key,
+  generated_at timestamptz not null default now()
+);
+
+-- Easter Sunday (Gregorian, anonymous algorithm).
+create or replace function public.easter_sunday(y int)
+returns date language plpgsql immutable as $$
+declare a int; b int; c int; d int; e int; f int; g int; h int; i int; k int; l int; m int;
+begin
+  a := y % 19; b := y / 100; c := y % 100; d := b / 4; e := b % 4;
+  f := (b + 8) / 25; g := (b - f + 1) / 3;
+  h := (19 * a + b - d - g + 15) % 30;
+  i := c / 4; k := c % 4;
+  l := (32 + 2 * e + 2 * i - h - k) % 7;
+  m := (a + 11 * h + 22 * l) / 451;
+  return make_date(y, (h + l - 7 * m + 114) / 31, ((h + l - 7 * m + 114) % 31) + 1);
+end $$;
+
+-- South African statutory public holidays for a year (Public Holidays Act
+-- 36 of 1994). A holiday on a Sunday moves to the Monday; if that Monday is
+-- already a holiday (25 Dec on a Sunday) it moves to the next free day, as
+-- happened in 2016 and 2022.
+create or replace function public.sa_public_holidays(y int)
+returns table (holiday_date date, name text)
+language plpgsql immutable as $$
+declare
+  fixed record;
+  taken date[] := array[]::date[];
+  obs date;
+  easter date := public.easter_sunday(y);
+begin
+  for fixed in
+    select * from (values
+      (make_date(y, 1, 1),   'New Year''s Day'),
+      (make_date(y, 3, 21),  'Human Rights Day'),
+      (easter - 2,           'Good Friday'),
+      (easter + 1,           'Family Day'),
+      (make_date(y, 4, 27),  'Freedom Day'),
+      (make_date(y, 5, 1),   'Workers'' Day'),
+      (make_date(y, 6, 16),  'Youth Day'),
+      (make_date(y, 8, 9),   'National Women''s Day'),
+      (make_date(y, 9, 24),  'Heritage Day'),
+      (make_date(y, 12, 16), 'Day of Reconciliation'),
+      (make_date(y, 12, 25), 'Christmas Day'),
+      (make_date(y, 12, 26), 'Day of Goodwill')
+    ) as t(d, n) order by d
+  loop
+    holiday_date := fixed.d; name := fixed.n;
+    taken := taken || fixed.d;
+    return next;
+  end loop;
+
+  for fixed in
+    select * from (values
+      (make_date(y, 1, 1),   'New Year''s Day'),
+      (make_date(y, 3, 21),  'Human Rights Day'),
+      (make_date(y, 4, 27),  'Freedom Day'),
+      (make_date(y, 5, 1),   'Workers'' Day'),
+      (make_date(y, 6, 16),  'Youth Day'),
+      (make_date(y, 8, 9),   'National Women''s Day'),
+      (make_date(y, 9, 24),  'Heritage Day'),
+      (make_date(y, 12, 16), 'Day of Reconciliation'),
+      (make_date(y, 12, 25), 'Christmas Day'),
+      (make_date(y, 12, 26), 'Day of Goodwill')
+    ) as t(d, n) order by d
+  loop
+    if extract(isodow from fixed.d) = 7 then
+      obs := fixed.d + 1;
+      while obs = any(taken) loop obs := obs + 1; end loop;
+      holiday_date := obs; name := fixed.n || ' (observed)';
+      taken := taken || obs;
+      return next;
+    end if;
+  end loop;
+end $$;
+
+-- Fill in any year in [p_from, p_from + p_years) that hasn't been generated.
+-- Existing dates (e.g. admin-added) are left untouched. Returns rows added.
+create or replace function public.ensure_sa_holidays(p_from int, p_years int)
+returns int language plpgsql as $$
+declare yr int; added int := 0; n int;
+begin
+  for yr in p_from .. p_from + p_years - 1 loop
+    if not exists (select 1 from public.holiday_years where year = yr) then
+      insert into public.public_holidays (holiday_date, name, source)
+      select h.holiday_date, h.name, 'auto' from public.sa_public_holidays(yr) h
+      on conflict (holiday_date) do nothing;
+      get diagnostics n = row_count;
+      insert into public.holiday_years (year) values (yr);
+      added := added + n;
+      if n > 0 then
+        insert into public.audit_log (action, entity_type, entity_id, summary, details)
+        values ('holiday.generated', 'holiday', yr::text,
+                'Added ' || n || ' South African public holidays for ' || yr || ' automatically',
+                jsonb_build_object('year', yr, 'count', n));
+      end if;
+    end if;
+  end loop;
+  return added;
+end $$;
+
+-- ---------- Approval rules ----------
+-- A manager is "away" while they're on approved leave today.
+create or replace function public.manager_is_away(p_manager uuid)
+returns boolean language sql stable as $$
+  select exists (
+    select 1 from public.leave_requests
+     where profile_id = p_manager and status = 'approved'
+       and current_date between start_date and end_date)
+$$;
+
+-- Who may approve/reject a request: admins, the line manager, or the line
+-- manager's backup approver while the manager is away or the request has been
+-- escalated for sitting too long.
+create or replace function public.can_approve(p_request uuid, p_user uuid)
+returns boolean language sql stable as $$
+  select exists (
+    select 1
+      from public.leave_requests r
+      join public.profiles e on e.id = r.profile_id
+      join public.profiles u on u.id = p_user
+      left join public.profiles m on m.id = e.manager_id
+     where r.id = p_request
+       and (u.role = 'admin'
+         or (r.profile_id <> p_user and e.manager_id = p_user)
+         or (r.profile_id <> p_user and m.backup_approver_id = p_user
+             and (public.manager_is_away(m.id) or r.escalated_at is not null))))
+$$;
+
+-- Who may open a request and its thread/attachments.
+create or replace function public.can_view_request(p_request uuid, p_user uuid)
+returns boolean language sql stable as $$
+  select exists (
+    select 1 from public.leave_requests r
+     where r.id = p_request and (r.profile_id = p_user or r.approver_id = p_user))
+  or public.can_approve(p_request, p_user)
+$$;
+
+-- ============================================================================
+-- Audit trail: every change in the system, append-only.
+-- No foreign keys on purpose — history must outlive deleted employees, so the
+-- actor's and subject's names are snapshotted onto each row.
+-- ============================================================================
+create table if not exists public.audit_log (
+  id           bigserial primary key,
+  at           timestamptz not null default now(),
+  actor_id     uuid,          -- null = system (reminders, seed) or signed-out user
+  actor_name   text,
+  actor_email  text,
+  action       text not null, -- e.g. request.approved, profile.updated
+  entity_type  text not null, -- request | profile | balance | holiday | account | message | attachment
+  entity_id    text,
+  subject_id   uuid,          -- the person the change is about
+  subject_name text,
+  summary      text not null, -- human-readable one-liner
+  details      jsonb not null default '{}'::jsonb, -- before/after values etc.
+  ip           text
+);
+create index if not exists idx_audit_at      on public.audit_log(at desc);
+create index if not exists idx_audit_subject on public.audit_log(subject_id, at desc);
+create index if not exists idx_audit_actor   on public.audit_log(actor_id, at desc);
+create index if not exists idx_audit_action  on public.audit_log(action);
+
+create or replace function public.audit_log_immutable()
+returns trigger language plpgsql as $$
+begin
+  raise exception 'audit_log is append-only';
+end $$;
+
+create or replace trigger audit_log_no_update_delete
+  before update or delete on public.audit_log
+  for each row execute function public.audit_log_immutable();
+create or replace trigger audit_log_no_truncate
+  before truncate on public.audit_log
+  for each statement execute function public.audit_log_immutable();
+
+-- One-time backfill: reconstruct history for requests that existed before the
+-- audit trail did. Runs once (guarded by the audit.backfilled marker row).
+-- Cancellation times were never stored, so those show only in the details.
+do $$ begin
+  if not exists (select 1 from public.audit_log where action = 'audit.backfilled') then
+    insert into public.audit_log (at, actor_id, actor_name, actor_email, action, entity_type,
+                                  entity_id, subject_id, subject_name, summary, details)
+    select r.created_at, p.id, p.full_name, p.email, 'request.submitted', 'request', r.id::text,
+           p.id, p.full_name,
+           'Applied for ' || lt.name || ', ' || to_char(r.start_date, 'DD Mon YYYY')
+             || case when r.end_date <> r.start_date then ' – ' || to_char(r.end_date, 'DD Mon YYYY') else '' end
+             || ' — ' || r.days || ' day(s)',
+           jsonb_build_object('backfilled', true, 'leave_type', lt.name,
+             'start_date', r.start_date, 'end_date', r.end_date, 'days', r.days,
+             'reason', r.reason, 'current_status', r.status)
+      from public.leave_requests r
+      join public.profiles p on p.id = r.profile_id
+      join public.leave_types lt on lt.id = r.leave_type_id;
+
+    insert into public.audit_log (at, actor_id, actor_name, actor_email, action, entity_type,
+                                  entity_id, subject_id, subject_name, summary, details)
+    select r.decided_at, a.id, a.full_name, a.email, 'request.' || r.status, 'request', r.id::text,
+           p.id, p.full_name,
+           initcap(r.status::text) || ' ' || p.full_name || '''s ' || lt.name || ', '
+             || to_char(r.start_date, 'DD Mon YYYY')
+             || case when r.end_date <> r.start_date then ' – ' || to_char(r.end_date, 'DD Mon YYYY') else '' end,
+           jsonb_build_object('backfilled', true, 'note', r.decision_note, 'days', r.days)
+      from public.leave_requests r
+      join public.profiles p on p.id = r.profile_id
+      join public.leave_types lt on lt.id = r.leave_type_id
+      left join public.profiles a on a.id = r.approver_id
+     where r.status in ('approved','rejected') and r.decided_at is not null;
+
+    insert into public.audit_log (action, entity_type, summary, details)
+    values ('audit.backfilled', 'account',
+            'Audit trail started — earlier leave requests reconstructed from their records',
+            jsonb_build_object('requests', (select count(*) from public.leave_requests)));
+  end if;
+end $$;
+
+-- ---------- Upcoming-holiday reminder emails ----------
+-- Per-person opt-out (Account page).
+alter table public.profiles add column if not exists holiday_emails boolean not null default true;
+-- One reminder per holiday, ever: the row is claimed before sending.
+create table if not exists public.holiday_reminders (
+  holiday_date date primary key,
+  sent_at      timestamptz not null default now(),
+  recipients   int
+);
+
+-- Keep last year, this year and the next two years of public holidays filled in
+-- (also re-checked daily by the reminder job, so new years appear on their own).
+select public.ensure_sa_holidays(extract(year from current_date)::int - 1, 4);

@@ -1,6 +1,7 @@
-import { decideRequest } from "@/app/(app)/actions";
-import { formatDate, leaveAccent } from "@/lib/leave";
-import type { RequestWithRelations } from "@/lib/types";
+import DecisionForm from "@/components/DecisionForm";
+import ThreadBadge from "@/components/ThreadBadge";
+import { describeDuration, formatDate, leaveAccent } from "@/lib/leave";
+import type { RequestWithRelations, ThreadStats } from "@/lib/types";
 
 /** Same colour the balance cards use for this leave type. */
 const typeColor = (r: RequestWithRelations) =>
@@ -8,7 +9,15 @@ const typeColor = (r: RequestWithRelations) =>
     ? leaveAccent(r.leave_types.code, r.leave_types.color)
     : "#94a3b8";
 
-export default function ApprovalCard({ r }: { r: RequestWithRelations }) {
+export default function ApprovalCard({
+  r,
+  stats,
+}: {
+  r: RequestWithRelations;
+  stats?: ThreadStats;
+}) {
+  const sameDay = r.start_date === r.end_date;
+  const isSick = r.leave_types?.code === "sick";
   return (
     <div className="rounded-3xl bg-white p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -26,55 +35,32 @@ export default function ApprovalCard({ r }: { r: RequestWithRelations }) {
             </span>
           </div>
           <p className="mt-1 text-sm text-sand-600">
-            {r.leave_types?.name} · {formatDate(r.start_date)} →{" "}
-            {formatDate(r.end_date)}{" "}
+            {r.leave_types?.name} · {formatDate(r.start_date)}
+            {sameDay ? "" : <> → {formatDate(r.end_date)}</>}{" "}
             <span className="font-medium text-ink-900">
-              ({r.days} day{r.days === 1 ? "" : "s"})
+              ({describeDuration(r.days, r.half_day)})
             </span>
           </p>
           {r.reason ? (
-            <p className="mt-2 rounded-lg bg-sand-50 px-3 py-2 text-sm text-sand-600">
+            <p className="mt-2 rounded-xl bg-sand-50 px-3 py-2 text-sm text-sand-600">
               “{r.reason}”
             </p>
           ) : null}
+          {isSick && r.days > 2 && !stats?.attachments ? (
+            <p className="mt-2 text-xs font-medium text-brand-700">No medical certificate attached yet.</p>
+          ) : null}
         </div>
-        <span className="text-xs text-sand-500">
-          Applied {formatDate(r.created_at.slice(0, 10))}
-        </span>
+        <div className="flex flex-col items-end gap-2">
+          <span className="text-xs text-sand-500">
+            Applied {formatDate(r.created_at.slice(0, 10))}
+          </span>
+          <ThreadBadge requestId={r.id} stats={stats} />
+        </div>
       </div>
 
-      <form action={decideRequest} className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
-        <input type="hidden" name="id" value={r.id} />
-        <div className="flex-1">
-          <label className="mb-1 block text-xs font-medium text-sand-600">
-            Note to employee (optional)
-          </label>
-          <input
-            name="note"
-            type="text"
-            placeholder="Justify yourself (optional, but kind)…"
-            className="w-full rounded-xl border border-sand-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-          />
-        </div>
-        <div className="flex gap-2">
-          <button
-            type="submit"
-            name="decision"
-            value="rejected"
-            className="rounded-full border border-rose-200 bg-white px-4 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50"
-          >
-            Reject
-          </button>
-          <button
-            type="submit"
-            name="decision"
-            value="approved"
-            className="rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
-          >
-            Approve
-          </button>
-        </div>
-      </form>
+      <div className="mt-4">
+        <DecisionForm requestId={r.id} />
+      </div>
     </div>
   );
 }

@@ -1,7 +1,9 @@
+import Link from "next/link";
 import StatusBadge from "@/components/StatusBadge";
-import { formatDateRange, leaveAccent } from "@/lib/leave";
+import ThreadBadge from "@/components/ThreadBadge";
+import { describeDuration, formatDateRange, leaveAccent } from "@/lib/leave";
 import { cancelRequest } from "@/app/(app)/actions";
-import type { RequestWithRelations } from "@/lib/types";
+import type { RequestWithRelations, ThreadStats } from "@/lib/types";
 
 /**
  * Requests as a compact list: a calendar chip for the start date, what and
@@ -9,11 +11,14 @@ import type { RequestWithRelations } from "@/lib/types";
  */
 export default function RequestList({
   rows,
+  stats = {},
   showEmployee = false,
   allowCancel = false,
   className = "",
 }: {
   rows: RequestWithRelations[];
+  /** Thread counts keyed by request id (see getThreadStats). */
+  stats?: Record<string, ThreadStats>;
   showEmployee?: boolean;
   allowCancel?: boolean;
   className?: string;
@@ -27,8 +32,8 @@ export default function RequestList({
           : "#94a3b8";
         const start = new Date(r.start_date + "T00:00:00Z");
         const typeName = r.leave_types?.name ?? "Leave";
-        const when = `${formatDateRange(r.start_date, r.end_date)} · ${r.days} ${
-          r.days === 1 ? "day" : "days"
+        const when = `${formatDateRange(r.start_date, r.end_date)} · ${
+          r.half_day ? describeDuration(r.days, r.half_day) : `${r.days} ${r.days === 1 ? "day" : "days"}`
         }`;
 
         return (
@@ -52,9 +57,12 @@ export default function RequestList({
             </div>
 
             <div className="min-w-0 flex-1">
-              <div className="truncate text-sm font-semibold text-ink-900">
+              <Link
+                href={`/requests/${r.id}`}
+                className="block truncate text-sm font-semibold text-ink-900 hover:underline"
+              >
                 {showEmployee ? (r.profiles?.full_name ?? "—") : typeName}
-              </div>
+              </Link>
               <div className="text-xs text-sand-600">
                 {showEmployee ? `${typeName} · ${when}` : when}
               </div>
@@ -67,7 +75,8 @@ export default function RequestList({
 
             <div className="flex shrink-0 items-center gap-2">
               <StatusBadge status={r.status} />
-              {allowCancel && r.status === "pending" ? (
+              <ThreadBadge requestId={r.id} stats={stats[r.id]} compact />
+              {allowCancel && (r.status === "pending" || r.status === "approved") ? (
                 <form action={cancelRequest}>
                   <input type="hidden" name="id" value={r.id} />
                   <button

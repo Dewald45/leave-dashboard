@@ -2,7 +2,12 @@ import Link from "next/link";
 import BalanceCard from "@/components/BalanceCard";
 import RequestList from "@/components/RequestList";
 import { requireProfile } from "@/lib/auth";
-import { ensureCurrentBalances, getBalances, getMyRequests } from "@/lib/data";
+import {
+  ensureCurrentBalances,
+  getBalances,
+  getMyRequests,
+  getThreadStats,
+} from "@/lib/data";
 
 export default async function DashboardPage() {
   const { profile, userId } = await requireProfile();
@@ -15,6 +20,10 @@ export default async function DashboardPage() {
     getBalances(userId),
     getMyRequests(userId, 3),
   ]);
+  const stats = await getThreadStats(
+    reqs.map((r) => r.id),
+    userId
+  );
 
   const annual = bs.find((b) => b.leave_code === "annual");
   // Auto-granted leave (the closure) gets its own explainer card rather than a
@@ -112,7 +121,7 @@ export default async function DashboardPage() {
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto">
           {reqs.length ? (
-            <RequestList rows={reqs} allowCancel />
+            <RequestList rows={reqs} stats={stats} allowCancel />
           ) : (
             <p className="px-4 py-6 text-center text-sm text-sand-600">
               Nothing here. Either you love this place or you&apos;re due a

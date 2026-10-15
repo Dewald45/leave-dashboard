@@ -44,6 +44,42 @@ maternity is scoped by the employee's `gender` on their profile.
 These rules are the company's reading of the BCEA; have them checked by whoever
 advises on labour law before relying on them.
 
+## Features
+
+- **Request threads** — every request has its own page (`/requests/<id>`) with a
+  conversation between the employee, their manager and anyone else involved.
+  Each post emails the other participants; unread badges show in the tables.
+- **Sick notes** — sick leave over 2 consecutive days (BCEA s23) requires a
+  medical certificate upload (PDF/image, 5 MB). Files can also be added to any
+  request's thread later. Stored in Postgres; only people who can see the
+  request can open them.
+- **Half days** — single-day requests can be morning or afternoon (0.5 days).
+- **Calendar** — submitting emails the employee an out-of-office `.ics` event
+  that updates itself on approval and disappears on rejection/cancellation.
+  Everyone can also subscribe to a personal iCal feed (Account page); managers'
+  feeds include their team's approved leave.
+- **Reminders & backup approvers** — approvers are nudged after 3 days; after
+  5 days the request escalates to the manager's backup approver (or admins).
+  While a manager is on leave, their backup can approve for them.
+- **CSV exports** (Admin) — monthly leave taken per person (payroll), all
+  requests, and balances, per year.
+- **Passwords** — self-service "forgot password" via emailed one-time link;
+  change password on the Account page.
+- **Leave allowances** — company defaults per leave type are edited in Admin;
+  Add employee prefills them and lets you set a person's own numbers, which
+  carry into every future leave year.
+- **Public holidays** — calculated automatically from the Public Holidays Act
+  (incl. Sunday → Monday), kept two years ahead; admins add declared days such
+  as elections. A reminder email goes out a week before each one, suggesting a
+  bridge day when there's a 4-day weekend to be had (opt out on Account).
+- **Audit trail** (Admin → Audit trail) — every submission, decision,
+  cancellation, escalation, profile/role change, balance edit, deletion,
+  holiday change, password event and sign-in, with who, when, before/after
+  values and IP. Filterable and downloadable as CSV. The `audit_log` table is
+  append-only (the database rejects updates/deletes) and survives employee
+  deletion. Requests that existed before the trail was added are backfilled
+  once on first boot.
+
 ## Architecture
 
 - **App**: Next.js server components + server actions. Authorization is enforced
@@ -93,6 +129,11 @@ npm run dev                         # http://localhost:3000
 | `APP_URL` | emails | Base URL for links |
 | `RESEND_API_KEY` / `RESEND_FROM` | emails | Resend sender (verified domain) |
 | `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` / `SEED_ADMIN_NAME` | migrate | First-run admin (created once) |
+| `REMINDER_AFTER_DAYS` / `ESCALATE_AFTER_DAYS` | app | Approval nudge / escalation thresholds (default 3 / 5) |
+| `REMINDERS` | app | `off` disables the built-in hourly reminder job |
+| `CRON_SECRET` | app | Only for an external scheduler calling `POST /api/cron/reminders` |
+| `HOLIDAY_REMINDER_DAYS` | app | How many days before a public holiday to email everyone (default 7) |
+| `EMAIL_OUTBOX_DIR` | app (dev) | With no `RESEND_API_KEY`, save emails here as HTML instead of dropping them |
 
 For the Docker stack, `docker-compose.yml` builds `DATABASE_URL` from
 `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB`.

@@ -1,22 +1,27 @@
 import ApplyForm from "./ApplyForm";
 import { requireProfile } from "@/lib/auth";
 import { ensureCurrentBalances, getBalances, getLeaveTypes } from "@/lib/data";
+import { getHolidayDates } from "@/lib/holidays";
 import type { LeaveType } from "@/lib/types";
 import PageHeader from "@/components/PageHeader";
 import { leaveAccent } from "@/lib/leave";
 
+/** A yyyy-mm-dd query value, or undefined. */
+const isoDate = (v?: string) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : undefined);
+
 export default async function ApplyPage({
   searchParams,
 }: {
-  searchParams: { type?: string };
+  searchParams: { type?: string; start?: string; end?: string };
 }) {
   const { userId } = await requireProfile();
 
   await ensureCurrentBalances(userId);
 
-  const [types, balanceRows] = await Promise.all([
+  const [types, balanceRows, holidays] = await Promise.all([
     getLeaveTypes(),
     getBalances(userId),
+    getHolidayDates(),
   ]);
   // Only offer leave the employee is actually entitled to (scopes parental vs
   // maternity to the right person) AND that can be applied for — auto-granted
@@ -47,7 +52,10 @@ export default async function ApplyPage({
             key={initialTypeId}
             types={eligibleTypes}
             balances={balanceRows}
+            holidays={holidays}
             initialTypeId={initialTypeId}
+            initialStart={isoDate(searchParams?.start)}
+            initialEnd={isoDate(searchParams?.end) ?? isoDate(searchParams?.start)}
           />
         </div>
 

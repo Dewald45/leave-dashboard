@@ -48,6 +48,11 @@ If you'd rather not build on the server, build in CI and pull the image:
   `docker exec <db> pg_dump -U leave leave > backup.sql`.
 - The first-run seed only creates the admin if that email doesn't already exist —
   safe to leave the `SEED_ADMIN_*` vars in place across redeploys.
+- Sick notes / thread attachments and the audit trail live in the same database,
+  so the `pg_dump` above backs them up too. The `audit_log` table is
+  append-only by design — the database refuses to edit or delete its rows.
+- Approval reminders run inside the app container every hour (no extra service
+  needed). Tune with `REMINDER_AFTER_DAYS` / `ESCALATE_AFTER_DAYS`.
 
 ## Notes
 

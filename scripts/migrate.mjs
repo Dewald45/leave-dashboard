@@ -58,6 +58,11 @@ async function main() {
         "select public.provision_balances($1, current_date)",
         [user.id]
       );
+      await client.query(
+        `insert into audit_log (action, entity_type, entity_id, subject_id, subject_name, summary)
+         values ('employee.created', 'profile', $1, $1, $2, $3)`,
+        [user.id, name, `Seeded first administrator ${name} (${email})`]
+      );
       console.log(`[migrate] seeded admin ${email}`);
     } else {
       console.log("[migrate] admin already exists — skipping seed");

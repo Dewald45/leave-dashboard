@@ -4,7 +4,8 @@ import { NextResponse, type NextRequest } from "next/server";
 // the Edge runtime, so it only checks for the cookie's presence; the actual
 // session is validated against Postgres in requireProfile() on each page.
 const SESSION_COOKIE = "lv_session";
-const PUBLIC_PATHS = ["/login", "/auth"];
+// /api/calendar and /api/cron authenticate with their own secret instead.
+const PUBLIC_PATHS = ["/login", "/auth", "/forgot-password", "/reset-password", "/api/calendar", "/api/cron"];
 
 export function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
@@ -12,6 +13,9 @@ export function middleware(request: NextRequest) {
   const hasSession = request.cookies.has(SESSION_COOKIE);
 
   if (!hasSession && !isPublic) {
+    if (path.startsWith("/api/")) {
+      return new NextResponse("Not signed in", { status: 401 });
+    }
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

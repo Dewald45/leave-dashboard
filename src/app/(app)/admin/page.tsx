@@ -1,10 +1,14 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import AddEmployeeForm from "./AddEmployeeForm";
 import DeleteEmployeeButton from "./DeleteEmployeeButton";
 import ResetPasswordForm from "./ResetPasswordForm";
-import { updateEmployee, updateBalance } from "./actions";
+import HolidayForm from "./HolidayForm";
+import ExportPanel from "./ExportPanel";
+import { updateEmployee, updateBalance, deleteHoliday, updateLeaveDefault } from "./actions";
+import { getHolidays } from "@/lib/holidays";
 import { requireProfile } from "@/lib/auth";
-import { getAllProfiles, getAllBalances } from "@/lib/data";
+import { getAllProfiles, getAllBalances, getLeaveTypes } from "@/lib/data";
 import type { BalanceSummary } from "@/lib/types";
 import PageHeader from "@/components/PageHeader";
 
@@ -12,11 +16,29 @@ export default async function AdminPage() {
   const { profile } = await requireProfile();
   if (profile.role !== "admin") redirect("/dashboard");
 
-  const [profiles, balances] = await Promise.all([
+  const [profiles, balances, holidays, leaveTypes] = await Promise.all([
     getAllProfiles(),
     getAllBalances(),
+    getHolidays(),
+    getLeaveTypes(),
   ]);
+  const leaveDefaults = leaveTypes.map((t) => ({
+    id: t.id,
+    name: t.name,
+    color: t.color,
+    default_days: Number(t.default_days ?? 0),
+    default_reserved: Number(t.default_reserved ?? 0),
+    applies_to: t.applies_to,
+  }));
   const managers = profiles.map((p) => ({ id: p.id, full_name: p.full_name }));
+  const approvers = profiles.filter((p) => p.role !== "employee");
+  const currentYear = new Date().getUTCFullYear();
+  const holidaysByYear = new Map<number, typeof holidays>();
+  holidays.forEach((h) => {
+    const y = Number(h.holiday_date.slice(0, 4));
+    holidaysByYear.set(y, [...(holidaysByYear.get(y) ?? []), h]);
+  });
+  const holidayYears = [...holidaysByYear.keys()].sort((a, b) => b - a);
   const nameById = new Map(profiles.map((p) => [p.id, p.full_name]));
   const balancesByProfile = new Map<string, BalanceSummary[]>();
   ((balances ?? []) as BalanceSummary[]).forEach((b) => {
@@ -27,7 +49,17 @@ export default async function AdminPage() {
 
   return (
     <div className="space-y-8">
-      <PageHeader title="Administration">
+      <PageHeader
+        title="Administration"
+        action={
+          <Link
+            href="/admin/audit"
+            className="inline-flex min-h-[40px] items-center rounded-full bg-ink-900 px-5 text-sm font-semibold text-white hover:bg-ink-800"
+          >
+            Audit trail →
+          </Link>
+        }
+      >
         Staff, roles, reporting lines and allocations. Try not to enjoy the
         power too much.
       </PageHeader>
@@ -36,7 +68,72 @@ export default async function AdminPage() {
         <h2 className="mb-3 text-lg font-semibold text-ink-900">
           Add an employee
         </h2>
-        <AddEmployeeForm managers={managers} />
+        <AddEmployeeForm managers={managers} leaveTypes={leaveDefaults} />
+      </section>
+
+      <section id="leave-defaults" className="scroll-mt-20">
+        <h2 className="mb-3 text-lg font-semibold text-ink-900">Company leave defaults</h2>
+        <div className="rounded-3xl bg-white p-6">
+          <p className="mb-4 text-sm text-sand-600">
+            What everyone gets per leave year unless you set something different for them.
+            Used for new employees and each new leave year — balances already running
+            aren&apos;t changed.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {leaveDefaults.map((t) => (
+              <form
+                key={t.id}
+                action={updateLeaveDefault}
+                className="flex flex-wrap items-end gap-2 rounded-2xl border border-sand-100 bg-sand-50 p-3"
+              >
+                <input type="hidden" name="leave_type_id" value={t.id} />
+                <div className="flex-1">
+                  <div className="mb-1 flex items-center gap-1.5 text-xs font-medium text-sand-600">
+                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: t.color }} aria-hidden="true" />
+                    {t.name}
+                    {t.applies_to !== "all" ? (
+                      <span className="text-sand-500">({t.applies_to === "male" ? "men" : "women"})</span>
+                    ) : null}
+                  </div>
+                  <div className="flex gap-2">
+                    <label className="text-[11px] text-sand-500">
+                      Days a year
+                      <input
+                        name="default_days"
+                        type="number"
+                        step="0.5"
+                        min="0"
+                        defaultValue={t.default_days}
+                        className="mt-0.5 w-20 rounded border border-sand-300 px-2 py-1 text-sm"
+                      />
+                    </label>
+                    {t.default_reserved > 0 ? (
+                      <label className="text-[11px] text-sand-500">
+                        Held for closure
+                        <input
+                          name="default_reserved"
+                          type="number"
+                          step="0.5"
+                          min="0"
+                          defaultValue={t.default_reserved}
+                          className="mt-0.5 w-20 rounded border border-sand-300 px-2 py-1 text-sm"
+                        />
+                      </label>
+                    ) : (
+                      <input type="hidden" name="default_reserved" value={t.default_reserved} />
+                    )}
+                  </div>
+                </div>
+                <button
+                  type="submit"
+                  className="rounded-full border border-sand-300 bg-white px-3 py-1.5 text-xs font-medium text-sand-600 hover:bg-sand-100"
+                >
+                  Save
+                </button>
+              </form>
+            ))}
+          </div>
+        </div>
       </section>
 
       <section>
@@ -137,6 +234,27 @@ export default async function AdminPage() {
                         <option value="female">Female</option>
                       </select>
                     </div>
+                    {p.role !== "employee" ? (
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-sand-600">
+                          Backup approver
+                        </label>
+                        <select
+                          name="backup_approver_id"
+                          defaultValue={p.backup_approver_id ?? ""}
+                          className="rounded-xl border border-sand-300 px-3 py-1.5 text-sm"
+                        >
+                          <option value="">— Admins cover —</option>
+                          {approvers
+                            .filter((a) => a.id !== p.id)
+                            .map((a) => (
+                              <option key={a.id} value={a.id}>
+                                {a.full_name}
+                              </option>
+                            ))}
+                        </select>
+                      </div>
+                    ) : null}
                     <button
                       type="submit"
                       className="rounded-full bg-ink-900 px-4 py-1.5 text-sm font-semibold text-white hover:bg-ink-800"
@@ -205,6 +323,10 @@ export default async function AdminPage() {
                                 </label>
                               ) : null}
                             </div>
+                            <label className="mt-2 flex items-center gap-1.5 text-[11px] text-sand-600">
+                              <input type="checkbox" name="apply_future" className="h-3.5 w-3.5 accent-ink-900" />
+                              Also use this for future leave years
+                            </label>
                           </div>
                           <button
                             type="submit"
@@ -243,6 +365,74 @@ export default async function AdminPage() {
               </details>
             );
           })}
+        </div>
+      </section>
+
+      <section id="exports" className="scroll-mt-20">
+        <h2 className="mb-3 text-lg font-semibold text-ink-900">Exports</h2>
+        <ExportPanel currentYear={currentYear} />
+      </section>
+
+      <section id="holidays" className="scroll-mt-20">
+        <h2 className="mb-3 text-lg font-semibold text-ink-900">Public holidays</h2>
+        <div className="space-y-4 rounded-3xl bg-white p-6">
+          <p className="text-sm text-sand-600">
+            South Africa&apos;s public holidays are filled in automatically from the Public
+            Holidays Act (including Sunday holidays moving to Monday), always at least two
+            years ahead. Add specially declared days, like election days, here. Removing a
+            holiday sticks. None of these count as working days; changes apply to new
+            requests only.
+          </p>
+          <HolidayForm />
+          {holidayYears.length === 0 ? (
+            <p className="text-sm text-sand-500">No holidays loaded.</p>
+          ) : null}
+          {holidayYears.map((year) => (
+            <details
+              key={year}
+              open={year >= currentYear}
+              className="rounded-2xl border border-sand-100"
+            >
+              <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-ink-900">
+                {year}{" "}
+                <span className="font-normal text-sand-500">
+                  ({holidaysByYear.get(year)!.length})
+                </span>
+              </summary>
+              <ul className="divide-y divide-sand-100 border-t border-sand-100">
+                {holidaysByYear.get(year)!.map((h) => (
+                  <li key={h.holiday_date} className="flex items-center justify-between gap-3 px-4 py-2 text-sm">
+                    <span>
+                      <span className="inline-block w-36 tabular-nums text-sand-600">
+                        {new Date(h.holiday_date + "T00:00:00Z").toLocaleDateString("en-ZA", {
+                          weekday: "short",
+                          day: "numeric",
+                          month: "short",
+                          timeZone: "UTC",
+                        })}
+                      </span>
+                      <span className="text-ink-900">{h.name}</span>
+                      {h.source === "manual" ? (
+                        <span className="ml-2 rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-medium text-brand-700">
+                          Added by admin
+                        </span>
+                      ) : null}
+                    </span>
+                    <form action={deleteHoliday}>
+                      <input type="hidden" name="holiday_date" value={h.holiday_date} />
+                      <button
+                        type="submit"
+                        aria-label={`Remove ${h.name}`}
+                        className="min-h-[32px] rounded-full px-3 text-xs font-medium text-sand-500 hover:bg-rose-50 hover:text-rose-600"
+                      >
+                        Remove
+                      </button>
+                    </form>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          ))}
         </div>
       </section>
     </div>

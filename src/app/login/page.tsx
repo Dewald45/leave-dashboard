@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useFormState, useFormStatus } from "react-dom";
 import { signIn } from "./actions";
 import { LogoWordmark } from "@/components/Logo";
@@ -39,10 +40,11 @@ export default function LoginPage() {
           className="space-y-4 rounded-3xl bg-white p-6"
         >
           <div>
-            <label className="mb-1 block text-sm font-medium text-ink-800">
+            <label htmlFor="email" className="mb-1 block text-sm font-medium text-ink-800">
               Email
             </label>
             <input
+              id="email"
               name="email"
               type="email"
               autoComplete="email"
@@ -52,10 +54,19 @@ export default function LoginPage() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-ink-800">
-              Password
-            </label>
+            <div className="mb-1 flex items-baseline justify-between">
+              <label htmlFor="password" className="block text-sm font-medium text-ink-800">
+                Password
+              </label>
+              <Link
+                href="/forgot-password"
+                className="text-xs font-medium text-brand-700 hover:underline"
+              >
+                Forgot it?
+              </Link>
+            </div>
             <input
+              id="password"
               name="password"
               type="password"
               autoComplete="current-password"

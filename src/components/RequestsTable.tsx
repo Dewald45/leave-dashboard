@@ -1,8 +1,9 @@
 import RequestList from "@/components/RequestList";
 import StatusBadge from "@/components/StatusBadge";
-import { formatDate, leaveAccent } from "@/lib/leave";
+import ThreadBadge from "@/components/ThreadBadge";
+import { formatDate, formatDays, leaveAccent } from "@/lib/leave";
 import { cancelRequest } from "@/app/(app)/actions";
-import type { RequestWithRelations } from "@/lib/types";
+import type { RequestWithRelations, ThreadStats } from "@/lib/types";
 
 /** Same colour the balance cards use for this leave type. */
 const typeColor = (r: RequestWithRelations) =>
@@ -12,11 +13,14 @@ const typeColor = (r: RequestWithRelations) =>
 
 export default function RequestsTable({
   rows,
+  stats = {},
   showEmployee = false,
   allowCancel = false,
   emptyLabel = "No requests yet.",
 }: {
   rows: RequestWithRelations[];
+  /** Thread counts keyed by request id (see getThreadStats). */
+  stats?: Record<string, ThreadStats>;
   showEmployee?: boolean;
   allowCancel?: boolean;
   emptyLabel?: string;
@@ -34,6 +38,7 @@ export default function RequestsTable({
     {/* Phones: a compact list — a six-column table doesn't fit. */}
     <RequestList
       rows={rows}
+      stats={stats}
       showEmployee={showEmployee}
       allowCancel={allowCancel}
       className="rounded-3xl bg-white md:hidden"
@@ -49,7 +54,14 @@ export default function RequestsTable({
             <th className="px-5 py-2.5 font-medium">Days</th>
             <th className="px-5 py-2.5 font-medium">Status</th>
             <th className="px-5 py-2.5 font-medium">Note</th>
-            {allowCancel ? <th className="px-5 py-2.5 font-medium"></th> : null}
+            <th className="px-5 py-2.5 font-medium">
+              <span className="sr-only">Thread</span>
+            </th>
+            {allowCancel ? (
+              <th className="px-5 py-2.5 font-medium">
+                <span className="sr-only">Actions</span>
+              </th>
+            ) : null}
           </tr>
         </thead>
         <tbody className="divide-y divide-sand-100">
@@ -75,9 +87,13 @@ export default function RequestsTable({
                 </span>
               </td>
               <td className="whitespace-nowrap px-5 py-2.5 text-sand-600">
-                {formatDate(r.start_date)} → {formatDate(r.end_date)}
+                {r.start_date === r.end_date
+                  ? formatDate(r.start_date)
+                  : `${formatDate(r.start_date)} → ${formatDate(r.end_date)}`}
               </td>
-              <td className="px-5 py-2.5 font-medium text-ink-900">{r.days}</td>
+              <td className="px-5 py-2.5 font-medium tabular-nums text-ink-900">
+                {formatDays(r.days, r.half_day)}
+              </td>
               <td className="px-5 py-2.5">
                 <StatusBadge status={r.status} />
               </td>
@@ -95,9 +111,12 @@ export default function RequestsTable({
                   </div>
                 ) : null}
               </td>
+              <td className="px-5 py-2.5">
+                <ThreadBadge requestId={r.id} stats={stats[r.id]} />
+              </td>
               {allowCancel ? (
                 <td className="px-5 py-2.5 text-right">
-                  {r.status === "pending" ? (
+                  {r.status === "pending" || r.status === "approved" ? (
                     <form action={cancelRequest}>
                       <input type="hidden" name="id" value={r.id} />
                       <button

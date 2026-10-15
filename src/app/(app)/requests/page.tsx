@@ -1,11 +1,15 @@
 import RequestsTable from "@/components/RequestsTable";
 import { requireProfile } from "@/lib/auth";
-import { getMyRequests } from "@/lib/data";
+import { getMyRequests, getThreadStats } from "@/lib/data";
 import PageHeader from "@/components/PageHeader";
 
 export default async function RequestsPage() {
   const { userId } = await requireProfile();
   const rows = await getMyRequests(userId);
+  const stats = await getThreadStats(
+    rows.map((r) => r.id),
+    userId
+  );
 
   return (
     <div className="space-y-5">
@@ -14,6 +18,7 @@ export default async function RequestsPage() {
       </PageHeader>
       <RequestsTable
         rows={rows}
+        stats={stats}
         allowCancel
         emptyLabel="Nothing here. Either you love this place or you're due a break."
       />
