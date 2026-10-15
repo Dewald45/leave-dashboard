@@ -2,6 +2,7 @@ import { requireProfile } from "@/lib/auth";
 import { q1 } from "@/lib/db";
 import { getManagersAndAdmins } from "@/lib/data";
 import PageHeader from "@/components/PageHeader";
+import ScreenPage from "@/components/ScreenPage";
 import CopyField from "@/components/CopyField";
 import ChangePasswordForm from "./ChangePasswordForm";
 import {
@@ -49,7 +50,7 @@ export default async function AccountPage({
     : null;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <ScreenPage>
       <PageHeader title="Your account">
         {profile.full_name} · {profile.email}
       </PageHeader>
@@ -65,6 +66,9 @@ export default async function AccountPage({
         </div>
       ) : null}
 
+      <div className="grid items-start gap-4 fit:min-h-0 fit:flex-1 lg:grid-cols-2 fit:grid-rows-[minmax(0,1fr)]">
+      {/* Left: calendars and reminders */}
+      <div className="space-y-4 fit:max-h-full fit:overflow-y-auto">
       {/* Google Calendar */}
       {googleOn ? (
         <section className={card} aria-labelledby="google-heading">
@@ -176,6 +180,10 @@ export default async function AccountPage({
         </form>
       </section>
 
+      </div>
+
+      {/* Right: approvals stand-in and password */}
+      <div className="space-y-4 fit:max-h-full fit:overflow-y-auto">
       {/* Backup approver */}
       {isManager ? (
         <section className={card} aria-labelledby="backup-heading">
@@ -219,6 +227,8 @@ export default async function AccountPage({
         <h2 id="pw-heading" className={`${heading} mb-4`}>Password</h2>
         <ChangePasswordForm />
       </section>
-    </div>
+      </div>
+      </div>
+    </ScreenPage>
   );
 }

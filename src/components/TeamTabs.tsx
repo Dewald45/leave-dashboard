@@ -16,7 +16,7 @@ export default function TeamTabs({
   return (
     <nav
       aria-label="Approvals and team"
-      className="inline-flex rounded-full bg-white p-1"
+      className="inline-flex self-start rounded-full bg-white p-1"
     >
       {tabs.map((t) => {
         const on = t.key === active;

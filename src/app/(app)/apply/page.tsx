@@ -4,6 +4,7 @@ import { ensureCurrentBalances, getBalances, getLeaveTypes } from "@/lib/data";
 import { getHolidayDates } from "@/lib/holidays";
 import type { LeaveType } from "@/lib/types";
 import PageHeader from "@/components/PageHeader";
+import ScreenPage from "@/components/ScreenPage";
 import { leaveAccent } from "@/lib/leave";
 
 /** A yyyy-mm-dd query value, or undefined. */
@@ -40,14 +41,14 @@ export default async function ApplyPage({
     Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/0$/, "");
 
   return (
-    <div className="space-y-6">
+    <ScreenPage>
       <PageHeader title="Plot your escape">
         We count the working days for you — weekends and South African public
         holidays don&apos;t count against you, so no need to do sneaky maths.
         Your manager gets the final word.
       </PageHeader>
-      <div className="grid items-start gap-4 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+      <div className="grid items-start gap-4 fit:min-h-0 fit:flex-1 lg:grid-cols-3 fit:grid-rows-[minmax(0,1fr)]">
+        <div className="fit:max-h-full fit:overflow-y-auto fit:rounded-3xl lg:col-span-2">
           <ApplyForm
             key={initialTypeId}
             types={eligibleTypes}
@@ -98,6 +99,6 @@ export default async function ApplyPage({
           </p>
         </aside>
       </div>
-    </div>
+    </ScreenPage>
   );
 }

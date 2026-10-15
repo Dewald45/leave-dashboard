@@ -2,6 +2,7 @@ import RequestsTable from "@/components/RequestsTable";
 import { requireProfile } from "@/lib/auth";
 import { getMyRequests, getThreadStats } from "@/lib/data";
 import PageHeader from "@/components/PageHeader";
+import ScreenPage from "@/components/ScreenPage";
 
 export default async function RequestsPage() {
   const { userId } = await requireProfile();
@@ -12,7 +13,7 @@ export default async function RequestsPage() {
   );
 
   return (
-    <div className="space-y-5">
+    <ScreenPage>
       <PageHeader title="My requests">
         Every escape you&apos;ve ever attempted, and how it went.
       </PageHeader>
@@ -20,8 +21,9 @@ export default async function RequestsPage() {
         rows={rows}
         stats={stats}
         allowCancel
+        fill
         emptyLabel="Nothing here. Either you love this place or you're due a break."
       />
-    </div>
+    </ScreenPage>
   );
 }

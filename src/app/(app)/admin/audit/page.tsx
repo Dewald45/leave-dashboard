@@ -10,6 +10,8 @@ import {
   type AuditRow,
 } from "@/lib/auditQuery";
 import PageHeader from "@/components/PageHeader";
+import ScreenPage from "@/components/ScreenPage";
+import AdminTabs from "@/components/AdminTabs";
 
 const PAGE_SIZE = 50;
 
@@ -84,11 +86,7 @@ export default async function AuditPage({
   const pageHref = (n: number) => `/admin/audit?${[qs, `page=${n}`].filter(Boolean).join("&")}`;
 
   return (
-    <div className="space-y-6">
-      <Link href="/admin" className="inline-flex items-center gap-1 text-sm font-medium text-sand-600 hover:text-ink-900">
-        ← Administration
-      </Link>
-
+    <ScreenPage>
       <PageHeader
         title="Audit trail"
         action={
@@ -104,8 +102,10 @@ export default async function AuditPage({
         recorded permanently. Entries can&apos;t be edited or removed, even by admins.
       </PageHeader>
 
+      <AdminTabs active="audit" />
+
       {/* Filters */}
-      <form method="get" className="grid gap-3 rounded-3xl bg-white p-6 sm:grid-cols-2 lg:grid-cols-5 lg:items-end">
+      <form method="get" className="grid gap-3 rounded-3xl bg-white p-4 sm:grid-cols-2 lg:grid-cols-5 lg:items-end">
         <div>
           <label htmlFor="from" className="mb-1 block text-xs font-medium text-sand-600">From</label>
           <input id="from" name="from" type="date" defaultValue={filters.from} className={inputClass} />
@@ -146,9 +146,9 @@ export default async function AuditPage({
 
       {/* Entries */}
       {rows.length ? (
-        <div className="overflow-x-auto rounded-3xl bg-white">
+        <div className="overflow-x-auto rounded-3xl bg-white fit:min-h-0 fit:flex-1 fit:overflow-y-auto">
           <table className="min-w-full divide-y divide-sand-100 text-sm">
-            <thead className="bg-sand-50 text-left text-xs uppercase tracking-wide text-sand-600">
+            <thead className="sticky top-0 z-10 bg-sand-50 text-left text-xs uppercase tracking-wide text-sand-600">
               <tr>
                 <th className="whitespace-nowrap px-4 py-3">When</th>
                 <th className="px-4 py-3">Done by</th>
@@ -194,6 +194,6 @@ export default async function AuditPage({
           ) : <span />}
         </nav>
       ) : null}
-    </div>
+    </ScreenPage>
   );
 }
