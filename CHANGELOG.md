@@ -33,7 +33,8 @@ What changed in TimeOff, newest first.
 ### Admin
 - CSV exports: monthly leave taken per person (for payroll), all requests, and
   balances including carry-over.
-- Public holidays are edited on the Admin page instead of in code.
+- Public holidays move out of the code into the database, with an Admin
+  section to add declared days (see "Public holidays update themselves").
 - **Audit trail** (Admin → Audit trail): every submission, approval,
   rejection, cancellation, escalation, profile/role change, balance edit,
   deletion, holiday change, password event and sign-in, with who, when,
@@ -71,6 +72,10 @@ What changed in TimeOff, newest first.
 ### Accounts
 - "Forgot it?" on the sign-in page emails a one-time reset link (1 hour).
 - Change your password on the Account page; other devices are signed out.
+
+### Still to come
+- Parental leave: updating for the BCEA shared-parental-leave changes once Jono
+  has walked us through what the company is adopting.
 
 ### Needs attention when deploying
 - On first boot the audit trail is started and existing requests' history is
