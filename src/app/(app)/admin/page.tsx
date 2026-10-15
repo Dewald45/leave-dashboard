@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import AddEmployeeForm from "./AddEmployeeForm";
 import DeleteEmployeeButton from "./DeleteEmployeeButton";
@@ -11,10 +10,22 @@ import { requireProfile } from "@/lib/auth";
 import { getAllProfiles, getAllBalances, getLeaveTypes } from "@/lib/data";
 import type { BalanceSummary } from "@/lib/types";
 import PageHeader from "@/components/PageHeader";
+import ScreenPage from "@/components/ScreenPage";
+import Panel from "@/components/Panel";
+import AdminTabs, { type AdminTab } from "@/components/AdminTabs";
 
-export default async function AdminPage() {
+const TAB_KEYS: AdminTab[] = ["people", "defaults", "holidays", "exports"];
+
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams: { tab?: string };
+}) {
   const { profile } = await requireProfile();
   if (profile.role !== "admin") redirect("/dashboard");
+  const tab: AdminTab = TAB_KEYS.includes(searchParams.tab as AdminTab)
+    ? (searchParams.tab as AdminTab)
+    : "people";
 
   const [profiles, balances, holidays, leaveTypes] = await Promise.all([
     getAllProfiles(),
@@ -48,99 +59,24 @@ export default async function AdminPage() {
   });
 
   return (
-    <div className="space-y-8">
-      <PageHeader
-        title="Administration"
-        action={
-          <Link
-            href="/admin/audit"
-            className="inline-flex min-h-[40px] items-center rounded-full bg-ink-900 px-5 text-sm font-semibold text-white hover:bg-ink-800"
-          >
-            Audit trail →
-          </Link>
-        }
-      >
+    <ScreenPage>
+      <PageHeader title="Administration">
         Staff, roles, reporting lines and allocations. Try not to enjoy the
         power too much.
       </PageHeader>
 
-      <section id="add-employee" className="scroll-mt-20">
-        <h2 className="mb-3 text-lg font-semibold text-ink-900">
-          Add an employee
-        </h2>
-        <AddEmployeeForm managers={managers} leaveTypes={leaveDefaults} />
-      </section>
+      <AdminTabs active={tab} />
 
-      <section id="leave-defaults" className="scroll-mt-20">
-        <h2 className="mb-3 text-lg font-semibold text-ink-900">Company leave defaults</h2>
-        <div className="rounded-3xl bg-white p-6">
-          <p className="mb-4 text-sm text-sand-600">
-            What everyone gets per leave year unless you set something different for them.
-            Used for new employees and each new leave year — balances already running
-            aren&apos;t changed.
-          </p>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {leaveDefaults.map((t) => (
-              <form
-                key={t.id}
-                action={updateLeaveDefault}
-                className="flex flex-wrap items-end gap-2 rounded-2xl border border-sand-100 bg-sand-50 p-3"
-              >
-                <input type="hidden" name="leave_type_id" value={t.id} />
-                <div className="flex-1">
-                  <div className="mb-1 flex items-center gap-1.5 text-xs font-medium text-sand-600">
-                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: t.color }} aria-hidden="true" />
-                    {t.name}
-                    {t.applies_to !== "all" ? (
-                      <span className="text-sand-500">({t.applies_to === "male" ? "men" : "women"})</span>
-                    ) : null}
-                  </div>
-                  <div className="flex gap-2">
-                    <label className="text-[11px] text-sand-500">
-                      Days a year
-                      <input
-                        name="default_days"
-                        type="number"
-                        step="0.5"
-                        min="0"
-                        defaultValue={t.default_days}
-                        className="mt-0.5 w-20 rounded border border-sand-300 px-2 py-1 text-sm"
-                      />
-                    </label>
-                    {t.default_reserved > 0 ? (
-                      <label className="text-[11px] text-sand-500">
-                        Held for closure
-                        <input
-                          name="default_reserved"
-                          type="number"
-                          step="0.5"
-                          min="0"
-                          defaultValue={t.default_reserved}
-                          className="mt-0.5 w-20 rounded border border-sand-300 px-2 py-1 text-sm"
-                        />
-                      </label>
-                    ) : (
-                      <input type="hidden" name="default_reserved" value={t.default_reserved} />
-                    )}
-                  </div>
-                </div>
-                <button
-                  type="submit"
-                  className="rounded-full border border-sand-300 bg-white px-3 py-1.5 text-xs font-medium text-sand-600 hover:bg-sand-100"
-                >
-                  Save
-                </button>
-              </form>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section>
-        <h2 className="mb-3 text-lg font-semibold text-ink-900">
-          Employees ({profiles.length})
-        </h2>
-        <div className="space-y-3">
+      {tab === "people" ? (
+        <div className="grid gap-4 fit:min-h-0 fit:flex-1 lg:grid-cols-5 fit:grid-rows-[minmax(0,1fr)]">
+          <section aria-labelledby="employees-heading" className="flex flex-col fit:min-h-0 lg:col-span-3">
+            <h2 id="employees-heading" className="mb-3 flex items-center gap-2 text-base font-semibold text-ink-900">
+              Employees
+              <span className="rounded-full bg-white px-2 py-0.5 text-xs font-semibold tabular-nums text-sand-600">
+                {profiles.length}
+              </span>
+            </h2>
+            <div className="space-y-3 fit:min-h-0 fit:flex-1 fit:overflow-y-auto fit:pr-1">
           {profiles.map((p) => {
             const bs = (balancesByProfile.get(p.id) ?? []).sort(
               (a, b) => a.leave_type_id - b.leave_type_id
@@ -365,26 +301,101 @@ export default async function AdminPage() {
               </details>
             );
           })}
+            </div>
+          </section>
+
+          <section id="add-employee" aria-labelledby="add-employee-heading" className="flex scroll-mt-20 flex-col fit:min-h-0 lg:col-span-2">
+            <h2 id="add-employee-heading" className="mb-3 text-base font-semibold text-ink-900">
+              Add an employee
+            </h2>
+            <div className="fit:min-h-0 fit:flex-1 fit:overflow-y-auto fit:rounded-3xl">
+              <AddEmployeeForm managers={managers} leaveTypes={leaveDefaults} />
+            </div>
+          </section>
         </div>
-      </section>
+      ) : null}
 
-      <section id="exports" className="scroll-mt-20">
-        <h2 className="mb-3 text-lg font-semibold text-ink-900">Exports</h2>
-        <ExportPanel currentYear={currentYear} />
-      </section>
+      {tab === "defaults" ? (
+        <div className="fit:min-h-0 fit:flex-1 fit:overflow-y-auto fit:rounded-3xl">
+          <div className="rounded-3xl bg-white p-6">
+          <p className="mb-4 text-sm text-sand-600">
+            What everyone gets per leave year unless you set something different for them.
+            Used for new employees and each new leave year — balances already running
+            aren&apos;t changed.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {leaveDefaults.map((t) => (
+              <form
+                key={t.id}
+                action={updateLeaveDefault}
+                className="flex flex-wrap items-end gap-2 rounded-2xl border border-sand-100 bg-sand-50 p-3"
+              >
+                <input type="hidden" name="leave_type_id" value={t.id} />
+                <div className="flex-1">
+                  <div className="mb-1 flex items-center gap-1.5 text-xs font-medium text-sand-600">
+                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: t.color }} aria-hidden="true" />
+                    {t.name}
+                    {t.applies_to !== "all" ? (
+                      <span className="text-sand-500">({t.applies_to === "male" ? "men" : "women"})</span>
+                    ) : null}
+                  </div>
+                  <div className="flex gap-2">
+                    <label className="text-[11px] text-sand-500">
+                      Days a year
+                      <input
+                        name="default_days"
+                        type="number"
+                        step="0.5"
+                        min="0"
+                        defaultValue={t.default_days}
+                        className="mt-0.5 w-20 rounded border border-sand-300 px-2 py-1 text-sm"
+                      />
+                    </label>
+                    {t.default_reserved > 0 ? (
+                      <label className="text-[11px] text-sand-500">
+                        Held for closure
+                        <input
+                          name="default_reserved"
+                          type="number"
+                          step="0.5"
+                          min="0"
+                          defaultValue={t.default_reserved}
+                          className="mt-0.5 w-20 rounded border border-sand-300 px-2 py-1 text-sm"
+                        />
+                      </label>
+                    ) : (
+                      <input type="hidden" name="default_reserved" value={t.default_reserved} />
+                    )}
+                  </div>
+                </div>
+                <button
+                  type="submit"
+                  className="rounded-full border border-sand-300 bg-white px-3 py-1.5 text-xs font-medium text-sand-600 hover:bg-sand-100"
+                >
+                  Save
+                </button>
+              </form>
+            ))}
+          </div>
+        </div>
+        </div>
+      ) : null}
 
-      <section id="holidays" className="scroll-mt-20">
-        <h2 className="mb-3 text-lg font-semibold text-ink-900">Public holidays</h2>
-        <div className="space-y-4 rounded-3xl bg-white p-6">
-          <p className="text-sm text-sand-600">
+      {tab === "holidays" ? (
+        <div className="grid items-start gap-4 fit:min-h-0 fit:flex-1 lg:grid-cols-5 fit:grid-rows-[minmax(0,1fr)]">
+          <div className="space-y-4 rounded-3xl bg-white p-6 lg:col-span-2">
+            <h2 className="text-base font-semibold text-ink-900">Public holidays</h2>
+            <p className="text-sm text-sand-600">
             South Africa&apos;s public holidays are filled in automatically from the Public
             Holidays Act (including Sunday holidays moving to Monday), always at least two
             years ahead. Add specially declared days, like election days, here. Removing a
             holiday sticks. None of these count as working days; changes apply to new
             requests only.
           </p>
-          <HolidayForm />
-          {holidayYears.length === 0 ? (
+            <HolidayForm />
+          </div>
+          <Panel title="Holidays by year" count={holidays.length} className="fit:max-h-full lg:col-span-3" bodyClassName="space-y-3 px-5 pb-5">
+            {holidayYears.length === 0 ? (
             <p className="text-sm text-sand-500">No holidays loaded.</p>
           ) : null}
           {holidayYears.map((year) => (
@@ -433,8 +444,15 @@ export default async function AdminPage() {
               </ul>
             </details>
           ))}
+          </Panel>
         </div>
-      </section>
-    </div>
+      ) : null}
+
+      {tab === "exports" ? (
+        <div className="fit:min-h-0 fit:overflow-y-auto">
+          <ExportPanel currentYear={currentYear} />
+        </div>
+      ) : null}
+    </ScreenPage>
   );
 }

@@ -17,6 +17,7 @@ export default function RequestsTable({
   showEmployee = false,
   allowCancel = false,
   emptyLabel = "No requests yet.",
+  fill = false,
 }: {
   rows: RequestWithRelations[];
   /** Thread counts keyed by request id (see getThreadStats). */
@@ -24,10 +25,13 @@ export default function RequestsTable({
   showEmployee?: boolean;
   allowCancel?: boolean;
   emptyLabel?: string;
+  /** Take the leftover height of a ScreenPage and scroll inside (laptop+). */
+  fill?: boolean;
 }) {
+  const fillCls = fill ? "fit:min-h-0 fit:flex-1 fit:overflow-y-auto" : "";
   if (!rows.length) {
     return (
-      <div className="rounded-3xl border border-dashed border-sand-300 bg-white/60 p-8 text-center text-sm text-sand-500">
+      <div className={`rounded-3xl border border-dashed border-sand-300 bg-white/60 p-8 text-center text-sm text-sand-500 ${fillCls}`}>
         {emptyLabel}
       </div>
     );
@@ -44,9 +48,9 @@ export default function RequestsTable({
       className="rounded-3xl bg-white md:hidden"
     />
 
-    <div className="hidden overflow-x-auto rounded-3xl bg-white md:block">
+    <div className={`hidden overflow-x-auto rounded-3xl bg-white md:block ${fillCls}`}>
       <table className="min-w-full divide-y divide-sand-100 text-sm">
-        <thead className="text-left text-xs font-medium text-sand-600">
+        <thead className={`text-left text-xs font-medium text-sand-600 ${fill ? "sticky top-0 z-10 bg-white" : ""}`}>
           <tr>
             {showEmployee ? <th className="px-5 py-2.5 font-medium">Employee</th> : null}
             <th className="px-5 py-2.5 font-medium">Type</th>

@@ -2,6 +2,21 @@
 
 What changed in TimeOff, newest first.
 
+## 2026-10-15 (night)
+
+### Every page fits on one screen
+- On laptops and bigger (from 1024×640), every page now fits the window like
+  the dashboard: the page itself doesn't scroll — lists, the conversation and
+  long forms scroll inside their own panels. Phones still scroll normally.
+- **Admin is split into tabs** — People · Leave defaults · Holidays · Exports ·
+  Audit trail — each with its own link. People shows the employee list and the
+  Add-employee form side by side.
+- **Approvals** and **Team** show their two lists side by side.
+- **Request page:** the conversation scrolls inside and opens at the newest
+  message, with the reply box always visible.
+- **Account:** two columns — calendars and reminders on the left, backup
+  approver and password on the right.
+
 ## 2026-10-15 (late)
 
 ### Fixed

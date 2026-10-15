@@ -56,7 +56,8 @@ export default function AddEmployeeForm({
       action={formAction}
       className="space-y-4 rounded-3xl bg-white p-6"
     >
-      <div className="grid gap-4 sm:grid-cols-2">
+      {/* Two across on phones/tablets; one per row in Admin's narrow column on laptops. */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 2xl:grid-cols-2">
         <div>
           <label className="mb-1 block text-sm font-medium text-ink-800">
             Full name
@@ -186,7 +187,7 @@ export default function AddEmployeeForm({
           sticks for every leave year, not just the first.
           {gender ? "" : " Pick a gender to see parental or maternity leave."}
         </p>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-2 2xl:grid-cols-3">
           {shownTypes.map((t) => (
             <label key={t.id} className="block">
               <span className="mb-1 flex items-center gap-1.5 text-xs font-medium text-sand-600">

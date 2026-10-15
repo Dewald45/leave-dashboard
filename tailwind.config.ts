@@ -4,6 +4,14 @@ const config: Config = {
   content: ["./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
+      screens: {
+        /**
+         * "Fits on one screen": laptop-size windows (≥1024 wide, ≥640 tall).
+         * Pages lock to the window height here and their panels scroll inside;
+         * smaller screens get a normal scrolling page.
+         */
+        fit: { raw: "(min-width: 1024px) and (min-height: 640px)" },
+      },
       colors: {
         /**
          * Media Rocket accent — sampled from mediarocket.space (#FF3300).

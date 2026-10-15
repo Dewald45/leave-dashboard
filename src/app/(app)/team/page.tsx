@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import RequestsTable from "@/components/RequestsTable";
 import { requireProfile, isManagerOrAdmin } from "@/lib/auth";
 import {
   getTeamMembers,
@@ -8,6 +7,9 @@ import {
   getThreadStats,
 } from "@/lib/data";
 import PageHeader from "@/components/PageHeader";
+import ScreenPage from "@/components/ScreenPage";
+import Panel from "@/components/Panel";
+import RequestList from "@/components/RequestList";
 import TeamTabs from "@/components/TeamTabs";
 import type { BalanceSummary } from "@/lib/types";
 
@@ -37,7 +39,7 @@ export default async function TeamPage() {
   balances.forEach((b) => annualByProfile.set(b.profile_id, b));
 
   return (
-    <div className="space-y-6">
+    <ScreenPage>
       <PageHeader title="Team">
         {isAdmin
           ? "The whole roster, and exactly how much holiday each of them is sitting on."
@@ -46,12 +48,10 @@ export default async function TeamPage() {
 
       <TeamTabs active="team" />
 
-      <section>
-        <h2 className="mb-3 text-lg font-semibold text-ink-900">
-          People ({team.length})
-        </h2>
+      <div className="grid gap-4 fit:min-h-0 fit:flex-1 lg:grid-cols-5 fit:grid-rows-[minmax(0,1fr)]">
+      <Panel title="People" count={team.length} className="lg:col-span-3">
         {/* Phones: stacked cards instead of a four-column table. */}
-        <ul className="divide-y divide-sand-100 rounded-3xl bg-white md:hidden">
+        <ul className="divide-y divide-sand-100 md:hidden">
           {team.map((m) => {
             const b = annualByProfile.get(m.id);
             return (
@@ -87,9 +87,9 @@ export default async function TeamPage() {
             </li>
           ) : null}
         </ul>
-        <div className="hidden md:block overflow-x-auto rounded-3xl bg-white">
+        <div className="hidden overflow-x-auto md:block">
           <table className="min-w-full divide-y divide-sand-100 text-sm">
-            <thead className="text-left text-xs font-medium text-sand-600">
+            <thead className="sticky top-0 z-10 bg-white text-left text-xs font-medium text-sand-600">
               <tr>
                 <th className="px-5 py-4 font-medium">Name</th>
                 <th className="px-5 py-4 font-medium">Role</th>
@@ -140,19 +140,16 @@ export default async function TeamPage() {
             </tbody>
           </table>
         </div>
-      </section>
+      </Panel>
 
-      <section>
-        <h2 className="mb-3 text-lg font-semibold text-ink-900">
-          Upcoming approved leave
-        </h2>
-        <RequestsTable
-          rows={upcomingRows}
-          stats={stats}
-          showEmployee
-          emptyLabel="Nobody's going anywhere. Suspicious."
-        />
-      </section>
-    </div>
+      <Panel title="Upcoming approved leave" count={upcomingRows.length} className="lg:col-span-2">
+        {upcomingRows.length ? (
+          <RequestList rows={upcomingRows} stats={stats} showEmployee />
+        ) : (
+          <p className="px-5 pb-6 text-sm text-sand-500">Nobody&apos;s going anywhere. Suspicious.</p>
+        )}
+      </Panel>
+      </div>
+    </ScreenPage>
   );
 }

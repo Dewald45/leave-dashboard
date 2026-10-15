@@ -13,10 +13,12 @@ import { formatBytes } from "@/lib/attachments";
 import { describeDuration, formatDate, formatDateTime, formatDays } from "@/lib/leave";
 import { cancelRequest } from "@/app/(app)/actions";
 import PageHeader from "@/components/PageHeader";
+import ScreenPage from "@/components/ScreenPage";
 import StatusBadge from "@/components/StatusBadge";
 import DecisionForm from "@/components/DecisionForm";
 import MessageForm from "./MessageForm";
 import AutoRefresh from "./AutoRefresh";
+import ScrollToLatest from "./ScrollToLatest";
 
 type TimelineItem =
   | { kind: "message"; at: string; id: string; authorId: string | null; author: string; body: string }
@@ -82,11 +84,11 @@ export default async function RequestPage({
   timeline.sort((a, b) => a.at.localeCompare(b.at));
 
   return (
-    <div className="space-y-6">
+    <ScreenPage>
       <AutoRefresh />
       <Link
         href={mine ? "/requests" : "/approvals"}
-        className="inline-flex items-center gap-1 text-sm font-medium text-sand-600 hover:text-ink-900"
+        className="inline-flex items-center gap-1 self-start text-sm font-medium text-sand-600 hover:text-ink-900"
       >
         ← {mine ? "My requests" : "Approvals"}
       </Link>
@@ -111,9 +113,9 @@ export default async function RequestPage({
         </div>
       ) : null}
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Conversation */}
-        <section className="rounded-3xl bg-white lg:col-span-2" aria-labelledby="thread-heading">
+      <div className="grid gap-4 fit:min-h-0 fit:flex-1 lg:grid-cols-3 fit:grid-rows-[minmax(0,1fr)]">
+        {/* Conversation: messages scroll, the reply box stays put */}
+        <section className="flex flex-col rounded-3xl bg-white fit:min-h-0 lg:col-span-2" aria-labelledby="thread-heading">
           <div className="border-b border-sand-100 px-5 py-4">
             <h2 id="thread-heading" className="text-base font-semibold text-ink-900">
               Conversation
@@ -123,7 +125,8 @@ export default async function RequestPage({
             </p>
           </div>
 
-          <ol className="space-y-4 px-5 py-5" aria-live="polite">
+          <ScrollToLatest targetId="thread-messages" count={timeline.length} />
+          <ol id="thread-messages" className="space-y-4 px-5 py-5 fit:min-h-0 fit:flex-1 fit:overflow-y-auto" aria-live="polite">
             {timeline.map((item) =>
               item.kind === "event" ? (
                 <li key={item.id} className="flex items-center gap-3 text-xs text-sand-500">
@@ -167,7 +170,7 @@ export default async function RequestPage({
         </section>
 
         {/* Sidebar */}
-        <aside className="space-y-4">
+        <aside className="space-y-4 fit:max-h-full fit:overflow-y-auto">
           <div className="rounded-3xl bg-white p-6">
             <h2 className="mb-3 text-base font-semibold text-ink-900">Details</h2>
             <dl className="space-y-2.5 text-sm">
@@ -261,6 +264,6 @@ export default async function RequestPage({
           ) : null}
         </aside>
       </div>
-    </div>
+    </ScreenPage>
   );
 }
