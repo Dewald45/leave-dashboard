@@ -81,6 +81,28 @@ export async function rotateCalendarToken(): Promise<void> {
   revalidatePath("/account");
 }
 
+export async function setHolidayEmails(formData: FormData): Promise<void> {
+  const me = await getSessionProfile();
+  if (!me) return;
+  const on = formData.get("holiday_emails") === "on";
+  const before = await q1<{ holiday_emails: boolean }>(
+    "select holiday_emails from profiles where id = $1",
+    [me.id]
+  );
+  if (!before || before.holiday_emails === on) return;
+  await q("update profiles set holiday_emails = $1 where id = $2", [on, me.id]);
+  await audit({
+    actor: me,
+    action: "profile.updated",
+    entityType: "profile",
+    entityId: me.id,
+    subject: me,
+    summary: `Turned public-holiday reminder emails ${on ? "on" : "off"}`,
+    details: { changes: { holiday_emails: { from: before.holiday_emails, to: on } } },
+  });
+  revalidatePath("/account");
+}
+
 export async function setBackupApprover(formData: FormData): Promise<void> {
   const me = await getSessionProfile();
   if (!me || me.role === "employee") return;

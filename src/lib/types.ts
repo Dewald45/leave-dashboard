@@ -135,4 +135,6 @@ export interface AttachmentMeta {
 export interface PublicHoliday {
   holiday_date: string;
   name: string;
+  /** "auto" = calculated from the Public Holidays Act; "manual" = added by an admin. */
+  source: "auto" | "manual";
 }

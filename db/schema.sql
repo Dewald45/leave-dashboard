@@ -393,29 +393,113 @@ create table if not exists public.public_holidays (
   holiday_date date primary key,
   name         text not null
 );
--- Seed only into an empty table, so holidays an admin deletes stay deleted.
-insert into public.public_holidays (holiday_date, name)
-select d::date, n from (values
-  ('2025-01-01','New Year''s Day'), ('2025-03-21','Human Rights Day'),
-  ('2025-04-18','Good Friday'), ('2025-04-21','Family Day'),
-  ('2025-04-28','Freedom Day (observed)'), ('2025-05-01','Workers'' Day'),
-  ('2025-06-16','Youth Day'), ('2025-08-09','National Women''s Day'),
-  ('2025-09-24','Heritage Day'), ('2025-12-16','Day of Reconciliation'),
-  ('2025-12-25','Christmas Day'), ('2025-12-26','Day of Goodwill'),
-  ('2026-01-01','New Year''s Day'), ('2026-03-21','Human Rights Day'),
-  ('2026-04-03','Good Friday'), ('2026-04-06','Family Day'),
-  ('2026-04-27','Freedom Day'), ('2026-05-01','Workers'' Day'),
-  ('2026-06-16','Youth Day'), ('2026-08-10','National Women''s Day (observed)'),
-  ('2026-09-24','Heritage Day'), ('2026-12-16','Day of Reconciliation'),
-  ('2026-12-25','Christmas Day'), ('2026-12-26','Day of Goodwill'),
-  ('2027-01-01','New Year''s Day'), ('2027-03-22','Human Rights Day (observed)'),
-  ('2027-03-26','Good Friday'), ('2027-03-29','Family Day'),
-  ('2027-04-27','Freedom Day'), ('2027-05-01','Workers'' Day'),
-  ('2027-06-16','Youth Day'), ('2027-08-09','National Women''s Day'),
-  ('2027-09-24','Heritage Day'), ('2027-12-16','Day of Reconciliation'),
-  ('2027-12-25','Christmas Day'), ('2027-12-27','Day of Goodwill (observed)')
-) as h(d, n)
-where not exists (select 1 from public.public_holidays);
+-- 'auto' = calculated from the Public Holidays Act; 'manual' = added by an admin
+-- (e.g. a specially declared election day).
+alter table public.public_holidays add column if not exists source text not null default 'manual';
+
+-- Years already filled in automatically. Generating a year once (and never
+-- again) means a holiday an admin removes stays removed.
+create table if not exists public.holiday_years (
+  year         int primary key,
+  generated_at timestamptz not null default now()
+);
+
+-- Easter Sunday (Gregorian, anonymous algorithm).
+create or replace function public.easter_sunday(y int)
+returns date language plpgsql immutable as $$
+declare a int; b int; c int; d int; e int; f int; g int; h int; i int; k int; l int; m int;
+begin
+  a := y % 19; b := y / 100; c := y % 100; d := b / 4; e := b % 4;
+  f := (b + 8) / 25; g := (b - f + 1) / 3;
+  h := (19 * a + b - d - g + 15) % 30;
+  i := c / 4; k := c % 4;
+  l := (32 + 2 * e + 2 * i - h - k) % 7;
+  m := (a + 11 * h + 22 * l) / 451;
+  return make_date(y, (h + l - 7 * m + 114) / 31, ((h + l - 7 * m + 114) % 31) + 1);
+end $$;
+
+-- South African statutory public holidays for a year (Public Holidays Act
+-- 36 of 1994). A holiday on a Sunday moves to the Monday; if that Monday is
+-- already a holiday (25 Dec on a Sunday) it moves to the next free day, as
+-- happened in 2016 and 2022.
+create or replace function public.sa_public_holidays(y int)
+returns table (holiday_date date, name text)
+language plpgsql immutable as $$
+declare
+  fixed record;
+  taken date[] := array[]::date[];
+  obs date;
+  easter date := public.easter_sunday(y);
+begin
+  for fixed in
+    select * from (values
+      (make_date(y, 1, 1),   'New Year''s Day'),
+      (make_date(y, 3, 21),  'Human Rights Day'),
+      (easter - 2,           'Good Friday'),
+      (easter + 1,           'Family Day'),
+      (make_date(y, 4, 27),  'Freedom Day'),
+      (make_date(y, 5, 1),   'Workers'' Day'),
+      (make_date(y, 6, 16),  'Youth Day'),
+      (make_date(y, 8, 9),   'National Women''s Day'),
+      (make_date(y, 9, 24),  'Heritage Day'),
+      (make_date(y, 12, 16), 'Day of Reconciliation'),
+      (make_date(y, 12, 25), 'Christmas Day'),
+      (make_date(y, 12, 26), 'Day of Goodwill')
+    ) as t(d, n) order by d
+  loop
+    holiday_date := fixed.d; name := fixed.n;
+    taken := taken || fixed.d;
+    return next;
+  end loop;
+
+  for fixed in
+    select * from (values
+      (make_date(y, 1, 1),   'New Year''s Day'),
+      (make_date(y, 3, 21),  'Human Rights Day'),
+      (make_date(y, 4, 27),  'Freedom Day'),
+      (make_date(y, 5, 1),   'Workers'' Day'),
+      (make_date(y, 6, 16),  'Youth Day'),
+      (make_date(y, 8, 9),   'National Women''s Day'),
+      (make_date(y, 9, 24),  'Heritage Day'),
+      (make_date(y, 12, 16), 'Day of Reconciliation'),
+      (make_date(y, 12, 25), 'Christmas Day'),
+      (make_date(y, 12, 26), 'Day of Goodwill')
+    ) as t(d, n) order by d
+  loop
+    if extract(isodow from fixed.d) = 7 then
+      obs := fixed.d + 1;
+      while obs = any(taken) loop obs := obs + 1; end loop;
+      holiday_date := obs; name := fixed.n || ' (observed)';
+      taken := taken || obs;
+      return next;
+    end if;
+  end loop;
+end $$;
+
+-- Fill in any year in [p_from, p_from + p_years) that hasn't been generated.
+-- Existing dates (e.g. admin-added) are left untouched. Returns rows added.
+create or replace function public.ensure_sa_holidays(p_from int, p_years int)
+returns int language plpgsql as $$
+declare yr int; added int := 0; n int;
+begin
+  for yr in p_from .. p_from + p_years - 1 loop
+    if not exists (select 1 from public.holiday_years where year = yr) then
+      insert into public.public_holidays (holiday_date, name, source)
+      select h.holiday_date, h.name, 'auto' from public.sa_public_holidays(yr) h
+      on conflict (holiday_date) do nothing;
+      get diagnostics n = row_count;
+      insert into public.holiday_years (year) values (yr);
+      added := added + n;
+      if n > 0 then
+        insert into public.audit_log (action, entity_type, entity_id, summary, details)
+        values ('holiday.generated', 'holiday', yr::text,
+                'Added ' || n || ' South African public holidays for ' || yr || ' automatically',
+                jsonb_build_object('year', yr, 'count', n));
+      end if;
+    end if;
+  end loop;
+  return added;
+end $$;
 
 -- ---------- Approval rules ----------
 -- A manager is "away" while they're on approved leave today.
@@ -531,3 +615,17 @@ do $$ begin
             jsonb_build_object('requests', (select count(*) from public.leave_requests)));
   end if;
 end $$;
+
+-- ---------- Upcoming-holiday reminder emails ----------
+-- Per-person opt-out (Account page).
+alter table public.profiles add column if not exists holiday_emails boolean not null default true;
+-- One reminder per holiday, ever: the row is claimed before sending.
+create table if not exists public.holiday_reminders (
+  holiday_date date primary key,
+  sent_at      timestamptz not null default now(),
+  recipients   int
+);
+
+-- Keep last year, this year and the next two years of public holidays filled in
+-- (also re-checked daily by the reminder job, so new years appear on their own).
+select public.ensure_sa_holidays(extract(year from current_date)::int - 1, 4);

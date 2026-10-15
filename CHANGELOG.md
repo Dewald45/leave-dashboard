@@ -40,6 +40,22 @@ What changed in TimeOff, newest first.
   before/after values and IP. Filter and download as CSV. Entries can't be
   edited or deleted, and they stay after an employee is removed.
 
+### Public holidays update themselves
+- South African public holidays are now calculated from the Public Holidays Act
+  (the fixed days, Good Friday and Family Day from Easter, and a Sunday holiday
+  moving to Monday — or the next free day, as with 27 December in 2016 and
+  2022). Last year, this year and the next two are always filled in; new years
+  appear on their own. Admins only add specially declared days, like elections.
+- Holidays an admin removes stay removed. Added-by-admin days are labelled.
+
+### Public holiday reminder emails
+- A week before each public holiday everyone gets a heads-up to plan work
+  around it, their annual leave left, and — when a Tuesday or Thursday holiday
+  makes a 4-day weekend possible — a one-click link to book the bridge day
+  (`/apply?type=&start=&end=` now prefills the form).
+- Sent once per holiday, during working hours. Anyone can turn these off on
+  their Account page.
+
 ### Accounts
 - "Forgot it?" on the sign-in page emails a one-time reset link (1 hour).
 - Change your password on the Account page; other devices are signed out.
@@ -48,12 +64,15 @@ What changed in TimeOff, newest first.
 - On first boot the audit trail is started and existing requests' history is
   rebuilt from their records (submitted and decided). Cancellation times were
   never stored, so those aren't backfilled.
-- South African public holidays for 2025–2027 are loaded once; add 2028 on the
-  Admin page when it's announced.
+- Public holidays fill in automatically on first boot (last year through two
+  years ahead). Election days and other declared holidays still need adding.
+- The first holiday reminder goes out a week before 16 December.
 - `RESEND_API_KEY` must be set for any of the new emails (threads, invites,
   reminders, password resets) to go out.
 - Optional new settings: `REMINDER_AFTER_DAYS`, `ESCALATE_AFTER_DAYS`,
-  `REMINDERS`, `CRON_SECRET` (see `.env.docker.example`).
+  `HOLIDAY_REMINDER_DAYS`, `REMINDERS`, `CRON_SECRET` (see `.env.docker.example`).
+- For local testing without Resend, set `EMAIL_OUTBOX_DIR` to a folder and every
+  email is saved there as an HTML file instead.
 
 ## 2026-10-12
 

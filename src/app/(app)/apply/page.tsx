@@ -6,10 +6,13 @@ import type { LeaveType } from "@/lib/types";
 import PageHeader from "@/components/PageHeader";
 import { leaveAccent } from "@/lib/leave";
 
+/** A yyyy-mm-dd query value, or undefined. */
+const isoDate = (v?: string) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : undefined);
+
 export default async function ApplyPage({
   searchParams,
 }: {
-  searchParams: { type?: string };
+  searchParams: { type?: string; start?: string; end?: string };
 }) {
   const { userId } = await requireProfile();
 
@@ -51,6 +54,8 @@ export default async function ApplyPage({
             balances={balanceRows}
             holidays={holidays}
             initialTypeId={initialTypeId}
+            initialStart={isoDate(searchParams?.start)}
+            initialEnd={isoDate(searchParams?.end) ?? isoDate(searchParams?.start)}
           />
         </div>
 

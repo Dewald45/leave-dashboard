@@ -37,6 +37,7 @@ export async function sendEmail({ to, subject, html, attachments }: SendArgs): P
 
   if (!key) {
     console.warn("[email] RESEND_API_KEY not set — skipping email to", recipients.join(", "));
+    if (process.env.EMAIL_OUTBOX_DIR) await saveToOutbox(recipients, subject, html, attachments);
     return false;
   }
   if (recipients.length === 0) return false;
@@ -68,6 +69,30 @@ export async function sendEmail({ to, subject, html, attachments }: SendArgs): P
   } catch (err) {
     console.error("[email] send failed:", err);
     return false;
+  }
+}
+
+/**
+ * Local development only: with no RESEND_API_KEY and EMAIL_OUTBOX_DIR set,
+ * write each email (and any attachment) to that folder so it can be opened
+ * in a browser instead of being dropped.
+ */
+async function saveToOutbox(to: string[], subject: string, html: string, attachments?: Attachment[]) {
+  try {
+    const { mkdir, writeFile } = await import("node:fs/promises");
+    const { join } = await import("node:path");
+    const dir = process.env.EMAIL_OUTBOX_DIR as string;
+    await mkdir(dir, { recursive: true });
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const slug = subject.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 60);
+    const header = `<div style="font:13px/1.5 monospace;background:#fffbe6;border-bottom:1px solid #e5e5e5;padding:10px 16px">
+      <b>To:</b> ${esc(to.join(", "))}<br><b>Subject:</b> ${esc(subject)}${
+        attachments?.length ? `<br><b>Attachments:</b> ${esc(attachments.map((a) => a.filename).join(", "))}` : ""
+      }</div>`;
+    await writeFile(join(dir, `${stamp}-${slug}.html`), header + html);
+    for (const a of attachments ?? []) await writeFile(join(dir, `${stamp}-${a.filename}`), a.content);
+  } catch (err) {
+    console.error("[email] could not write to outbox:", err);
   }
 }
 
@@ -432,6 +457,73 @@ export async function sendPasswordResetEmail(args: {
        <p style="margin:0">Someone (hopefully you) asked to reset your password. The link works once and expires in an hour.</p>
        <p style="margin:12px 0 0;color:#7a7a7a">Didn't ask? Ignore this — your password stays as it is.</p>`,
       { href, label: "Choose a new password" }
+    ),
+  });
+}
+
+/** Public holiday(s) coming up → heads-up for work planning + a nudge to bridge it. */
+export async function notifyUpcomingHolidays(args: {
+  to: string;
+  name: string;
+  holidays: Array<{ date: string; name: string; note: string | null }>;
+  bridge: { date: string; label: string; href: string } | null;
+  annualLeft: number | null;
+}): Promise<boolean> {
+  const dayFmt = (iso: string) =>
+    new Date(iso + "T00:00:00Z").toLocaleDateString("en-ZA", {
+      weekday: "long", day: "numeric", month: "long", timeZone: "UTC",
+    });
+  const list = args.holidays
+    .map(
+      (h) => `
+      <tr>
+        <td style="padding:10px 14px;border-bottom:1px solid #f5f5f5">
+          <div style="font-weight:700;color:#0a0a0a">${esc(h.name)}</div>
+          <div style="color:#7a7a7a;font-size:13px">${dayFmt(h.date)}${h.note ? ` · ${esc(h.note)}` : ""}</div>
+        </td>
+      </tr>`
+    )
+    .join("");
+
+  const bridge = args.bridge
+    ? `<div style="margin:16px 0 0;padding:14px 16px;border-radius:14px;background:#fff1ed;color:#6b1600">
+         <strong>Make it a long one:</strong> ${esc(args.bridge.label)}
+       </div>`
+    : "";
+  const left =
+    args.annualLeft !== null
+      ? `<p style="margin:12px 0 0;color:#7a7a7a">You have <strong style="color:#0a0a0a">${
+          Number.isInteger(args.annualLeft) ? args.annualLeft : args.annualLeft.toFixed(1)
+        }</strong> annual leave day${args.annualLeft === 1 ? "" : "s"} left to book.</p>`
+      : "";
+
+  const body = `
+    <p style="margin:0 0 10px">Hi ${esc(args.name) || "there"},</p>
+    <p style="margin:0">Heads-up: the office is closed for ${
+      args.holidays.length === 1 ? "a public holiday" : "public holidays"
+    } coming up. Plan deadlines, client comms and handovers around ${
+      args.holidays.length === 1 ? "it" : "them"
+    }.</p>
+    <table style="width:100%;border-collapse:collapse;margin:14px 0 0;border:1px solid #e5e5e5;border-radius:12px;overflow:hidden">${list}</table>
+    ${bridge}
+    ${left}
+  `;
+  const names = args.holidays.map((h) => h.name.replace(/ \(observed\)$/, ""));
+  const subject =
+    names.length === 1
+      ? `Public holiday coming up: ${names[0]} (${dayFmt(args.holidays[0].date).split(",")[0]})`
+      : `Public holidays coming up: ${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+
+  return sendEmail({
+    to: args.to,
+    subject,
+    html: layout(
+      args.holidays.length === 1 ? "A public holiday is coming up" : "Public holidays are coming up",
+      body,
+      args.bridge
+        ? { href: args.bridge.href, label: "Book the bridge day" }
+        : { href: `${appUrl()}/apply`, label: "Plan some leave" },
+      `Sent by TimeOff a few days before each public holiday. Don't want these? <a href="${appUrl()}/account" style="color:#7a7a7a">Turn them off on your Account page</a>.`
     ),
   });
 }

@@ -4,7 +4,7 @@ import type { PublicHoliday } from "@/lib/types";
 
 export function getHolidays() {
   return q<PublicHoliday>(
-    "select holiday_date::text as holiday_date, name from public_holidays order by holiday_date"
+    "select holiday_date::text as holiday_date, name, source from public_holidays order by holiday_date"
   );
 }
 

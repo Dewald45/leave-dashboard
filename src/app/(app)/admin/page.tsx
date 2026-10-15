@@ -299,8 +299,11 @@ export default async function AdminPage() {
         <h2 className="mb-3 text-lg font-semibold text-ink-900">Public holidays</h2>
         <div className="space-y-4 rounded-3xl bg-white p-6">
           <p className="text-sm text-sand-600">
-            These don&apos;t count as working days when leave is calculated. Changes apply
-            to new requests — existing requests keep the day count they were submitted with.
+            South Africa&apos;s public holidays are filled in automatically from the Public
+            Holidays Act (including Sunday holidays moving to Monday), always at least two
+            years ahead. Add specially declared days, like election days, here. Removing a
+            holiday sticks. None of these count as working days; changes apply to new
+            requests only.
           </p>
           <HolidayForm />
           {holidayYears.length === 0 ? (
@@ -331,6 +334,11 @@ export default async function AdminPage() {
                         })}
                       </span>
                       <span className="text-ink-900">{h.name}</span>
+                      {h.source === "manual" ? (
+                        <span className="ml-2 rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-medium text-brand-700">
+                          Added by admin
+                        </span>
+                      ) : null}
                     </span>
                     <form action={deleteHoliday}>
                       <input type="hidden" name="holiday_date" value={h.holiday_date} />

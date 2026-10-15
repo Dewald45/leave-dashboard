@@ -31,18 +31,23 @@ export default function ApplyForm({
   balances,
   holidays,
   initialTypeId,
+  initialStart,
+  initialEnd,
 }: {
   types: LeaveType[];
   balances: BalanceSummary[];
   holidays: string[];
   initialTypeId?: number;
+  /** Prefilled dates, e.g. from the bridge-day link in holiday emails. */
+  initialStart?: string;
+  initialEnd?: string;
 }) {
   const [state, formAction] = useFormState(createRequest, {} as ActionResult);
   const [typeId, setTypeId] = useState<number>(
     initialTypeId ?? types[0]?.id ?? 0
   );
-  const [start, setStart] = useState("");
-  const [end, setEnd] = useState("");
+  const [start, setStart] = useState(initialStart ?? "");
+  const [end, setEnd] = useState(initialEnd ?? "");
   const [duration, setDuration] = useState<"full" | "am" | "pm">("full");
   const [fileError, setFileError] = useState("");
 

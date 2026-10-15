@@ -65,7 +65,10 @@ advises on labour law before relying on them.
   requests, and balances, per year.
 - **Passwords** — self-service "forgot password" via emailed one-time link;
   change password on the Account page.
-- **Public holidays** — edited in Admin; used for all working-day maths.
+- **Public holidays** — calculated automatically from the Public Holidays Act
+  (incl. Sunday → Monday), kept two years ahead; admins add declared days such
+  as elections. A reminder email goes out a week before each one, suggesting a
+  bridge day when there's a 4-day weekend to be had (opt out on Account).
 - **Audit trail** (Admin → Audit trail) — every submission, decision,
   cancellation, escalation, profile/role change, balance edit, deletion,
   holiday change, password event and sign-in, with who, when, before/after
@@ -126,6 +129,8 @@ npm run dev                         # http://localhost:3000
 | `REMINDER_AFTER_DAYS` / `ESCALATE_AFTER_DAYS` | app | Approval nudge / escalation thresholds (default 3 / 5) |
 | `REMINDERS` | app | `off` disables the built-in hourly reminder job |
 | `CRON_SECRET` | app | Only for an external scheduler calling `POST /api/cron/reminders` |
+| `HOLIDAY_REMINDER_DAYS` | app | How many days before a public holiday to email everyone (default 7) |
+| `EMAIL_OUTBOX_DIR` | app (dev) | With no `RESEND_API_KEY`, save emails here as HTML instead of dropping them |
 
 For the Docker stack, `docker-compose.yml` builds `DATABASE_URL` from
 `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB`.

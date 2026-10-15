@@ -38,6 +38,7 @@ services:
       # Approval reminders (optional): nudge after N days, escalate after M days.
       REMINDER_AFTER_DAYS: ${REMINDER_AFTER_DAYS:-3}
       ESCALATE_AFTER_DAYS: ${ESCALATE_AFTER_DAYS:-5}
+      HOLIDAY_REMINDER_DAYS: ${HOLIDAY_REMINDER_DAYS:-7}
       # Set REMINDERS=off to disable the built-in hourly job (e.g. to use an
       # external cron that POSTs /api/cron/reminders with CRON_SECRET instead).
       REMINDERS: ${REMINDERS:-on}

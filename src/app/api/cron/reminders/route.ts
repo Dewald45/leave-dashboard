@@ -1,10 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { runReminders } from "@/lib/reminders";
+import { ensureHolidays, runHolidayReminders } from "@/lib/holidayReminders";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Sends approval reminders / escalations. Called hourly by the in-process
+ * Sends approval reminders / escalations and upcoming-public-holiday emails,
+ * and fills in new years of public holidays. Called hourly by the in-process
  * timer in src/instrumentation.ts, or by an external scheduler that knows
  * CRON_SECRET.
  */
@@ -17,5 +19,11 @@ export async function POST(req: NextRequest) {
   if (result.reminded || result.escalated) {
     console.log(`[reminders] sent ${result.reminded} reminder(s), ${result.escalated} escalation(s)`);
   }
-  return NextResponse.json(result);
+  // New years of public holidays appear on their own; then announce any coming up.
+  await ensureHolidays();
+  const holidays = await runHolidayReminders();
+  if (holidays.holidays) {
+    console.log(`[reminders] announced ${holidays.holidays} public holiday(s) in ${holidays.emails} email(s)`);
+  }
+  return NextResponse.json({ ...result, holiday_reminders: holidays });
 }

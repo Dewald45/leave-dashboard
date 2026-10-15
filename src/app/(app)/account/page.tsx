@@ -4,7 +4,7 @@ import { getManagersAndAdmins } from "@/lib/data";
 import PageHeader from "@/components/PageHeader";
 import CopyField from "@/components/CopyField";
 import ChangePasswordForm from "./ChangePasswordForm";
-import { rotateCalendarToken, setBackupApprover } from "./actions";
+import { rotateCalendarToken, setBackupApprover, setHolidayEmails } from "./actions";
 
 function appUrl() {
   return process.env.APP_URL || "http://localhost:3000";
@@ -18,8 +18,8 @@ export default async function AccountPage() {
   const isManager = profile.role === "manager" || profile.role === "admin";
 
   const [extras, approvers] = await Promise.all([
-    q1<{ calendar_token: string | null; backup_approver_id: string | null }>(
-      "select calendar_token, backup_approver_id from profiles where id = $1",
+    q1<{ calendar_token: string | null; backup_approver_id: string | null; holiday_emails: boolean }>(
+      "select calendar_token, backup_approver_id, holiday_emails from profiles where id = $1",
       [profile.id]
     ),
     isManager ? getManagersAndAdmins() : Promise.resolve([]),
@@ -74,6 +74,31 @@ export default async function AccountPage() {
             </button>
           </form>
         )}
+      </section>
+
+      {/* Holiday reminders */}
+      <section className={card} aria-labelledby="holiday-heading">
+        <h2 id="holiday-heading" className={heading}>Public holiday reminders</h2>
+        <form action={setHolidayEmails} className="mt-3 flex flex-wrap items-center justify-between gap-3">
+          <label className="flex min-h-[44px] cursor-pointer items-start gap-3 text-sm text-ink-800">
+            <input
+              type="checkbox"
+              name="holiday_emails"
+              defaultChecked={extras?.holiday_emails ?? true}
+              className="mt-0.5 h-5 w-5 rounded border-sand-300 accent-ink-900"
+            />
+            <span>
+              Email me a week before each public holiday, with a heads-up for work and a
+              suggested day to take off when there&apos;s a long weekend to be had.
+            </span>
+          </label>
+          <button
+            type="submit"
+            className="min-h-[40px] rounded-full bg-ink-900 px-5 text-sm font-semibold text-white hover:bg-ink-800"
+          >
+            Save
+          </button>
+        </form>
       </section>
 
       {/* Backup approver */}

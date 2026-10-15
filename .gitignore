@@ -39,3 +39,6 @@ Logos/EPS/
 Logos/PDF/
 Logos/JPG/
 Logos/PNG/
+
+# Local email previews (EMAIL_OUTBOX_DIR)
+email-outbox/
