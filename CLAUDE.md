@@ -57,13 +57,21 @@ instead of sending them.
 - **Design:** new UI goes through the `ui-ux-pro-max` skill first and follows
   the existing look — rounded-3xl white cards on the sand background, pill
   buttons, sentence-case headings, `PageHeader` at the top of each page.
+- **One screen on laptops:** wrap pages in `ScreenPage` and put long content in
+  a `Panel` (or anything with `fit:min-h-0 fit:flex-1 fit:overflow-y-auto`) so
+  the page never scrolls from 1024×640 up (`fit` breakpoint in
+  `tailwind.config.ts`). Side-by-side panels sit in a grid with
+  `fit:grid-rows-[minmax(0,1fr)]`. Check new pages at 1280×680 (no page
+  scroll) and 375 wide (normal scroll, nothing sideways).
+- **Redirects** from route handlers use `publicUrl()` (`src/lib/publicUrl.ts`),
+  never `request.url` — behind the proxy that's `0.0.0.0:3000`.
 
 ## Open items
 
 - Parental leave: update for the BCEA shared-parental-leave changes once Jono
   has explained what the company is adopting.
-- Google Calendar sync is tested against a local stand-in only; first real
-  test once `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` are on the server
-  (Google Cloud project `timeoff-511710`, Internal). Plain-Gmail fallback is
-  untested.
+- Google Calendar: the settings are on the server and the real Google sign-in
+  works; the return trip failed on the `0.0.0.0` redirect bug (fixed in PR #4,
+  waiting on Bjorn's redeploy). After that: connect, submit a test request,
+  confirm the Out of office block. Plain-Gmail fallback is untested.
 - Real email delivery through Resend hasn't been verified end to end.

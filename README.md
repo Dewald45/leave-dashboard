@@ -35,7 +35,7 @@ maternity is scoped by the employee's `gender` on their profile.
   (`leave_types.carry_months`, BCEA s20(4)). Carried days are used first, by leave
   starting on or before the expiry date. The held closure days never carry over.
   The carried amount is fixed when a leave year starts and can be corrected per
-  employee on the **Admin** page.
+  employee on **Admin → People** (their allocations).
 - **Expiry reminders** are emailed to the employee when carried-over days have
   90, 30 and 7 days left (`src/lib/expiry-alerts.ts`). The check runs inside the
   app — a minute after boot and every six hours (`src/instrumentation.ts`) — and
@@ -61,20 +61,24 @@ advises on labour law before relying on them.
 - **Reminders & backup approvers** — approvers are nudged after 3 days; after
   5 days the request escalates to the manager's backup approver (or admins).
   While a manager is on leave, their backup can approve for them.
-- **CSV exports** (Admin) — monthly leave taken per person (payroll), all
-  requests, and balances, per year.
+- **CSV exports** (Admin → Exports) — monthly leave taken per person
+  (payroll), all requests, and balances, per year.
 - **Passwords** — self-service "forgot password" via emailed one-time link;
   change password on the Account page.
 - **Google Calendar** — optional "Connect Google Calendar" on the Account page
   puts each person's leave straight into their own calendar as an Out of office
   event (pending → confirmed → removed). Setup in [DEPLOY.md](DEPLOY.md).
-- **Leave allowances** — company defaults per leave type are edited in Admin;
-  Add employee prefills them and lets you set a person's own numbers, which
+- **Leave allowances** — company defaults per leave type are edited in
+  Admin → Leave defaults; Add employee (Admin → People) prefills them and lets you set a person's own numbers, which
   carry into every future leave year.
 - **Public holidays** — calculated automatically from the Public Holidays Act
   (incl. Sunday → Monday), kept two years ahead; admins add declared days such
   as elections. A reminder email goes out a week before each one, suggesting a
   bridge day when there's a 4-day weekend to be had (opt out on Account).
+- **One screen on laptops** — from 1024×640 up, every page fits the window like
+  the dashboard: the page doesn't scroll, lists and the conversation scroll
+  inside their own panels. Admin is split into tabs (People · Leave defaults ·
+  Holidays · Exports · Audit trail). Phones scroll normally.
 - **Audit trail** (Admin → Audit trail) — every submission, decision,
   cancellation, escalation, profile/role change, balance edit, deletion,
   holiday change, password event and sign-in, with who, when, before/after
@@ -154,7 +158,7 @@ npm run dev
 | Variable | Used by | Notes |
 | --- | --- | --- |
 | `DATABASE_URL` | app + migrate | Postgres connection string |
-| `APP_URL` | emails | Base URL for links |
+| `APP_URL` | app | The public address (`https://leave.zenithlabs.space`). Used for email links, redirects (sign-out, Google) and the Google sign-in return address — must be exact |
 | `RESEND_API_KEY` / `RESEND_FROM` | emails | Resend sender (verified domain) |
 | `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` / `SEED_ADMIN_NAME` | migrate | First-run admin (created once) |
 | `REMINDER_AFTER_DAYS` / `ESCALATE_AFTER_DAYS` | app | Approval nudge / escalation thresholds (default 3 / 5) |
@@ -170,6 +174,6 @@ For the Docker stack, `docker-compose.yml` builds `DATABASE_URL` from
 
 ## First sign-in
 
-Log in with the seeded `SEED_ADMIN_*` credentials, then add staff from **Admin**
+Log in with the seeded `SEED_ADMIN_*` credentials, then add staff from **Admin → People**
 (set each person's role, line manager, department and **gender** so they get the
 right parental/maternity leave). Change your password after first sign-in.

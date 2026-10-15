@@ -16,6 +16,8 @@ What changed in TimeOff, newest first.
   message, with the reply box always visible.
 - **Account:** two columns — calendars and reminders on the left, backup
   approver and password on the right.
+- README, DEPLOY.md and CLAUDE.md updated for the Admin tabs, the one-screen
+  layout conventions and why `APP_URL` must be the exact public address.
 
 ## 2026-10-15 (late)
 
