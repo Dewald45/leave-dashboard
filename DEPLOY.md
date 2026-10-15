@@ -60,7 +60,10 @@ If you'd rather not build on the server, build in CI and pull the image:
 
 ## Notes
 
-- `APP_URL` must match the public URL (used in notification email links).
+- `APP_URL` must be the exact public address (`https://leave.zenithlabs.space`).
+  It's used for email links, for redirects such as sign-out and Google Calendar
+  (behind the proxy the app can't tell its public address on its own), and as
+  the Google sign-in return address.
 - `RESEND_FROM` must be on your verified Resend domain to reach all staff.
 - Sessions are database-backed; no session secret to manage. Rotating
   `POSTGRES_PASSWORD` requires updating it in the stack env.
