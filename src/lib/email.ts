@@ -247,12 +247,16 @@ export async function notifyEmployeeOfSubmission(
   args: LeaveSummary & {
     employeeEmail: string;
     employeeName: string;
-    ics: { ics: string; method: string };
+    /** Omitted for people whose Google Calendar is connected (it's already there). */
+    ics?: { ics: string; method: string };
   }
 ) {
+  const calLine = args.ics
+    ? `We've attached an <strong>out-of-office</strong> event — open it to drop it into your calendar. It updates itself once your manager decides.`
+    : `It's already in your Google Calendar as <strong>Out of office</strong> (pending approval), and it updates itself once your manager decides.`;
   const body = `
     <p style="margin:0 0 10px">Hi ${esc(args.employeeName) || "there"},</p>
-    <p style="margin:0">Your request is in. We've attached an <strong>out-of-office</strong> event — open it to drop it into your calendar. It updates itself once your manager decides.</p>
+    <p style="margin:0">Your request is in. ${calLine}</p>
     ${detailRows(leaveRows(args))}
   `;
   await sendEmail({
@@ -275,6 +279,7 @@ export async function notifyEmployeeOfDecision(
     note: string | null;
     deciderName: string;
     ics?: { ics: string; method: string };
+    googleCalendar?: boolean;
   }
 ) {
   const approved = args.decision === "approved";
@@ -283,7 +288,13 @@ export async function notifyEmployeeOfDecision(
   const lede = approved
     ? `Good news — <strong style="color:${color}">${esc(args.deciderName)} approved</strong> your leave. Go enjoy it (responsibly).`
     : `<strong style="color:${color}">${esc(args.deciderName)} declined</strong> this one. Deep breaths — the details are below.`;
-  const calNote = args.ics
+  const calNote = args.googleCalendar
+    ? `<p style="margin:0;color:#7a7a7a">${
+        approved
+          ? "Your Google Calendar's out-of-office block is now confirmed."
+          : "We've removed the out-of-office block from your Google Calendar."
+      }</p>`
+    : args.ics
     ? approved
       ? `<p style="margin:0;color:#7a7a7a">Your calendar's out-of-office event is now confirmed.</p>`
       : `<p style="margin:0;color:#7a7a7a">The attached update removes the out-of-office event from your calendar.</p>`
@@ -319,7 +330,7 @@ export async function notifyCancellation(
     wasApproved: boolean;
     cancelledByName: string;
     approverEmails: string[];
-    ics: { ics: string; method: string };
+    ics?: { ics: string; method: string };
   }
 ) {
   await sendEmail({
@@ -327,7 +338,9 @@ export async function notifyCancellation(
     subject: `Cancelled: ${args.leaveType}, ${dateRange(args.startDate, args.endDate, args.halfDay)}`,
     html: layout(
       "Leave cancelled",
-      `<p style="margin:0">This request was cancelled by ${esc(args.cancelledByName)}. The attached update removes it from your calendar.</p>
+      `<p style="margin:0">This request was cancelled by ${esc(args.cancelledByName)}. ${
+        args.ics ? "The attached update removes it from your calendar." : "It's been removed from your Google Calendar."
+      }</p>
        ${detailRows(leaveRows(args))}`,
       { href: requestUrl(args.requestId), label: "View request" }
     ),

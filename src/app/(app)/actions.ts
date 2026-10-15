@@ -24,6 +24,7 @@ import {
   SICK_NOTE_THRESHOLD_DAYS,
 } from "@/lib/attachments";
 import { buildInvite } from "@/lib/ics";
+import { hasGoogleCalendar, syncRequestToGoogle } from "@/lib/googleCalendar";
 import { audit, leaveLabel } from "@/lib/audit";
 import {
   notifyManagerOfRequest,
@@ -195,13 +196,16 @@ export async function createRequest(
     console.error("[createRequest] approver notification failed:", e);
   }
 
-  // Employee's copy with the out-of-office calendar invite.
+  // Out of office straight into their Google Calendar, if connected; otherwise
+  // their copy of the request carries an .ics invite.
+  const google = await hasGoogleCalendar(me.id);
+  if (google) await syncRequestToGoogle(requestId);
   try {
     await notifyEmployeeOfSubmission({
       ...summary,
       employeeEmail: me.email,
       employeeName: me.full_name,
-      ics: buildInvite({
+      ics: google ? undefined : buildInvite({
         id: requestId,
         start_date: startDate,
         end_date: endDate,
@@ -252,6 +256,9 @@ export async function cancelRequest(formData: FormData): Promise<void> {
     details: { previous_status: req.status, days: Number(req.days) },
   });
 
+  const google = await hasGoogleCalendar(req.profile_id);
+  if (google) await syncRequestToGoogle(id);
+
   try {
     const { contacts } = await getApproverContacts(req.profile_id);
     await notifyCancellation({
@@ -266,7 +273,7 @@ export async function cancelRequest(formData: FormData): Promise<void> {
       wasApproved,
       cancelledByName: me.id === req.profile_id ? "you" : me.full_name,
       approverEmails: contacts.filter((c) => c.id !== me.id).map((c) => c.email),
-      ics: icsFor(req, "cancelled", updated.calendar_seq),
+      ics: google ? undefined : icsFor(req, "cancelled", updated.calendar_seq),
     });
   } catch (e) {
     console.error("[cancelRequest] notification failed:", e);
@@ -308,6 +315,9 @@ export async function decideRequest(formData: FormData): Promise<void> {
     details: { note, days: Number(req.days), as_manager: req.manager_id === me.id },
   });
 
+  const google = await hasGoogleCalendar(req.profile_id);
+  if (google) await syncRequestToGoogle(id);
+
   try {
     if (req.employee_email) {
       await notifyEmployeeOfDecision({
@@ -322,7 +332,8 @@ export async function decideRequest(formData: FormData): Promise<void> {
         decision: decision as "approved" | "rejected",
         note,
         deciderName: me.full_name,
-        ics: icsFor(req, decision, updated.calendar_seq),
+        ics: google ? undefined : icsFor(req, decision, updated.calendar_seq),
+        googleCalendar: google,
       });
     }
   } catch (e) {
