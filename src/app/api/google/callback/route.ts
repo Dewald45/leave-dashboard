@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getSessionProfile } from "@/lib/session";
 import { backfillUpcoming, connectWithCode } from "@/lib/googleCalendar";
 import { audit } from "@/lib/audit";
+import { publicUrl } from "@/lib/publicUrl";
 
 export const dynamic = "force-dynamic";
 
@@ -10,13 +11,13 @@ const STATE_COOKIE = "g_oauth_state";
 /** Google sends people back here after they approve (or decline) calendar access. */
 export async function GET(req: NextRequest) {
   const back = (outcome: string) => {
-    const res = NextResponse.redirect(new URL(`/account?google=${outcome}`, req.url));
+    const res = NextResponse.redirect(publicUrl(`/account?google=${outcome}`, req));
     res.cookies.delete({ name: STATE_COOKIE, path: "/api/google" });
     return res;
   };
 
   const me = await getSessionProfile();
-  if (!me) return NextResponse.redirect(new URL("/login", req.url));
+  if (!me) return NextResponse.redirect(publicUrl("/login", req));
 
   const params = req.nextUrl.searchParams;
   if (params.get("error")) return back("declined");
