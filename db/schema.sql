@@ -322,3 +322,212 @@ on conflict (code) do update set
   cycle_anchor=excluded.cycle_anchor, carry_months=excluded.carry_months,
   min_service_months=excluded.min_service_months, applies_to=excluded.applies_to,
   color=excluded.color, sort_order=excluded.sort_order;
+
+-- ============================================================================
+-- v2: threads, sick notes, half days, reminders/backup approvers, calendar,
+--     password resets, admin-managed public holidays. All additive + idempotent.
+-- ============================================================================
+
+-- ---------- Profile extras ----------
+-- Stand-in who may approve this manager's reports while they're away.
+alter table public.profiles add column if not exists backup_approver_id uuid
+  references public.profiles(id) on delete set null;
+-- Secret token for the personal iCal subscription feed (/api/calendar/<token>).
+alter table public.profiles add column if not exists calendar_token text unique;
+
+-- ---------- Request extras ----------
+alter table public.leave_requests add column if not exists half_day text;
+do $$ begin
+  alter table public.leave_requests add constraint leave_requests_half_day_chk
+    check (half_day is null or (half_day in ('am','pm') and start_date = end_date));
+exception when duplicate_object then null; end $$;
+alter table public.leave_requests add column if not exists reminded_at  timestamptz;
+alter table public.leave_requests add column if not exists escalated_at timestamptz;
+-- Bumped on every change so calendar clients replace (not duplicate) the event.
+alter table public.leave_requests add column if not exists calendar_seq int not null default 0;
+
+-- ---------- Request threads ----------
+create table if not exists public.request_messages (
+  id         uuid primary key default gen_random_uuid(),
+  request_id uuid not null references public.leave_requests(id) on delete cascade,
+  author_id  uuid references public.profiles(id) on delete set null,
+  body       text not null check (char_length(body) between 1 and 4000),
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_messages_request on public.request_messages(request_id, created_at);
+
+-- Last time each person opened a request — drives the unread badges.
+create table if not exists public.request_reads (
+  request_id   uuid not null references public.leave_requests(id) on delete cascade,
+  profile_id   uuid not null references public.profiles(id) on delete cascade,
+  last_read_at timestamptz not null default now(),
+  primary key (request_id, profile_id)
+);
+
+-- ---------- Attachments (sick notes etc.) ----------
+-- Stored in Postgres so the single pgdata volume remains the only thing to back up.
+create table if not exists public.request_attachments (
+  id           uuid primary key default gen_random_uuid(),
+  request_id   uuid not null references public.leave_requests(id) on delete cascade,
+  uploaded_by  uuid references public.profiles(id) on delete set null,
+  filename     text not null,
+  content_type text not null,
+  size_bytes   int  not null,
+  data         bytea not null,
+  created_at   timestamptz not null default now()
+);
+create index if not exists idx_attachments_request on public.request_attachments(request_id);
+
+-- ---------- Password resets ----------
+create table if not exists public.password_resets (
+  token_hash text primary key,
+  user_id    uuid not null references public.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  expires_at timestamptz not null,
+  used_at    timestamptz
+);
+create index if not exists idx_password_resets_user on public.password_resets(user_id);
+
+-- ---------- Public holidays (edited in Admin) ----------
+create table if not exists public.public_holidays (
+  holiday_date date primary key,
+  name         text not null
+);
+-- Seed only into an empty table, so holidays an admin deletes stay deleted.
+insert into public.public_holidays (holiday_date, name)
+select d::date, n from (values
+  ('2025-01-01','New Year''s Day'), ('2025-03-21','Human Rights Day'),
+  ('2025-04-18','Good Friday'), ('2025-04-21','Family Day'),
+  ('2025-04-28','Freedom Day (observed)'), ('2025-05-01','Workers'' Day'),
+  ('2025-06-16','Youth Day'), ('2025-08-09','National Women''s Day'),
+  ('2025-09-24','Heritage Day'), ('2025-12-16','Day of Reconciliation'),
+  ('2025-12-25','Christmas Day'), ('2025-12-26','Day of Goodwill'),
+  ('2026-01-01','New Year''s Day'), ('2026-03-21','Human Rights Day'),
+  ('2026-04-03','Good Friday'), ('2026-04-06','Family Day'),
+  ('2026-04-27','Freedom Day'), ('2026-05-01','Workers'' Day'),
+  ('2026-06-16','Youth Day'), ('2026-08-10','National Women''s Day (observed)'),
+  ('2026-09-24','Heritage Day'), ('2026-12-16','Day of Reconciliation'),
+  ('2026-12-25','Christmas Day'), ('2026-12-26','Day of Goodwill'),
+  ('2027-01-01','New Year''s Day'), ('2027-03-22','Human Rights Day (observed)'),
+  ('2027-03-26','Good Friday'), ('2027-03-29','Family Day'),
+  ('2027-04-27','Freedom Day'), ('2027-05-01','Workers'' Day'),
+  ('2027-06-16','Youth Day'), ('2027-08-09','National Women''s Day'),
+  ('2027-09-24','Heritage Day'), ('2027-12-16','Day of Reconciliation'),
+  ('2027-12-25','Christmas Day'), ('2027-12-27','Day of Goodwill (observed)')
+) as h(d, n)
+where not exists (select 1 from public.public_holidays);
+
+-- ---------- Approval rules ----------
+-- A manager is "away" while they're on approved leave today.
+create or replace function public.manager_is_away(p_manager uuid)
+returns boolean language sql stable as $$
+  select exists (
+    select 1 from public.leave_requests
+     where profile_id = p_manager and status = 'approved'
+       and current_date between start_date and end_date)
+$$;
+
+-- Who may approve/reject a request: admins, the line manager, or the line
+-- manager's backup approver while the manager is away or the request has been
+-- escalated for sitting too long.
+create or replace function public.can_approve(p_request uuid, p_user uuid)
+returns boolean language sql stable as $$
+  select exists (
+    select 1
+      from public.leave_requests r
+      join public.profiles e on e.id = r.profile_id
+      join public.profiles u on u.id = p_user
+      left join public.profiles m on m.id = e.manager_id
+     where r.id = p_request
+       and (u.role = 'admin'
+         or (r.profile_id <> p_user and e.manager_id = p_user)
+         or (r.profile_id <> p_user and m.backup_approver_id = p_user
+             and (public.manager_is_away(m.id) or r.escalated_at is not null))))
+$$;
+
+-- Who may open a request and its thread/attachments.
+create or replace function public.can_view_request(p_request uuid, p_user uuid)
+returns boolean language sql stable as $$
+  select exists (
+    select 1 from public.leave_requests r
+     where r.id = p_request and (r.profile_id = p_user or r.approver_id = p_user))
+  or public.can_approve(p_request, p_user)
+$$;
+
+-- ============================================================================
+-- Audit trail: every change in the system, append-only.
+-- No foreign keys on purpose — history must outlive deleted employees, so the
+-- actor's and subject's names are snapshotted onto each row.
+-- ============================================================================
+create table if not exists public.audit_log (
+  id           bigserial primary key,
+  at           timestamptz not null default now(),
+  actor_id     uuid,          -- null = system (reminders, seed) or signed-out user
+  actor_name   text,
+  actor_email  text,
+  action       text not null, -- e.g. request.approved, profile.updated
+  entity_type  text not null, -- request | profile | balance | holiday | account | message | attachment
+  entity_id    text,
+  subject_id   uuid,          -- the person the change is about
+  subject_name text,
+  summary      text not null, -- human-readable one-liner
+  details      jsonb not null default '{}'::jsonb, -- before/after values etc.
+  ip           text
+);
+create index if not exists idx_audit_at      on public.audit_log(at desc);
+create index if not exists idx_audit_subject on public.audit_log(subject_id, at desc);
+create index if not exists idx_audit_actor   on public.audit_log(actor_id, at desc);
+create index if not exists idx_audit_action  on public.audit_log(action);
+
+create or replace function public.audit_log_immutable()
+returns trigger language plpgsql as $$
+begin
+  raise exception 'audit_log is append-only';
+end $$;
+
+create or replace trigger audit_log_no_update_delete
+  before update or delete on public.audit_log
+  for each row execute function public.audit_log_immutable();
+create or replace trigger audit_log_no_truncate
+  before truncate on public.audit_log
+  for each statement execute function public.audit_log_immutable();
+
+-- One-time backfill: reconstruct history for requests that existed before the
+-- audit trail did. Runs once (guarded by the audit.backfilled marker row).
+-- Cancellation times were never stored, so those show only in the details.
+do $$ begin
+  if not exists (select 1 from public.audit_log where action = 'audit.backfilled') then
+    insert into public.audit_log (at, actor_id, actor_name, actor_email, action, entity_type,
+                                  entity_id, subject_id, subject_name, summary, details)
+    select r.created_at, p.id, p.full_name, p.email, 'request.submitted', 'request', r.id::text,
+           p.id, p.full_name,
+           'Applied for ' || lt.name || ', ' || to_char(r.start_date, 'DD Mon YYYY')
+             || case when r.end_date <> r.start_date then ' – ' || to_char(r.end_date, 'DD Mon YYYY') else '' end
+             || ' — ' || r.days || ' day(s)',
+           jsonb_build_object('backfilled', true, 'leave_type', lt.name,
+             'start_date', r.start_date, 'end_date', r.end_date, 'days', r.days,
+             'reason', r.reason, 'current_status', r.status)
+      from public.leave_requests r
+      join public.profiles p on p.id = r.profile_id
+      join public.leave_types lt on lt.id = r.leave_type_id;
+
+    insert into public.audit_log (at, actor_id, actor_name, actor_email, action, entity_type,
+                                  entity_id, subject_id, subject_name, summary, details)
+    select r.decided_at, a.id, a.full_name, a.email, 'request.' || r.status, 'request', r.id::text,
+           p.id, p.full_name,
+           initcap(r.status::text) || ' ' || p.full_name || '''s ' || lt.name || ', '
+             || to_char(r.start_date, 'DD Mon YYYY')
+             || case when r.end_date <> r.start_date then ' – ' || to_char(r.end_date, 'DD Mon YYYY') else '' end,
+           jsonb_build_object('backfilled', true, 'note', r.decision_note, 'days', r.days)
+      from public.leave_requests r
+      join public.profiles p on p.id = r.profile_id
+      join public.leave_types lt on lt.id = r.leave_type_id
+      left join public.profiles a on a.id = r.approver_id
+     where r.status in ('approved','rejected') and r.decided_at is not null;
+
+    insert into public.audit_log (action, entity_type, summary, details)
+    values ('audit.backfilled', 'account',
+            'Audit trail started — earlier leave requests reconstructed from their records',
+            jsonb_build_object('requests', (select count(*) from public.leave_requests)));
+  end if;
+end $$;

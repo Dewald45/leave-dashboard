@@ -5,6 +5,7 @@ import {
   getTeamMembers,
   getAnnualBalances,
   getUpcomingApproved,
+  getThreadStats,
 } from "@/lib/data";
 import PageHeader from "@/components/PageHeader";
 import TeamTabs from "@/components/TeamTabs";
@@ -26,6 +27,11 @@ export default async function TeamPage() {
     getAnnualBalances(team.map((m) => m.id)),
     getUpcomingApproved(profile),
   ]);
+
+  const stats = await getThreadStats(
+    upcomingRows.map((r) => r.id),
+    profile.id
+  );
 
   const annualByProfile = new Map<string, BalanceSummary>();
   balances.forEach((b) => annualByProfile.set(b.profile_id, b));
@@ -142,6 +148,7 @@ export default async function TeamPage() {
         </h2>
         <RequestsTable
           rows={upcomingRows}
+          stats={stats}
           showEmployee
           emptyLabel="Nobody's going anywhere. Suspicious."
         />

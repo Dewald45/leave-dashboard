@@ -1,0 +1,115 @@
+"use server";
+
+import { randomBytes } from "node:crypto";
+import { cookies } from "next/headers";
+import { revalidatePath } from "next/cache";
+import { q, q1 } from "@/lib/db";
+import { getSessionProfile, SESSION_COOKIE } from "@/lib/session";
+import { hashPassword, verifyPassword } from "@/lib/password";
+import { audit } from "@/lib/audit";
+
+export type AccountResult = { error?: string; success?: string };
+
+export async function changePassword(
+  _prev: AccountResult,
+  formData: FormData
+): Promise<AccountResult> {
+  const me = await getSessionProfile();
+  if (!me) return { error: "Not signed in." };
+
+  const current = String(formData.get("current") || "");
+  const next = String(formData.get("password") || "");
+  const confirm = String(formData.get("confirm") || "");
+  if (next.length < 8) return { error: "Use at least 8 characters for the new password." };
+  if (next !== confirm) return { error: "The new passwords don't match." };
+
+  const user = await q1<{ password_hash: string }>(
+    "select password_hash from users where id = $1",
+    [me.id]
+  );
+  if (!user || !(await verifyPassword(current, user.password_hash))) {
+    await audit({
+      actor: me,
+      action: "password.change_failed",
+      entityType: "account",
+      entityId: me.id,
+      subject: me,
+      summary: "Tried to change password with the wrong current password",
+    });
+    return { error: "Your current password is wrong." };
+  }
+
+  await q("update users set password_hash = $1 where id = $2", [await hashPassword(next), me.id]);
+  // Sign out every other device; keep this one.
+  await q("delete from sessions where user_id = $1 and token <> $2", [
+    me.id,
+    cookies().get(SESSION_COOKIE)?.value ?? "",
+  ]);
+  await audit({
+    actor: me,
+    action: "password.changed",
+    entityType: "account",
+    entityId: me.id,
+    subject: me,
+    summary: "Changed own password (other devices signed out)",
+  });
+  return { success: "Password changed. Other devices have been signed out." };
+}
+
+/** Create (or replace, invalidating the old link) the calendar feed token. */
+export async function rotateCalendarToken(): Promise<void> {
+  const me = await getSessionProfile();
+  if (!me) return;
+  const had = await q1<{ calendar_token: string | null }>(
+    "select calendar_token from profiles where id = $1",
+    [me.id]
+  );
+  await q("update profiles set calendar_token = $1 where id = $2", [
+    randomBytes(24).toString("hex"),
+    me.id,
+  ]);
+  await audit({
+    actor: me,
+    action: had?.calendar_token ? "calendar.link_replaced" : "calendar.link_created",
+    entityType: "account",
+    entityId: me.id,
+    subject: me,
+    summary: had?.calendar_token
+      ? "Replaced calendar subscription link (old link disabled)"
+      : "Created calendar subscription link",
+  });
+  revalidatePath("/account");
+}
+
+export async function setBackupApprover(formData: FormData): Promise<void> {
+  const me = await getSessionProfile();
+  if (!me || me.role === "employee") return;
+  const backupId = String(formData.get("backup_approver_id") || "") || null;
+  if (backupId === me.id) return;
+  if (backupId) {
+    const ok = await q1(
+      "select 1 from profiles where id = $1 and role in ('manager','admin')",
+      [backupId]
+    );
+    if (!ok) return;
+  }
+  const names = await q1<{ before: string | null; after: string | null }>(
+    `select (select b.full_name from profiles p join profiles b on b.id = p.backup_approver_id where p.id = $1) as before,
+            (select full_name from profiles where id = $2) as after`,
+    [me.id, backupId]
+  );
+  await q("update profiles set backup_approver_id = $1 where id = $2", [backupId, me.id]);
+  if ((names?.before ?? null) !== (names?.after ?? null)) {
+    await audit({
+      actor: me,
+      action: "profile.updated",
+      entityType: "profile",
+      entityId: me.id,
+      subject: me,
+      summary: `Set backup approver to ${names?.after ?? "nobody (admins cover)"}`,
+      details: { changes: { backup_approver: { from: names?.before ?? null, to: names?.after ?? null } } },
+    });
+  }
+  revalidatePath("/account");
+  revalidatePath("/admin");
+}

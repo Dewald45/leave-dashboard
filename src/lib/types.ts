@@ -13,6 +13,8 @@ export interface Profile {
   gender: Gender | null;
   employment_start_date: string;
   created_at: string;
+  /** Stand-in who approves this person's reports while they're away. */
+  backup_approver_id?: string | null;
 }
 
 export interface LeaveType {
@@ -41,6 +43,8 @@ export interface LeaveRequest {
   start_date: string;
   end_date: string;
   days: number;
+  /** Set for single-day half-day requests. */
+  half_day: "am" | "pm" | null;
   reason: string | null;
   status: RequestStatus;
   approver_id: string | null;
@@ -97,7 +101,38 @@ export interface BalanceSummary {
 
 /** Request joined with the requester profile and leave type — used in tables. */
 export interface RequestWithRelations extends LeaveRequest {
-  profiles: Pick<Profile, "id" | "full_name" | "email" | "department"> | null;
+  profiles: Pick<Profile, "id" | "full_name" | "email" | "department" | "manager_id"> | null;
   leave_types: Pick<LeaveType, "id" | "code" | "name" | "color"> | null;
   approver: Pick<Profile, "id" | "full_name"> | null;
+}
+
+/** Message/attachment counts for a request, from the viewer's point of view. */
+export interface ThreadStats {
+  messages: number;
+  unread: number;
+  attachments: number;
+}
+
+export interface RequestMessage {
+  id: string;
+  request_id: string;
+  author_id: string | null;
+  author_name: string | null;
+  body: string;
+  created_at: string;
+}
+
+export interface AttachmentMeta {
+  id: string;
+  request_id: string;
+  filename: string;
+  content_type: string;
+  size_bytes: number;
+  uploaded_by_name: string | null;
+  created_at: string;
+}
+
+export interface PublicHoliday {
+  holiday_date: string;
+  name: string;
 }

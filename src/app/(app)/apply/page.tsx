@@ -1,6 +1,7 @@
 import ApplyForm from "./ApplyForm";
 import { requireProfile } from "@/lib/auth";
 import { ensureCurrentBalances, getBalances, getLeaveTypes } from "@/lib/data";
+import { getHolidayDates } from "@/lib/holidays";
 import type { LeaveType } from "@/lib/types";
 import PageHeader from "@/components/PageHeader";
 import { leaveAccent } from "@/lib/leave";
@@ -14,9 +15,10 @@ export default async function ApplyPage({
 
   await ensureCurrentBalances(userId);
 
-  const [types, balanceRows] = await Promise.all([
+  const [types, balanceRows, holidays] = await Promise.all([
     getLeaveTypes(),
     getBalances(userId),
+    getHolidayDates(),
   ]);
   // Only offer leave the employee is actually entitled to (scopes parental vs
   // maternity to the right person) AND that can be applied for — auto-granted
@@ -47,6 +49,7 @@ export default async function ApplyPage({
             key={initialTypeId}
             types={eligibleTypes}
             balances={balanceRows}
+            holidays={holidays}
             initialTypeId={initialTypeId}
           />
         </div>

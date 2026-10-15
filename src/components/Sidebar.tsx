@@ -45,6 +45,7 @@ const icons = {
   collapse: "m11 7-5 5 5 5M18 7l-5 5 5 5",
   signout:
     "M9 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3M16 17l5-5-5-5M21 12H9",
+  audit: "M9 4h6M9 4a1 1 0 0 0-1 1v1h8V5a1 1 0 0 0-1-1M8 6H6a1 1 0 0 0-1 1v13a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1h-2M9 12h6M9 16h4",
 };
 
 export type ApplyType = { id: number; name: string; color: string };
@@ -103,10 +104,14 @@ export default function Sidebar({
   ].filter((l) => l.show);
 
   // Team lives under Approvals (they share sub-tabs), so it lights up that item.
+  // Request pages (/requests/<id>) can be anyone's, so they don't light up
+  // "My Requests".
   const isActive = (href: string) =>
-    pathname === href ||
-    pathname.startsWith(href + "/") ||
-    (href === "/approvals" && pathname.startsWith("/team"));
+    href === "/requests"
+      ? pathname === href
+      : pathname === href ||
+        pathname.startsWith(href + "/") ||
+        (href === "/approvals" && pathname.startsWith("/team"));
 
   const initials = profile.full_name
     .split(" ")
@@ -207,22 +212,29 @@ export default function Sidebar({
               collapsed ? "flex-col p-1.5" : "p-2 pr-3"
             }`}
           >
-            <span
-              title={collapsed ? profile.full_name : undefined}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-500 text-xs font-semibold text-white"
+            <Link
+              href="/account"
+              title={collapsed ? `${profile.full_name} — your account` : "Your account"}
+              aria-label="Your account"
+              aria-current={pathname === "/account" ? "page" : undefined}
+              className={`flex min-w-0 items-center gap-3 rounded-full ${collapsed ? "" : "flex-1"} ${
+                pathname === "/account" ? "ring-2 ring-ink-900 ring-offset-2" : ""
+              }`}
             >
-              {initials}
-            </span>
-            {collapsed ? null : (
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-semibold text-ink-900">
-                  {profile.full_name}
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-500 text-xs font-semibold text-white">
+                {initials}
+              </span>
+              {collapsed ? null : (
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-semibold text-ink-900">
+                    {profile.full_name}
+                  </div>
+                  <div className="truncate text-xs text-sand-600">
+                    {roleLabels[profile.role]}
+                  </div>
                 </div>
-                <div className="truncate text-xs text-sand-600">
-                  {roleLabels[profile.role]}
-                </div>
-              </div>
-            )}
+              )}
+            </Link>
             <form action="/auth/signout" method="post">
               <button
                 type="submit"
@@ -243,9 +255,15 @@ export default function Sidebar({
           <LogoWordmark className="h-6 w-auto text-ink-900" />
         </Link>
         <div className="flex items-center gap-1">
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-500 text-xs font-semibold text-white">
-            {initials}
-          </span>
+          <Link
+            href="/account"
+            aria-label="Your account"
+            className="flex h-11 w-11 items-center justify-center rounded-full"
+          >
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-500 text-xs font-semibold text-white">
+              {initials}
+            </span>
+          </Link>
           <form action="/auth/signout" method="post">
             <button
               type="submit"
@@ -324,6 +342,16 @@ export default function Sidebar({
                   >
                     <Icon d={icons.plus} className="text-sand-600" />
                     Add an employee
+                  </Link>
+                ) : null}
+                {isAdmin ? (
+                  <Link
+                    role="menuitem"
+                    href="/admin/audit"
+                    className="flex min-h-12 items-center gap-3 rounded-2xl px-3 text-sm font-medium text-ink-900 hover:bg-sand-100"
+                  >
+                    <Icon d={icons.audit} className="text-sand-600" />
+                    Audit trail
                   </Link>
                 ) : null}
               </div>

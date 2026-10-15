@@ -2,7 +2,11 @@ import { redirect } from "next/navigation";
 import ApprovalCard from "@/components/ApprovalCard";
 import RequestsTable from "@/components/RequestsTable";
 import { requireProfile, isManagerOrAdmin } from "@/lib/auth";
-import { getPendingApprovals, getRecentDecisions } from "@/lib/data";
+import {
+  getPendingApprovals,
+  getRecentDecisions,
+  getThreadStats,
+} from "@/lib/data";
 import PageHeader from "@/components/PageHeader";
 import TeamTabs from "@/components/TeamTabs";
 
@@ -14,6 +18,10 @@ export default async function ApprovalsPage() {
     getPendingApprovals(profile),
     getRecentDecisions(profile),
   ]);
+  const stats = await getThreadStats(
+    [...pendingRows, ...decidedRows].map((r) => r.id),
+    profile.id
+  );
 
   return (
     <div className="space-y-6">
@@ -37,7 +45,7 @@ export default async function ApprovalsPage() {
         {pendingRows.length ? (
           <div className="grid gap-4">
             {pendingRows.map((r) => (
-              <ApprovalCard key={r.id} r={r} />
+              <ApprovalCard key={r.id} r={r} stats={stats[r.id]} />
             ))}
           </div>
         ) : (
@@ -53,6 +61,7 @@ export default async function ApprovalsPage() {
         </h2>
         <RequestsTable
           rows={decidedRows}
+          stats={stats}
           showEmployee
           emptyLabel="No verdicts handed down yet."
         />

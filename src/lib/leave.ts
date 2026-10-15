@@ -4,30 +4,19 @@
  * for the common 5-day-week annual-leave calculation).
  */
 
-// South African public holidays incl. observed Mondays (2025–2027).
-export const SA_PUBLIC_HOLIDAYS: string[] = [
-  // 2025
-  "2025-01-01", "2025-03-21", "2025-04-18", "2025-04-21", "2025-04-28",
-  "2025-05-01", "2025-06-16", "2025-08-09", "2025-09-24", "2025-12-16",
-  "2025-12-25", "2025-12-26",
-  // 2026
-  "2026-01-01", "2026-03-21", "2026-04-03", "2026-04-06", "2026-04-27",
-  "2026-05-01", "2026-06-16", "2026-08-10", "2026-09-24", "2026-12-16",
-  "2026-12-25", "2026-12-26",
-  // 2027
-  "2027-01-01", "2027-03-22", "2027-03-26", "2027-03-29", "2027-04-27",
-  "2027-05-01", "2027-06-16", "2027-08-09", "2027-09-24", "2027-12-16",
-  "2027-12-25", "2027-12-27",
-];
-
-const HOLIDAY_SET = new Set(SA_PUBLIC_HOLIDAYS);
+// Public holidays live in the `public_holidays` table (edited in Admin) and are
+// passed in, so this module stays usable from client components.
 
 function toISO(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
-/** Count working days (Mon–Fri, excluding SA public holidays) inclusive. */
-export function workingDaysBetween(startISO: string, endISO: string): number {
+/** Count working days (Mon–Fri, excluding the given public holidays) inclusive. */
+export function workingDaysBetween(
+  startISO: string,
+  endISO: string,
+  holidays: ReadonlySet<string>
+): number {
   const start = new Date(startISO + "T00:00:00Z");
   const end = new Date(endISO + "T00:00:00Z");
   if (end < start) return 0;
@@ -37,15 +26,35 @@ export function workingDaysBetween(startISO: string, endISO: string): number {
   while (cur <= end) {
     const dow = cur.getUTCDay(); // 0 Sun … 6 Sat
     const iso = toISO(cur);
-    if (dow !== 0 && dow !== 6 && !HOLIDAY_SET.has(iso)) count++;
+    if (dow !== 0 && dow !== 6 && !holidays.has(iso)) count++;
     cur.setUTCDate(cur.getUTCDate() + 1);
   }
   return count;
 }
 
-export function isWeekendOrHoliday(iso: string): boolean {
+export function isWeekendOrHoliday(iso: string, holidays: ReadonlySet<string>): boolean {
   const dow = new Date(iso + "T00:00:00Z").getUTCDay();
-  return dow === 0 || dow === 6 || HOLIDAY_SET.has(iso);
+  return dow === 0 || dow === 6 || holidays.has(iso);
+}
+
+export type HalfDay = "am" | "pm";
+
+export const HALF_DAY_LABELS: Record<HalfDay, string> = {
+  am: "Morning",
+  pm: "Afternoon",
+};
+
+/** "3", "½ (morning)", "2.5" — how many days a request takes, for tables. */
+export function formatDays(days: number, halfDay?: HalfDay | null): string {
+  if (halfDay) return `½ (${HALF_DAY_LABELS[halfDay].toLowerCase()})`;
+  return Number.isInteger(days) ? String(days) : String(Number(days.toFixed(2)));
+}
+
+/** "Morning (½ day)" or "3 working days" — for headings and sentences. */
+export function describeDuration(days: number, halfDay?: HalfDay | null): string {
+  if (halfDay) return `${HALF_DAY_LABELS[halfDay]} (½ day)`;
+  const n = formatDays(days);
+  return `${n} working day${n === "1" ? "" : "s"}`;
 }
 
 /**
@@ -114,4 +123,17 @@ export function formatDateRange(startISO: string, endISO: string): string {
       ? part(s, { day: "numeric" })
       : part(s, { day: "numeric", month: "short" });
   return `${startText} – ${formatDate(endISO)}`;
+}
+
+/** "15 Oct 2026, 14:05" in South African time, from an ISO timestamp. */
+export function formatDateTime(isoTimestamp: string): string {
+  return new Date(isoTimestamp).toLocaleString("en-ZA", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "Africa/Johannesburg",
+  });
 }

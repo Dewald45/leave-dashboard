@@ -2,6 +2,59 @@
 
 What changed in TimeOff, newest first.
 
+## 2026-10-15
+
+### Talk about a request
+- Every request has its own page (`/requests/<id>`) with a conversation between
+  the employee, their manager and anyone else involved. Each post emails the
+  others. Request lists show a chat button with an unread dot.
+- Files can be attached in the conversation.
+
+### Sick notes and half days
+- Sick leave longer than 2 days needs a medical certificate (PDF or photo, up
+  to 5 MB) when applying. It can also be added later in the conversation.
+  Only people who can see the request can open it.
+- A single day can be booked as a morning or afternoon (half a day).
+
+### Calendar
+- Submitting leave emails you an out-of-office event for your calendar. It
+  confirms itself when approved and disappears if rejected or cancelled.
+  Outlook shows it as "Out of office"; Google Calendar shows a busy block.
+- The new Account page has a personal calendar link to subscribe to. Managers'
+  calendars include their team's approved leave.
+
+### Approvals
+- Approvers get a reminder after 3 days; after 5 days the request goes to the
+  manager's backup approver, or the admins if none is set.
+- While a manager is on leave, their backup approver can approve for them.
+  Managers choose a backup on the Account page; admins can set it per person.
+- Employees can now cancel approved leave as well as pending requests.
+
+### Admin
+- CSV exports: monthly leave taken per person (for payroll), all requests, and
+  balances including carry-over.
+- Public holidays are edited on the Admin page instead of in code.
+- **Audit trail** (Admin → Audit trail): every submission, approval,
+  rejection, cancellation, escalation, profile/role change, balance edit,
+  deletion, holiday change, password event and sign-in, with who, when,
+  before/after values and IP. Filter and download as CSV. Entries can't be
+  edited or deleted, and they stay after an employee is removed.
+
+### Accounts
+- "Forgot it?" on the sign-in page emails a one-time reset link (1 hour).
+- Change your password on the Account page; other devices are signed out.
+
+### Needs attention when deploying
+- On first boot the audit trail is started and existing requests' history is
+  rebuilt from their records (submitted and decided). Cancellation times were
+  never stored, so those aren't backfilled.
+- South African public holidays for 2025–2027 are loaded once; add 2028 on the
+  Admin page when it's announced.
+- `RESEND_API_KEY` must be set for any of the new emails (threads, invites,
+  reminders, password resets) to go out.
+- Optional new settings: `REMINDER_AFTER_DAYS`, `ESCALATE_AFTER_DAYS`,
+  `REMINDERS`, `CRON_SECRET` (see `.env.docker.example`).
+
 ## 2026-10-12
 
 ### Renamed to TimeOff
