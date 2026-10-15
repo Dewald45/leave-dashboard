@@ -2,6 +2,15 @@
 
 What changed in TimeOff, newest first.
 
+## 2026-10-15 (late)
+
+### Fixed
+- **Sign out ("Escape") and Connect Google Calendar sent people to a broken
+  `https://0.0.0.0:3000/…` page** instead of back to the site. Redirects from
+  the server now use the public address (`APP_URL`). Sign-out was affected
+  before today's changes too. If you connected Google Calendar and hit the
+  error, the connection itself was saved — refresh your Account page.
+
 ## 2026-10-15 (evening)
 
 ### Developer setup

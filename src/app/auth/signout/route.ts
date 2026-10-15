@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { destroySession, getSessionProfile } from "@/lib/session";
 import { audit } from "@/lib/audit";
+import { publicUrl } from "@/lib/publicUrl";
 
 export async function POST(request: NextRequest) {
   const me = await getSessionProfile();
@@ -15,5 +16,5 @@ export async function POST(request: NextRequest) {
       summary: "Signed out",
     });
   }
-  return NextResponse.redirect(new URL("/login", request.url), { status: 303 });
+  return NextResponse.redirect(publicUrl("/login", request), { status: 303 });
 }
