@@ -7,6 +7,7 @@ import { q, q1 } from "@/lib/db";
 import { getSessionProfile, SESSION_COOKIE } from "@/lib/session";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { audit } from "@/lib/audit";
+import { disconnect as disconnectGoogle, getGoogleLink } from "@/lib/googleCalendar";
 
 export type AccountResult = { error?: string; success?: string };
 
@@ -77,6 +78,23 @@ export async function rotateCalendarToken(): Promise<void> {
     summary: had?.calendar_token
       ? "Replaced calendar subscription link (old link disabled)"
       : "Created calendar subscription link",
+  });
+  revalidatePath("/account");
+}
+
+export async function disconnectGoogleCalendar(): Promise<void> {
+  const me = await getSessionProfile();
+  if (!me) return;
+  const link = await getGoogleLink(me.id);
+  if (!link) return;
+  await disconnectGoogle(me.id);
+  await audit({
+    actor: me,
+    action: "calendar.google_disconnected",
+    entityType: "account",
+    entityId: me.id,
+    subject: me,
+    summary: `Disconnected Google Calendar (${link.google_email})`,
   });
   revalidatePath("/account");
 }

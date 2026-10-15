@@ -4,7 +4,20 @@ import { getManagersAndAdmins } from "@/lib/data";
 import PageHeader from "@/components/PageHeader";
 import CopyField from "@/components/CopyField";
 import ChangePasswordForm from "./ChangePasswordForm";
-import { rotateCalendarToken, setBackupApprover, setHolidayEmails } from "./actions";
+import {
+  disconnectGoogleCalendar,
+  rotateCalendarToken,
+  setBackupApprover,
+  setHolidayEmails,
+} from "./actions";
+import { getGoogleLink, isGoogleConfigured } from "@/lib/googleCalendar";
+
+const GOOGLE_MESSAGES: Record<string, { tone: "ok" | "warn"; text: string }> = {
+  connected: { tone: "ok", text: "Google Calendar connected. Your upcoming leave is already in it." },
+  declined: { tone: "warn", text: "No problem — Google Calendar wasn't connected." },
+  failed: { tone: "warn", text: "Couldn't connect Google Calendar. Please try again." },
+  unavailable: { tone: "warn", text: "Google Calendar isn't switched on for TimeOff yet — ask an admin." },
+};
 
 function appUrl() {
   return process.env.APP_URL || "http://localhost:3000";
@@ -13,7 +26,11 @@ function appUrl() {
 const card = "rounded-3xl bg-white p-6";
 const heading = "text-lg font-semibold text-ink-900";
 
-export default async function AccountPage() {
+export default async function AccountPage({
+  searchParams,
+}: {
+  searchParams: { google?: string };
+}) {
   const { profile } = await requireProfile();
   const isManager = profile.role === "manager" || profile.role === "admin";
 
@@ -24,6 +41,9 @@ export default async function AccountPage() {
     ),
     isManager ? getManagersAndAdmins() : Promise.resolve([]),
   ]);
+  const googleOn = isGoogleConfigured();
+  const googleLink = googleOn ? await getGoogleLink(profile.id) : null;
+  const googleMsg = searchParams.google ? GOOGLE_MESSAGES[searchParams.google] : undefined;
   const feedUrl = extras?.calendar_token
     ? `${appUrl()}/api/calendar/${extras.calendar_token}.ics`
     : null;
@@ -33,6 +53,61 @@ export default async function AccountPage() {
       <PageHeader title="Your account">
         {profile.full_name} · {profile.email}
       </PageHeader>
+
+      {googleMsg ? (
+        <div
+          role="status"
+          className={`rounded-3xl px-6 py-4 text-sm ${
+            googleMsg.tone === "ok" ? "bg-emerald-50 text-emerald-800" : "bg-amber-50 text-amber-900"
+          }`}
+        >
+          {googleMsg.text}
+        </div>
+      ) : null}
+
+      {/* Google Calendar */}
+      {googleOn ? (
+        <section className={card} aria-labelledby="google-heading">
+          <h2 id="google-heading" className={heading}>Google Calendar</h2>
+          {googleLink ? (
+            <>
+              <p className="mt-2 text-sm text-ink-800">
+                Connected as <strong>{googleLink.google_email}</strong>. When you apply, your
+                leave goes straight into your calendar as <strong>Out of office</strong> —
+                marked pending until it&apos;s approved, and removed if it&apos;s rejected or
+                cancelled. Meetings booked over it are declined for you.
+              </p>
+              <form action={disconnectGoogleCalendar} className="mt-4">
+                <button
+                  type="submit"
+                  className="min-h-[40px] rounded-full border border-sand-300 px-4 text-sm font-medium text-sand-600 hover:bg-sand-50"
+                >
+                  Disconnect Google Calendar
+                </button>
+              </form>
+            </>
+          ) : (
+            <>
+              <p className="mt-2 text-sm text-ink-800">
+                Put your leave straight into your own Google Calendar as an
+                <strong> Out of office</strong> block — no invites to accept. Google will ask
+                you to allow TimeOff to manage events in your calendar; it only touches the
+                leave events it creates.
+              </p>
+              <a
+                href="/api/google/connect"
+                className="mt-4 inline-flex min-h-[44px] items-center gap-2 rounded-full bg-ink-900 px-5 text-sm font-semibold text-white hover:bg-ink-800"
+              >
+                <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="4.5" width="18" height="16.5" rx="3" />
+                  <path d="M8 2.5v4M16 2.5v4M3 10h18" />
+                </svg>
+                Connect Google Calendar
+              </a>
+            </>
+          )}
+        </section>
+      ) : null}
 
       {/* Calendar */}
       <section className={card} aria-labelledby="cal-heading">

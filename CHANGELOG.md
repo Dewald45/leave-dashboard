@@ -2,6 +2,27 @@
 
 What changed in TimeOff, newest first.
 
+## 2026-10-15 (later)
+
+### Connect Google Calendar
+- New **Connect Google Calendar** button on the Account page. Each person
+  approves it once; after that their leave goes straight into their own Google
+  Calendar as an **Out of office** event — marked pending when they apply,
+  confirmed when approved, removed if rejected or cancelled. Meetings booked over
+  it are declined for them. Upcoming leave is added the moment they connect.
+- People who connect no longer get the `.ics` invite in their emails (no
+  duplicates); everyone else still does. The subscription link stays as well.
+- Disconnecting revokes TimeOff's access at Google. Connecting and disconnecting
+  are recorded in the audit trail.
+- Google access is stored encrypted.
+
+### Needs attention when deploying
+- Someone needs to create a Google OAuth client once (DEPLOY.md → "Google
+  Calendar") and add `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` in Portainer.
+  Until then the button stays hidden and nothing changes.
+- Tested end-to-end against a local stand-in for Google, not yet against Google
+  itself.
+
 ## 2026-10-15
 
 ### Talk about a request

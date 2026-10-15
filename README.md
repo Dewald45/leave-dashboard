@@ -65,6 +65,9 @@ advises on labour law before relying on them.
   requests, and balances, per year.
 - **Passwords** — self-service "forgot password" via emailed one-time link;
   change password on the Account page.
+- **Google Calendar** — optional "Connect Google Calendar" on the Account page
+  puts each person's leave straight into their own calendar as an Out of office
+  event (pending → confirmed → removed). Setup in [DEPLOY.md](DEPLOY.md).
 - **Leave allowances** — company defaults per leave type are edited in Admin;
   Add employee prefills them and lets you set a person's own numbers, which
   carry into every future leave year.
@@ -133,6 +136,8 @@ npm run dev                         # http://localhost:3000
 | `REMINDERS` | app | `off` disables the built-in hourly reminder job |
 | `CRON_SECRET` | app | Only for an external scheduler calling `POST /api/cron/reminders` |
 | `HOLIDAY_REMINDER_DAYS` | app | How many days before a public holiday to email everyone (default 7) |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | app | Google Calendar connection (optional; see DEPLOY.md) |
+| `TOKEN_ENCRYPTION_KEY` | app | Encrypts stored Google access (defaults to the client secret) |
 | `EMAIL_OUTBOX_DIR` | app (dev) | With no `RESEND_API_KEY`, save emails here as HTML instead of dropping them |
 
 For the Docker stack, `docker-compose.yml` builds `DATABASE_URL` from

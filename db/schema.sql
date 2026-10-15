@@ -638,6 +638,20 @@ create table if not exists public.holiday_reminders (
   recipients   int
 );
 
+-- ---------- Google Calendar (per-person "Connect Google Calendar") ----------
+create table if not exists public.google_calendar_links (
+  profile_id        uuid primary key references public.profiles(id) on delete cascade,
+  google_email      text not null,
+  refresh_token_enc text not null, -- AES-256-GCM, see src/lib/secretBox.ts
+  connected_at      timestamptz not null default now()
+);
+-- The Google event each request created, so it can be updated or removed.
+create table if not exists public.request_google_events (
+  request_id      uuid primary key references public.leave_requests(id) on delete cascade,
+  profile_id      uuid not null references public.profiles(id) on delete cascade,
+  google_event_id text not null
+);
+
 -- Keep last year, this year and the next two years of public holidays filled in
 -- (also re-checked daily by the reminder job, so new years appear on their own).
 select public.ensure_sa_holidays(extract(year from current_date)::int - 1, 4);

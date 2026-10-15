@@ -60,3 +60,34 @@ If you'd rather not build on the server, build in CI and pull the image:
 - `RESEND_FROM` must be on your verified Resend domain to reach all staff.
 - Sessions are database-backed; no session secret to manage. Rotating
   `POSTGRES_PASSWORD` requires updating it in the stack env.
+
+## Google Calendar (optional)
+
+Lets each person click **Connect Google Calendar** on their Account page so their
+leave goes straight into their own Google Calendar as an *Out of office* event
+(pending until approved, removed if rejected or cancelled). Takes ~10 minutes,
+done once by someone with access to Google Cloud for the `mediarocket.co.za`
+Google Workspace:
+
+1. Go to <https://console.cloud.google.com> and create a project (e.g. "TimeOff").
+2. **APIs & Services → Library** → search **Google Calendar API** → **Enable**.
+3. **Google Auth Platform → Branding**: app name `TimeOff`, your support email.
+   **Audience**: choose **Internal** (only company Workspace accounts can connect,
+   and Google doesn't need to review the app).
+4. **Data access → Add or remove scopes**: add
+   `https://www.googleapis.com/auth/calendar.events` (plus `openid` and `email`).
+5. **Clients → Create client** → type **Web application**. Under
+   **Authorized redirect URIs** add:
+   - `https://leave.zenithlabs.space/api/google/callback`
+   - `http://localhost:3000/api/google/callback` (for local testing)
+6. Copy the **Client ID** and **Client secret** into the Portainer stack as
+   `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, then **Pull and redeploy**.
+   The button appears on everyone's Account page.
+
+Notes:
+- The redirect URI must match `APP_URL` exactly.
+- Refresh tokens are stored encrypted. The key is `TOKEN_ENCRYPTION_KEY` if set,
+  otherwise the client secret — rotating either means everyone reconnects.
+- "Out of office" events need a Workspace calendar; a personal Gmail account
+  gets an ordinary busy event instead.
+

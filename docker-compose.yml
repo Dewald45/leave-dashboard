@@ -39,6 +39,10 @@ services:
       REMINDER_AFTER_DAYS: ${REMINDER_AFTER_DAYS:-3}
       ESCALATE_AFTER_DAYS: ${ESCALATE_AFTER_DAYS:-5}
       HOLIDAY_REMINDER_DAYS: ${HOLIDAY_REMINDER_DAYS:-7}
+      # Google Calendar (optional): see DEPLOY.md
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      TOKEN_ENCRYPTION_KEY: ${TOKEN_ENCRYPTION_KEY:-}
       # Set REMINDERS=off to disable the built-in hourly job (e.g. to use an
       # external cron that POSTs /api/cron/reminders with CRON_SECRET instead).
       REMINDERS: ${REMINDERS:-on}
