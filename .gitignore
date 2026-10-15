@@ -42,3 +42,6 @@ Logos/PNG/
 
 # Local email previews (EMAIL_OUTBOX_DIR)
 email-outbox/
+
+# Local development database (npm run db:local)
+.pglite/

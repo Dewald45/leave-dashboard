@@ -111,18 +111,43 @@ See [DEPLOY.md](DEPLOY.md) for Portainer.
 
 ## Local development
 
-You need a Postgres for the app to talk to. Quickest:
+Work from a normal folder (e.g. `~/Developer/leave-dashboard`), **not** inside
+Google Drive — Drive sync corrupts git and makes builds crawl.
+
+### Without Docker (quickest — what the work Mac mini uses)
 
 ```bash
-cp .env.docker.example .env         # sets POSTGRES_PASSWORD for the db container
-docker compose up -d db             # just Postgres, on localhost:5432
-cp .env.example .env.local          # DATABASE_URL etc. (already filled for this project)
 npm install
-npm run db:migrate                  # apply schema + seed the admin
+cp .env.example .env.local          # local settings; gitignored
+npm run db:local                    # terminal 1: Postgres-compatible DB on :5432 (PGlite, data in .pglite/)
+npm run db:migrate                  # terminal 2: apply schema + seed the admin from .env.local
 npm run dev                         # http://localhost:3000
 ```
 
-`.env.local` is gitignored and already contains this project's local values.
+Sign in with `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` from `.env.local`.
+Delete `.pglite/` to start from an empty database.
+
+### With Docker
+
+```bash
+cp .env.docker.example .env         # sets POSTGRES_PASSWORD for the db container
+docker compose up -d db             # real Postgres 16 on localhost:5432
+cp .env.example .env.local
+npm install
+npm run db:migrate
+npm run dev
+```
+
+### Testing without sending real emails or touching Google
+
+- Leave `RESEND_API_KEY` empty and set `EMAIL_OUTBOX_DIR=./email-outbox` in
+  `.env.local`: every email (incl. calendar invites) is saved there as HTML.
+- Google Calendar stays hidden until `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`
+  are set. The `GOOGLE_AUTH_BASE`, `GOOGLE_OAUTH2_BASE` and `GOOGLE_API_BASE`
+  variables can point the integration at a local stand-in for testing.
+- Background jobs (approval reminders, holiday emails) can be triggered with
+  `curl -X POST -H "x-cron-secret: $CRON_SECRET" http://localhost:3000/api/cron/reminders`
+  when `CRON_SECRET` is set.
 
 ## Environment variables
 

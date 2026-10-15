@@ -2,6 +2,19 @@
 
 What changed in TimeOff, newest first.
 
+## 2026-10-15 (evening)
+
+### Developer setup
+- `npm run db:local` starts a local database with no Docker needed (PGlite,
+  data in `.pglite/`). README and the new `CLAUDE.md` describe working from
+  `~/Developer/leave-dashboard` on the work Mac mini.
+- `npm run db:migrate` now reads `.env.local` itself.
+
+### Fixed
+- A brand-new install failed on first boot: the admin was seeded but the audit
+  entry for it was rejected, stopping the container. Existing servers (which
+  already have their admin) weren't affected.
+
 ## 2026-10-15 (later)
 
 ### Connect Google Calendar
