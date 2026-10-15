@@ -56,6 +56,18 @@ What changed in TimeOff, newest first.
 - Sent once per holiday, during working hours. Anyone can turn these off on
   their Account page.
 
+### Leave allowances per person
+- **Company leave defaults** (Admin): set how many days a year everyone gets per
+  leave type, and how many annual days are held for the closure. Used for new
+  employees and each new leave year; balances already running aren't changed.
+  These defaults now survive redeploys (they used to be reset from code on
+  every boot).
+- **Add employee** shows each leave type prefilled with the company default
+  (parental vs maternity follows the gender picked) and can be changed for that
+  person. Their own numbers carry into every future leave year.
+- On an employee's allocations, **"Also use this for future leave years"** makes
+  a change permanent for that person instead of just this leave year.
+
 ### Accounts
 - "Forgot it?" on the sign-in page emails a one-time reset link (1 hour).
 - Change your password on the Account page; other devices are signed out.
@@ -71,6 +83,9 @@ What changed in TimeOff, newest first.
   reminders, password resets) to go out.
 - Optional new settings: `REMINDER_AFTER_DAYS`, `ESCALATE_AFTER_DAYS`,
   `HOLIDAY_REMINDER_DAYS`, `REMINDERS`, `CRON_SECRET` (see `.env.docker.example`).
+- Company leave defaults now live in the database. If someone changes a
+  default in `db/schema.sql` later, it only applies to brand-new leave types —
+  change existing ones on the Admin page.
 - For local testing without Resend, set `EMAIL_OUTBOX_DIR` to a folder and every
   email is saved there as an HTML file instead.
 

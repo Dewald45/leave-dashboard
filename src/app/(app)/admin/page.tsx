@@ -5,10 +5,10 @@ import DeleteEmployeeButton from "./DeleteEmployeeButton";
 import ResetPasswordForm from "./ResetPasswordForm";
 import HolidayForm from "./HolidayForm";
 import ExportPanel from "./ExportPanel";
-import { updateEmployee, updateBalance, deleteHoliday } from "./actions";
+import { updateEmployee, updateBalance, deleteHoliday, updateLeaveDefault } from "./actions";
 import { getHolidays } from "@/lib/holidays";
 import { requireProfile } from "@/lib/auth";
-import { getAllProfiles, getAllBalances } from "@/lib/data";
+import { getAllProfiles, getAllBalances, getLeaveTypes } from "@/lib/data";
 import type { BalanceSummary } from "@/lib/types";
 import PageHeader from "@/components/PageHeader";
 
@@ -16,11 +16,20 @@ export default async function AdminPage() {
   const { profile } = await requireProfile();
   if (profile.role !== "admin") redirect("/dashboard");
 
-  const [profiles, balances, holidays] = await Promise.all([
+  const [profiles, balances, holidays, leaveTypes] = await Promise.all([
     getAllProfiles(),
     getAllBalances(),
     getHolidays(),
+    getLeaveTypes(),
   ]);
+  const leaveDefaults = leaveTypes.map((t) => ({
+    id: t.id,
+    name: t.name,
+    color: t.color,
+    default_days: Number(t.default_days ?? 0),
+    default_reserved: Number(t.default_reserved ?? 0),
+    applies_to: t.applies_to,
+  }));
   const managers = profiles.map((p) => ({ id: p.id, full_name: p.full_name }));
   const approvers = profiles.filter((p) => p.role !== "employee");
   const currentYear = new Date().getUTCFullYear();
@@ -59,7 +68,72 @@ export default async function AdminPage() {
         <h2 className="mb-3 text-lg font-semibold text-ink-900">
           Add an employee
         </h2>
-        <AddEmployeeForm managers={managers} />
+        <AddEmployeeForm managers={managers} leaveTypes={leaveDefaults} />
+      </section>
+
+      <section id="leave-defaults" className="scroll-mt-20">
+        <h2 className="mb-3 text-lg font-semibold text-ink-900">Company leave defaults</h2>
+        <div className="rounded-3xl bg-white p-6">
+          <p className="mb-4 text-sm text-sand-600">
+            What everyone gets per leave year unless you set something different for them.
+            Used for new employees and each new leave year — balances already running
+            aren&apos;t changed.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {leaveDefaults.map((t) => (
+              <form
+                key={t.id}
+                action={updateLeaveDefault}
+                className="flex flex-wrap items-end gap-2 rounded-2xl border border-sand-100 bg-sand-50 p-3"
+              >
+                <input type="hidden" name="leave_type_id" value={t.id} />
+                <div className="flex-1">
+                  <div className="mb-1 flex items-center gap-1.5 text-xs font-medium text-sand-600">
+                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: t.color }} aria-hidden="true" />
+                    {t.name}
+                    {t.applies_to !== "all" ? (
+                      <span className="text-sand-500">({t.applies_to === "male" ? "men" : "women"})</span>
+                    ) : null}
+                  </div>
+                  <div className="flex gap-2">
+                    <label className="text-[11px] text-sand-500">
+                      Days a year
+                      <input
+                        name="default_days"
+                        type="number"
+                        step="0.5"
+                        min="0"
+                        defaultValue={t.default_days}
+                        className="mt-0.5 w-20 rounded border border-sand-300 px-2 py-1 text-sm"
+                      />
+                    </label>
+                    {t.default_reserved > 0 ? (
+                      <label className="text-[11px] text-sand-500">
+                        Held for closure
+                        <input
+                          name="default_reserved"
+                          type="number"
+                          step="0.5"
+                          min="0"
+                          defaultValue={t.default_reserved}
+                          className="mt-0.5 w-20 rounded border border-sand-300 px-2 py-1 text-sm"
+                        />
+                      </label>
+                    ) : (
+                      <input type="hidden" name="default_reserved" value={t.default_reserved} />
+                    )}
+                  </div>
+                </div>
+                <button
+                  type="submit"
+                  className="rounded-full border border-sand-300 bg-white px-3 py-1.5 text-xs font-medium text-sand-600 hover:bg-sand-100"
+                >
+                  Save
+                </button>
+              </form>
+            ))}
+          </div>
+        </div>
       </section>
 
       <section>
@@ -249,6 +323,10 @@ export default async function AdminPage() {
                                 </label>
                               ) : null}
                             </div>
+                            <label className="mt-2 flex items-center gap-1.5 text-[11px] text-sand-600">
+                              <input type="checkbox" name="apply_future" className="h-3.5 w-3.5 accent-ink-900" />
+                              Also use this for future leave years
+                            </label>
                           </div>
                           <button
                             type="submit"

@@ -194,6 +194,15 @@ $$;
 
 -- Provision the leave a profile's gender qualifies for, for the cycles that
 -- contain p_asof. A balance row's `year` is the year its cycle starts in.
+-- Per-person yearly allowance for a leave type, overriding leave_types.default_days
+-- for every leave year this person starts (set on Add employee or in Admin).
+create table if not exists public.profile_leave_entitlements (
+  profile_id    uuid not null references public.profiles(id) on delete cascade,
+  leave_type_id int  not null references public.leave_types(id) on delete cascade,
+  days          numeric not null check (days >= 0),
+  primary key (profile_id, leave_type_id)
+);
+
 create or replace function public.provision_balances(p_profile uuid, p_asof date default current_date)
 returns void language plpgsql as $$
 declare v_start date; v_gender text;
@@ -204,8 +213,10 @@ begin
   insert into public.leave_balances (profile_id, leave_type_id, year, entitled_days, reserved_days)
   select p_profile, lt.id,
     extract(year from public.leave_cycle_start(v_start, lt.cycle_months, lt.cycle_anchor, p_asof))::int,
-    coalesce(lt.default_days, 0), lt.default_reserved
+    coalesce(e.days, lt.default_days, 0), lt.default_reserved
   from public.leave_types lt
+  left join public.profile_leave_entitlements e
+    on e.profile_id = p_profile and e.leave_type_id = lt.id
   where lt.applies_to = 'all' or lt.applies_to = v_gender
   on conflict (profile_id, leave_type_id, year) do nothing;
 
@@ -315,9 +326,10 @@ values
   ('closure','Year-End Closure (Company Paid)','Company-paid festive shutdown. Granted automatically — everyone gets these, nobody applies.',5,0,false,false,false,12,'calendar',0,0,'all','#0ea5e9',4),
   ('parental','Parental Leave','10 days for new dads to meet the tiny human, panic quietly and lose all sleep. Take them within four months of the birth. None of this is set in stone — every family (and the law) is different, so come speak to HR before you bank on it.',10,0,true,false,true,12,'calendar',0,0,'male','#8b5cf6',5),
   ('maternity','Maternity Leave','Four consecutive months to grow, deliver and keep a brand-new human alive — the hardest leave you will ever earn (roughly 90 working days). None of this is set in stone — come speak to HR and they will sort the details with you.',90,0,true,false,true,12,'calendar',0,0,'female','#ec4899',6)
+-- default_days / default_reserved are only set when a type is first created:
+-- after that they're the company defaults edited on the Admin page.
 on conflict (code) do update set
-  name=excluded.name, description=excluded.description, default_days=excluded.default_days,
-  default_reserved=excluded.default_reserved, deducts_balance=excluded.deducts_balance,
+  name=excluded.name, description=excluded.description, deducts_balance=excluded.deducts_balance,
   accrues=excluded.accrues, bookable=excluded.bookable, cycle_months=excluded.cycle_months,
   cycle_anchor=excluded.cycle_anchor, carry_months=excluded.carry_months,
   min_service_months=excluded.min_service_months, applies_to=excluded.applies_to,

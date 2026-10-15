@@ -88,6 +88,29 @@ export async function createEmployee(
     [user.id, fullName, email, role, managerId, department, jobTitle, gender, startDate]
   );
 
+  // Per-type allowances from the form. Only store the ones that differ from the
+  // company default, so a later change to a default still reaches this person.
+  const types = await q<{ id: number; name: string; default_days: number | null; applies_to: string }>(
+    "select id, name, default_days::float8 as default_days, applies_to from leave_types"
+  );
+  const allocations: Record<string, { days: number; default: number }> = {};
+  for (const t of types) {
+    if (t.applies_to !== "all" && t.applies_to !== gender) continue;
+    const raw = formData.get(`days_${t.id}`);
+    if (raw === null || raw === "") continue;
+    const days = Number(raw);
+    if (isNaN(days) || days < 0) continue;
+    const def = Number(t.default_days ?? 0);
+    if (days !== def) {
+      await q(
+        `insert into profile_leave_entitlements (profile_id, leave_type_id, days) values ($1, $2, $3)
+         on conflict (profile_id, leave_type_id) do update set days = excluded.days`,
+        [user.id, t.id, days]
+      );
+      allocations[t.name] = { days, default: def };
+    }
+  }
+
   // Grant the gender-appropriate leave (parental vs maternity) + the rest.
   await q("select public.sync_leave_eligibility($1)", [user.id]);
 
@@ -97,8 +120,10 @@ export async function createEmployee(
     entityType: "profile",
     entityId: user.id,
     subject: { id: user.id, full_name: fullName },
-    summary: `Added ${fullName} (${email}) as ${role}`,
-    details: { profile: await profileSnapshot(user.id) },
+    summary: `Added ${fullName} (${email}) as ${role}${
+      Object.keys(allocations).length ? " with custom leave allowances" : ""
+    }`,
+    details: { profile: await profileSnapshot(user.id), custom_allowances: allocations },
   });
 
   revalidatePath("/admin");
@@ -159,10 +184,10 @@ export async function updateBalance(formData: FormData): Promise<void> {
   const carried = carriedRaw === null ? null : Number(carriedRaw);
 
   const before = await q1<{
-    profile_id: string; full_name: string; leave_name: string; year: number;
+    profile_id: string; leave_type_id: number; full_name: string; leave_name: string; year: number;
     entitled_days: number; reserved_days: number; carried_days: number;
   }>(
-    `select b.profile_id, p.full_name, lt.name as leave_name, b.year,
+    `select b.profile_id, b.leave_type_id, p.full_name, lt.name as leave_name, b.year,
             b.entitled_days::float8 as entitled_days, b.reserved_days::float8 as reserved_days,
             b.carried_days::float8 as carried_days
        from leave_balances b join profiles p on p.id = b.profile_id
@@ -186,16 +211,28 @@ export async function updateBalance(formData: FormData): Promise<void> {
     [next.entitled_days, next.reserved_days, next.carried_days ?? null, id]
   );
 
+  // "Also for future leave years": remember it as this person's allowance.
+  const applyFuture = formData.get("apply_future") === "on";
+  if (applyFuture) {
+    await q(
+      `insert into profile_leave_entitlements (profile_id, leave_type_id, days) values ($1, $2, $3)
+       on conflict (profile_id, leave_type_id) do update set days = excluded.days`,
+      [before.profile_id, before.leave_type_id, next.entitled_days]
+    );
+  }
+
   const changes = diff(before, next);
-  if (Object.keys(changes).length) {
+  if (Object.keys(changes).length || applyFuture) {
     await audit({
       actor: me,
       action: "balance.updated",
       entityType: "balance",
       entityId: id,
       subject: { id: before.profile_id, full_name: before.full_name },
-      summary: `Changed ${before.full_name}'s ${before.year} ${before.leave_name} allocation`,
-      details: { leave_type: before.leave_name, year: before.year, changes },
+      summary: `Changed ${before.full_name}'s ${before.year} ${before.leave_name} allocation${
+        applyFuture ? ` (${next.entitled_days} days a year from now on)` : ""
+      }`,
+      details: { leave_type: before.leave_name, year: before.year, changes, future_years: applyFuture },
     });
   }
 
@@ -347,4 +384,44 @@ export async function deleteHoliday(formData: FormData): Promise<void> {
   }
   revalidatePath("/admin");
   revalidatePath("/apply");
+}
+
+// ---------- company leave defaults ----------
+
+export async function updateLeaveDefault(formData: FormData): Promise<void> {
+  const me = await assertAdmin();
+  const id = Number(formData.get("leave_type_id"));
+  if (!id) return;
+  const days = Number(formData.get("default_days"));
+  const reserved = Number(formData.get("default_reserved"));
+  if (isNaN(days) || days < 0) return;
+
+  const before = await q1<{ name: string; default_days: number; default_reserved: number }>(
+    `select name, coalesce(default_days, 0)::float8 as default_days,
+            default_reserved::float8 as default_reserved
+       from leave_types where id = $1`,
+    [id]
+  );
+  if (!before) return;
+  const next = {
+    default_days: days,
+    default_reserved: isNaN(reserved) || reserved < 0 ? before.default_reserved : Math.min(reserved, days),
+  };
+  const changes = diff(before, next);
+  if (!Object.keys(changes).length) return;
+
+  await q("update leave_types set default_days = $1, default_reserved = $2 where id = $3", [
+    next.default_days,
+    next.default_reserved,
+    id,
+  ]);
+  await audit({
+    actor: me,
+    action: "leave_type.updated",
+    entityType: "balance",
+    entityId: String(id),
+    summary: `Changed the company default for ${before.name} to ${next.default_days} days`,
+    details: { leave_type: before.name, changes },
+  });
+  revalidatePath("/admin");
 }

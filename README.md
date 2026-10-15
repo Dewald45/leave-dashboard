@@ -65,6 +65,9 @@ advises on labour law before relying on them.
   requests, and balances, per year.
 - **Passwords** — self-service "forgot password" via emailed one-time link;
   change password on the Account page.
+- **Leave allowances** — company defaults per leave type are edited in Admin;
+  Add employee prefills them and lets you set a person's own numbers, which
+  carry into every future leave year.
 - **Public holidays** — calculated automatically from the Public Holidays Act
   (incl. Sunday → Monday), kept two years ahead; admins add declared days such
   as elections. A reminder email goes out a week before each one, suggesting a

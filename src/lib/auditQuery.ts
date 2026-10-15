@@ -4,7 +4,7 @@ import { q } from "@/lib/db";
 export const AUDIT_CATEGORIES = {
   requests: { label: "Leave requests", prefixes: ["request."] },
   people: { label: "Employees & profiles", prefixes: ["employee.", "profile."] },
-  balances: { label: "Balances", prefixes: ["balance."] },
+  balances: { label: "Balances & leave defaults", prefixes: ["balance.", "leave_type."] },
   security: { label: "Passwords, sign-ins & exports", prefixes: ["password.", "auth.", "calendar.", "audit."] },
   holidays: { label: "Public holidays", prefixes: ["holiday."] },
   threads: { label: "Messages & files", prefixes: ["message.", "attachment."] },
