@@ -12,10 +12,8 @@ import {
   getRequestForDecision,
   getApproverContacts,
   getThreadParticipants,
-  canApproveRequest,
   canViewRequest,
   markRequestRead,
-  type RequestForNotify,
 } from "@/lib/data";
 import {
   fileFromForm,
@@ -26,10 +24,11 @@ import {
 import { buildInvite } from "@/lib/ics";
 import { hasGoogleCalendar, syncRequestToGoogle } from "@/lib/googleCalendar";
 import { audit, leaveLabel } from "@/lib/audit";
+import { applyDecision, icsFor } from "@/lib/decide";
+import { createDecisionLink } from "@/lib/decisionLinks";
 import {
   notifyManagerOfRequest,
   notifyEmployeeOfSubmission,
-  notifyEmployeeOfDecision,
   notifyCancellation,
   notifyNewMessage,
 } from "@/lib/email";
@@ -45,19 +44,6 @@ function revalidateLeavePages(requestId?: string) {
   if (requestId) revalidatePath(`/requests/${requestId}`);
 }
 
-function icsFor(r: RequestForNotify, status: string, seq: number) {
-  return buildInvite({
-    id: r.id,
-    start_date: r.start_date,
-    end_date: r.end_date,
-    half_day: r.half_day,
-    leave_name: r.leave_name,
-    status,
-    calendar_seq: seq,
-    employee_name: r.employee_name,
-    employee_email: r.employee_email,
-  });
-}
 
 /** Employee submits a new leave request. */
 export async function createRequest(
@@ -181,9 +167,13 @@ export async function createRequest(
   try {
     const { contacts, managerAway, managerName } = await getApproverContacts(me.id);
     if (contacts.length) {
+      const to = [];
+      for (const c of contacts) {
+        to.push({ email: c.email, decideToken: await createDecisionLink(requestId, c.id) });
+      }
       await notifyManagerOfRequest({
         ...summary,
-        to: contacts.map((c) => c.email),
+        to,
         employeeName: me.full_name,
         reason,
         hasAttachment: !!file,
@@ -289,58 +279,10 @@ export async function decideRequest(formData: FormData): Promise<void> {
   const id = String(formData.get("id") || "");
   const decision = String(formData.get("decision") || "");
   const note = String(formData.get("note") || "").trim() || null;
-  if (!id || !["approved", "rejected"].includes(decision)) return;
+  if (!id || (decision !== "approved" && decision !== "rejected")) return;
 
-  const req = await getRequestForDecision(id);
-  if (!req) return;
-  if (!(await canApproveRequest(id, me.id))) return;
-
-  const updated = await q1<{ calendar_seq: number }>(
-    `update leave_requests
-        set status = $1, decision_note = $2, approver_id = $3, decided_at = now(),
-            calendar_seq = calendar_seq + 1
-      where id = $4 and status = 'pending'
-      returning calendar_seq`,
-    [decision, note, me.id, id]
-  );
-  if (!updated) return; // already decided / cancelled
-
-  await audit({
-    actor: me,
-    action: `request.${decision}`,
-    entityType: "request",
-    entityId: id,
-    subject: { id: req.profile_id, full_name: req.employee_name },
-    summary: `${decision === "approved" ? "Approved" : "Rejected"} ${req.employee_name}'s ${leaveLabel(req)}`,
-    details: { note, days: Number(req.days), as_manager: req.manager_id === me.id },
-  });
-
-  const google = await hasGoogleCalendar(req.profile_id);
-  if (google) await syncRequestToGoogle(id);
-
-  try {
-    if (req.employee_email) {
-      await notifyEmployeeOfDecision({
-        requestId: id,
-        leaveType: req.leave_name,
-        startDate: req.start_date,
-        endDate: req.end_date,
-        days: Number(req.days),
-        halfDay: req.half_day,
-        employeeEmail: req.employee_email,
-        employeeName: req.employee_name,
-        decision: decision as "approved" | "rejected",
-        note,
-        deciderName: me.full_name,
-        ics: google ? undefined : icsFor(req, decision, updated.calendar_seq),
-        googleCalendar: google,
-      });
-    }
-  } catch (e) {
-    console.error("[decideRequest] employee notification failed:", e);
-  }
-
-  revalidateLeavePages(id);
+  const outcome = await applyDecision(me, id, decision, note, "app");
+  if (outcome === "done") revalidateLeavePages(id);
 }
 
 /** Post a message (and/or a file) to a request's thread. */
