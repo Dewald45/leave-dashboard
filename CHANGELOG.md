@@ -22,6 +22,45 @@ What changed in TimeOff, newest first.
 ### Needs attention when deploying
 - Nothing on the server.
 
+## 2026-10-16
+
+From an audit of the live site on laptop and phone.
+
+### Security
+- **Nobody approves their own leave any more, admins included.** An admin's
+  request now goes to their line manager, or to another admin if they have
+  none. If there is only one admin and they have no manager, their leave can't
+  be approved until someone else is made an admin or set as their manager.
+- The site now sends standard browser security headers: it can't be shown
+  inside another site's frame (which stops click-tricking), browsers are told
+  to stick to https, and pages don't leak their full address to other sites.
+
+### Layout
+- **Apply** and **Account → Password**: on short laptop screens the submit
+  button stays pinned at the bottom of the card instead of hiding below it.
+- **Dashboard** on short laptop screens (under 800px tall): tighter spacing,
+  so "Recently attempted" shows more than one row.
+- **Audit trail**: Download CSV sits with the results it exports, below the
+  tabs, instead of above them.
+
+### Phones
+- **Account** is labelled next to your initials in the top bar instead of
+  being a bare avatar.
+- **Admin tabs** wrap onto a second line instead of scrolling sideways out of
+  sight.
+- Admin fields and buttons are full finger size (44px).
+- Bottom-bar labels, request date chips and card badges are at least 11px.
+
+### Accessibility
+- Every field on the Admin page (Add employee, editing someone, password
+  reset) is linked to its label, so screen readers announce it and tapping the
+  label focuses the field.
+
+### Needs attention when deploying
+- Nothing on the server. Separately, Bjorn should turn on **Always Use HTTPS**
+  in Cloudflare: the site still answers on plain `http://`, including the login
+  page.
+
 ## 2026-10-15 (night)
 
 ### Every page fits on one screen

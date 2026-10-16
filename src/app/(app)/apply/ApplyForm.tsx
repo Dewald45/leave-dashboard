@@ -318,7 +318,9 @@ export default function ApplyForm({
         </p>
       ) : null}
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      {/* Pinned to the bottom of the scrolling card on laptops, so the submit
+          button is always in view however long the form gets. */}
+      <div className="flex flex-wrap items-center justify-between gap-3 fit:sticky fit:bottom-0 fit:z-10 fit:-mx-6 fit:-mb-6 fit:rounded-b-3xl fit:border-t fit:border-sand-100 fit:bg-white fit:px-6 fit:pb-6 fit:pt-4">
         <p className="text-xs text-sand-500">
           We&apos;ll email you an out-of-office event for your calendar straight away.
         </p>
