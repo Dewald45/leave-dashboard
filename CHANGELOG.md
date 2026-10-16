@@ -2,6 +2,24 @@
 
 What changed in TimeOff, newest first.
 
+## 2026-10-16: deploy checklist for Bjorn
+
+Today's release is the eight entries below, from "bulk import" down to the
+audit fixes. All of them are on `main`. **Pull and redeploy**; the database
+updates itself. No new server settings (environment variables) are needed.
+
+Two jobs outside the server:
+1. **Cloudflare:** turn on **SSL/TLS → Edge Certificates → Always Use HTTPS**.
+   The site still answers on plain `http://`, login page included.
+2. **Google Cloud** (the project behind TimeOff's Google sign-in), for the Gmail
+   auto-reply:
+   - Enable the **Gmail API**.
+   - Add the scope `https://www.googleapis.com/auth/gmail.settings.basic` to
+     the OAuth consent screen.
+   - Check the consent screen's user type is **Internal**. If it's External,
+     Google has to review the app before people can turn the auto-reply on.
+     Everything else works either way.
+
 ## 2026-10-16 (bulk import)
 
 ### Add many people at once
@@ -122,14 +140,6 @@ What changed in TimeOff, newest first.
 ### Needs attention when deploying
 - Nothing on the server.
 
-
-
-
-
-
-
-
-
 ## 2026-10-16
 
 From an audit of the live site on laptop and phone.
@@ -168,6 +178,7 @@ From an audit of the live site on laptop and phone.
 - Nothing on the server. Separately, Bjorn should turn on **Always Use HTTPS**
   in Cloudflare: the site still answers on plain `http://`, including the login
   page.
+
 ## 2026-10-15 (night)
 
 ### Every page fits on one screen
