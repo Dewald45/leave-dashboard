@@ -3,7 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import { createRequest, type ActionResult } from "@/app/(app)/actions";
-import { workingDaysBetween, isWeekendOrHoliday, formatDays } from "@/lib/leave";
+import {
+  workingDaysBetween,
+  isWeekendOrHoliday,
+  formatDays,
+  formatDate,
+  earnedBy,
+  dateEarning,
+} from "@/lib/leave";
 import type { BalanceSummary, LeaveType } from "@/lib/types";
 
 // Mirror SICK_NOTE_THRESHOLD_DAYS / MAX_ATTACHMENT_BYTES in src/lib/attachments.ts (server-only).
@@ -95,6 +102,24 @@ export default function ApplyForm({
   const overBalance = showMaths && days > bookable;
   const fmt = (n: number) =>
     Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/0$/, "");
+
+  // Forecast for leave that builds up month by month (annual leave): how much
+  // will be earned by the first day off, and whether this books ahead of it.
+  let forecast: { earned: number; ahead: number; catchUp: string | null } | null = null;
+  if (showMaths && balance?.accrues && start && days > 0 && !overBalance) {
+    const entitled = Number(balance.entitled_days);
+    const earned = earnedBy(start, balance.cycle_start, balance.cycle_end, entitled);
+    // Carried-over days pay first, so they don't count as borrowing.
+    const committed =
+      Number(balance.used_days) + Number(balance.pending_days) + days - Number(balance.carried_days);
+    const ahead = Math.round((committed - earned) * 100) / 100;
+    forecast = {
+      earned,
+      ahead,
+      catchUp:
+        ahead > 0 ? dateEarning(committed, balance.cycle_start, balance.cycle_end, entitled) : null,
+    };
+  }
 
   return (
     <form
@@ -249,6 +274,23 @@ export default function ApplyForm({
           <span className="rounded bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-700">
             {fmt(days - bookable)} more than you have left
           </span>
+        ) : null}
+        {forecast ? (
+          <p className="basis-full text-xs text-ink-700">
+            By {formatDate(start)} you&apos;ll have earned{" "}
+            <strong className="text-ink-900">{fmt(forecast.earned)}</strong> of{" "}
+            {fmt(Number(balance?.entitled_days ?? 0))} days.{" "}
+            {forecast.ahead > 0 ? (
+              <>
+                This books{" "}
+                <strong className="text-ink-900">{fmt(forecast.ahead)} days ahead</strong> of
+                what you&apos;ve earned — that&apos;s allowed
+                {forecast.catchUp ? <>, and you&apos;ll have caught up by {formatDate(forecast.catchUp)}</> : null}.
+              </>
+            ) : (
+              <>You&apos;re not borrowing ahead.</>
+            )}
+          </p>
         ) : null}
       </div>
 

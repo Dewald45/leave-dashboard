@@ -137,3 +137,35 @@ export function formatDateTime(isoTimestamp: string): string {
     timeZone: "Africa/Johannesburg",
   });
 }
+
+/**
+ * Leave earned by the end of `dateISO` within a cycle — straight-line, the same
+ * rule as `leave_accrued()` in schema.sql (15 days over 12 months ≈ 1.25 a month).
+ */
+export function earnedBy(
+  dateISO: string,
+  cycleStart: string,
+  cycleEnd: string,
+  entitled: number
+): number {
+  const day = (iso: string) => Date.parse(iso + "T00:00:00Z") / 86_400_000;
+  const length = day(cycleEnd) - day(cycleStart) + 1;
+  const elapsed = Math.min(day(dateISO), day(cycleEnd)) - day(cycleStart) + 1;
+  if (length <= 0) return 0;
+  const v = Math.round(((entitled * Math.max(0, elapsed)) / length) * 100) / 100;
+  return Math.min(entitled, Math.max(0, v));
+}
+
+/** First date in the cycle by which at least `days` have been earned (ISO), or null if never. */
+export function dateEarning(
+  days: number,
+  cycleStart: string,
+  cycleEnd: string,
+  entitled: number
+): string | null {
+  if (days > entitled || entitled <= 0) return null;
+  const start = Date.parse(cycleStart + "T00:00:00Z");
+  const length = (Date.parse(cycleEnd + "T00:00:00Z") - start) / 86_400_000 + 1;
+  const n = Math.max(1, Math.ceil((days / entitled) * length - 1e-9));
+  return new Date(start + (n - 1) * 86_400_000).toISOString().slice(0, 10);
+}
