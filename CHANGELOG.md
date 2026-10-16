@@ -2,6 +2,33 @@
 
 What changed in TimeOff, newest first.
 
+## 2026-10-16 (Gmail auto-reply)
+
+### Gmail out-of-office, done for you
+- **Account → Google Calendar → Gmail auto-reply** (for people who've
+  connected Google): TimeOff can switch on Gmail's out-of-office reply for your
+  next approved leave and switch it off when you're back. Gmail starts and
+  stops replying on the right days by itself.
+- The default reply says when you're back (the next working day, skipping
+  weekends and public holidays). You can write your own message instead.
+- It only ever switches off a reply TimeOff set. If you change your
+  auto-reply in Gmail yourself, TimeOff leaves it alone.
+- Cancelled or rejected leave moves or removes the reply straight away. Half
+  days are skipped. Disconnecting Google switches TimeOff's reply off first.
+- It's opt-in. Turning it on asks Google for one extra permission (changing
+  Gmail settings); people who don't turn it on are never asked.
+
+### Needs attention when deploying
+- **Bjorn, in the Google Cloud project behind TimeOff's Google sign-in:**
+  1. Enable the **Gmail API**.
+  2. On the OAuth consent screen, add the scope
+     `https://www.googleapis.com/auth/gmail.settings.basic`.
+  3. Google counts this as a *restricted* scope. That's fine if the consent
+     screen's user type is **Internal** (Media Rocket Google Workspace
+     accounts only). If it's **External**, Google requires an app review
+     before anyone outside the test-user list can turn this on.
+- No new server settings.
+
 ## 2026-10-15 (night)
 
 ### Every page fits on one screen
