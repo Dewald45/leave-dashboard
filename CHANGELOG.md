@@ -2,6 +2,17 @@
 
 What changed in TimeOff, newest first.
 
+## 2026-10-16 (install as an app)
+
+### TimeOff on your phone
+- TimeOff can be added to a phone's home screen with its own "off" icon. It
+  then opens full screen like an app, without the browser bars. No app store.
+- **Account → TimeOff on your phone** shows the right steps: an **Install
+  TimeOff** button where the browser offers one (Chrome, Edge, Android), the
+  Share → Add to Home Screen steps on iPhone, and nothing once it's installed.
+- It still needs a connection; there's no offline mode. Phone notifications
+  aren't part of this yet (they need server keys from Bjorn).
+
 ## 2026-10-16 (balance forecast)
 
 ### Plan ahead
@@ -62,6 +73,8 @@ What changed in TimeOff, newest first.
 
 ### Needs attention when deploying
 - Nothing on the server.
+
+
 
 
 
