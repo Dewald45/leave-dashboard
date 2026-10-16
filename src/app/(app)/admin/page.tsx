@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import AddEmployeeForm from "./AddEmployeeForm";
+import ImportEmployees from "./ImportEmployees";
 import DeleteEmployeeButton from "./DeleteEmployeeButton";
 import ResetPasswordForm from "./ResetPasswordForm";
 import HolidayForm from "./HolidayForm";
@@ -19,10 +20,12 @@ const TAB_KEYS: AdminTab[] = ["people", "defaults", "holidays", "exports"];
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams: { tab?: string };
+  searchParams: { tab?: string; add?: string };
 }) {
   const { profile } = await requireProfile();
   if (profile.role !== "admin") redirect("/dashboard");
+  // People tab: ?add=import swaps the add-one form for the spreadsheet import.
+  const importing = searchParams.add === "import";
   const tab: AdminTab = TAB_KEYS.includes(searchParams.tab as AdminTab)
     ? (searchParams.tab as AdminTab)
     : "people";
@@ -305,11 +308,23 @@ export default async function AdminPage({
           </section>
 
           <section id="add-employee" aria-labelledby="add-employee-heading" className="flex scroll-mt-20 flex-col fit:min-h-0 lg:col-span-2">
-            <h2 id="add-employee-heading" className="mb-3 text-base font-semibold text-ink-900">
-              Add an employee
-            </h2>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <h2 id="add-employee-heading" className="text-base font-semibold text-ink-900">
+                {importing ? "Import from a spreadsheet" : "Add an employee"}
+              </h2>
+              <a
+                href={importing ? "/admin" : "/admin?add=import"}
+                className="text-sm font-medium text-brand-700 underline underline-offset-2"
+              >
+                {importing ? "Add one person instead" : "Import a spreadsheet"}
+              </a>
+            </div>
             <div className="fit:min-h-0 fit:flex-1 fit:overflow-y-auto fit:rounded-3xl">
-              <AddEmployeeForm managers={managers} leaveTypes={leaveDefaults} />
+              {importing ? (
+                <ImportEmployees />
+              ) : (
+                <AddEmployeeForm managers={managers} leaveTypes={leaveDefaults} />
+              )}
             </div>
           </section>
         </div>

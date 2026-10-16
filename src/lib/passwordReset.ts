@@ -8,8 +8,14 @@ const RESEND_COOLDOWN_MINUTES = 2;
 
 const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
 
-/** Creates a single-use reset token, or null if one was issued moments ago. */
-export async function createResetToken(userId: string): Promise<string | null> {
+/**
+ * Creates a single-use reset token, or null if one was issued moments ago.
+ * `ttlMinutes` is longer for welcome links (see the bulk import).
+ */
+export async function createResetToken(
+  userId: string,
+  ttlMinutes = RESET_TTL_MINUTES
+): Promise<string | null> {
   const recent = await q1(
     `select 1 from password_resets
       where user_id = $1 and created_at > now() - make_interval(mins => $2)`,
@@ -21,7 +27,7 @@ export async function createResetToken(userId: string): Promise<string | null> {
   await q(
     `insert into password_resets (token_hash, user_id, expires_at)
      values ($1, $2, now() + make_interval(mins => $3))`,
-    [hashToken(token), userId, RESET_TTL_MINUTES]
+    [hashToken(token), userId, ttlMinutes]
   );
   return token;
 }

@@ -2,6 +2,30 @@
 
 What changed in TimeOff, newest first.
 
+## 2026-10-16 (bulk import)
+
+### Add many people at once
+- **Admin → People → Import a spreadsheet.** Fill in the template in Excel or
+  Google Sheets, save as CSV, upload. You see every row with **Add** or
+  **Skip** (and why) before anything is added.
+- Columns: Full name, Email, Role, Manager email, Department, Job title,
+  Gender, Start date. Only name and email are required. Dates can be
+  2024-03-01 or 01/03/2024. Files saved with semicolons (Excel in a South
+  African setup) work too.
+- Rows are skipped, not guessed at, when: the email already has an account or
+  appears twice, the role or gender isn't recognised, the date can't be read,
+  or the manager isn't in TimeOff or in the same file (or their row is being
+  skipped).
+- A manager can be further down the same file. Everyone gets their leave
+  balances straight away, and each person is in the audit trail.
+- **Welcome email (on by default):** each new person gets a link to choose
+  their own password, valid for 7 days. Nobody ever sees or shares a
+  temporary password. After 7 days they can use "Forgot it?".
+- Up to 500 people per file.
+
+### Needs attention when deploying
+- Nothing on the server.
+
 ## 2026-10-15 (night)
 
 ### Every page fits on one screen
