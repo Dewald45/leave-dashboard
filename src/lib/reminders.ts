@@ -1,4 +1,5 @@
 import "server-only";
+import { createDecisionLink } from "@/lib/decisionLinks";
 import { q, q1 } from "@/lib/db";
 import { getApproverContacts, type Contact } from "@/lib/data";
 import { notifyApprovalReminder } from "@/lib/email";
@@ -98,8 +99,12 @@ export async function runReminders(): Promise<{ reminded: number; escalated: num
       : contacts;
     if (!to.length) continue;
 
+    const recipients = [];
+    for (const c of to) {
+      recipients.push({ email: c.email, decideToken: await createDecisionLink(r.id, c.id) });
+    }
     await notifyApprovalReminder({
-      to: to.map((c) => c.email),
+      to: recipients,
       requestId: r.id,
       employeeName: r.employee_name,
       leaveType: r.leave_name,
