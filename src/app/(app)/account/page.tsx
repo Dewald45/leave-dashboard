@@ -5,6 +5,7 @@ import PageHeader from "@/components/PageHeader";
 import ScreenPage from "@/components/ScreenPage";
 import CopyField from "@/components/CopyField";
 import ChangePasswordForm from "./ChangePasswordForm";
+import InstallApp from "@/components/InstallApp";
 import {
   disconnectGoogleCalendar,
   rotateCalendarToken,
@@ -153,6 +154,12 @@ export default async function AccountPage({
             </button>
           </form>
         )}
+      </section>
+
+      {/* Home-screen app */}
+      <section className={card} aria-labelledby="app-heading">
+        <h2 id="app-heading" className={heading}>TimeOff on your phone</h2>
+        <InstallApp />
       </section>
 
       {/* Holiday reminders */}
