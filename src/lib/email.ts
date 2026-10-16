@@ -499,6 +499,22 @@ export async function sendPasswordResetEmail(args: {
   });
 }
 
+/** New account from a bulk import → welcome, with a link to choose a password. */
+export async function sendWelcomeEmail(args: { to: string; name: string; token: string; days: number }) {
+  const href = `${appUrl()}/reset-password?token=${encodeURIComponent(args.token)}`;
+  await sendEmail({
+    to: args.to,
+    subject: "Welcome to TimeOff — choose your password",
+    html: layout(
+      "Welcome to TimeOff",
+      `<p style="margin:0 0 10px">Hi ${esc(args.name) || "there"},</p>
+       <p style="margin:0">You've got a TimeOff account. It's where you apply for leave, see what you have left and hear back from your manager.</p>
+       <p style="margin:12px 0 0">Sign in with this email address once you've chosen a password. The link works once and expires in ${args.days} days.</p>`,
+      { href, label: "Choose my password" }
+    ),
+  });
+}
+
 /** Public holiday(s) coming up → heads-up for work planning + a nudge to bridge it. */
 export async function notifyUpcomingHolidays(args: {
   to: string;
