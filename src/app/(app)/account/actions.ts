@@ -1,6 +1,5 @@
 "use server";
 
-import { randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { q, q1 } from "@/lib/db";
@@ -8,6 +7,7 @@ import { getSessionProfile, SESSION_COOKIE } from "@/lib/session";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { audit } from "@/lib/audit";
 import { disconnect as disconnectGoogle, getGoogleLink } from "@/lib/googleCalendar";
+import { syncGmailAutoReply } from "@/lib/gmailAutoReply";
 
 export type AccountResult = { error?: string; success?: string };
 
@@ -55,31 +55,6 @@ export async function changePassword(
     summary: "Changed own password (other devices signed out)",
   });
   return { success: "Password changed. Other devices have been signed out." };
-}
-
-/** Create (or replace, invalidating the old link) the calendar feed token. */
-export async function rotateCalendarToken(): Promise<void> {
-  const me = await getSessionProfile();
-  if (!me) return;
-  const had = await q1<{ calendar_token: string | null }>(
-    "select calendar_token from profiles where id = $1",
-    [me.id]
-  );
-  await q("update profiles set calendar_token = $1 where id = $2", [
-    randomBytes(24).toString("hex"),
-    me.id,
-  ]);
-  await audit({
-    actor: me,
-    action: had?.calendar_token ? "calendar.link_replaced" : "calendar.link_created",
-    entityType: "account",
-    entityId: me.id,
-    subject: me,
-    summary: had?.calendar_token
-      ? "Replaced calendar subscription link (old link disabled)"
-      : "Created calendar subscription link",
-  });
-  revalidatePath("/account");
 }
 
 export async function disconnectGoogleCalendar(): Promise<void> {
@@ -152,4 +127,36 @@ export async function setBackupApprover(formData: FormData): Promise<void> {
   }
   revalidatePath("/account");
   revalidatePath("/admin");
+}
+
+/** Turn the Gmail auto-reply on or off, and save its message. */
+export async function setGmailAutoReply(formData: FormData): Promise<void> {
+  const me = await getSessionProfile();
+  if (!me) return;
+  const link = await getGoogleLink(me.id);
+  if (!link?.gmail_allowed) return;
+  const on = formData.get("gmail_reply_on") === "on";
+  const message = String(formData.get("gmail_reply_message") || "").trim().slice(0, 2000) || null;
+
+  await q(
+    "update google_calendar_links set gmail_reply_on = $2, gmail_reply_message = $3 where profile_id = $1",
+    [me.id, on, message]
+  );
+  if (on !== link.gmail_reply_on || message !== link.gmail_reply_message) {
+    await audit({
+      actor: me,
+      action: on ? "calendar.gmail_reply_on" : "calendar.gmail_reply_off",
+      entityType: "account",
+      entityId: me.id,
+      subject: me,
+      summary: on
+        ? link.gmail_reply_on
+          ? "Changed the Gmail auto-reply message"
+          : "Turned on the Gmail auto-reply for approved leave"
+        : "Turned off the Gmail auto-reply",
+      details: { message_changed: message !== link.gmail_reply_message },
+    });
+  }
+  await syncGmailAutoReply(me.id, true);
+  revalidatePath("/account");
 }

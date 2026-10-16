@@ -10,12 +10,15 @@ const TABS: Array<{ key: AdminTab; href: string; label: string }> = [
   { key: "audit", href: "/admin/audit", label: "Audit trail" },
 ];
 
-/** Admin's sections, one at a time so each fits on screen. */
+/**
+ * Admin's sections, one at a time so each fits on screen. On phones the tabs
+ * wrap onto a second line rather than scrolling sideways out of sight.
+ */
 export default function AdminTabs({ active }: { active: AdminTab }) {
   return (
     <nav
       aria-label="Administration sections"
-      className="flex max-w-full self-start overflow-x-auto rounded-full bg-white p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="flex max-w-full flex-wrap self-start rounded-3xl bg-white p-1 sm:flex-nowrap sm:rounded-full"
     >
       {TABS.map((t) => {
         const on = t.key === active;

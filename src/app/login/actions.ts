@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import { q1 } from "@/lib/db";
 import { verifyPassword } from "@/lib/password";
 import { createSession } from "@/lib/session";
-import { audit } from "@/lib/audit";
+import { audit, clientIp } from "@/lib/audit";
+import { signInWaitMinutes } from "@/lib/rateLimit";
 
 export async function signIn(_prev: unknown, formData: FormData) {
   const email = String(formData.get("email") || "").trim().toLowerCase();
@@ -12,6 +13,23 @@ export async function signIn(_prev: unknown, formData: FormData) {
 
   if (!email || !password) {
     return { error: "Enter your email and password." };
+  }
+
+  // Too many wrong passwords for this address (or from this connection):
+  // don't even check this one. Same answer whether or not the account exists.
+  const wait = await signInWaitMinutes(email, clientIp());
+  if (wait > 0) {
+    await audit({
+      action: "auth.sign_in_blocked",
+      entityType: "account",
+      summary: `Sign-in blocked for ${email} after too many wrong passwords`,
+      details: { email, wait_minutes: wait },
+    });
+    return {
+      error: `Too many wrong passwords. Try again in ${wait} minute${
+        wait === 1 ? "" : "s"
+      }, or reset your password.`,
+    };
   }
 
   const user = await q1<{ id: string; password_hash: string }>(

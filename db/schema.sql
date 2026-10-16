@@ -535,11 +535,27 @@ returns boolean language sql stable as $$
       join public.profiles u on u.id = p_user
       left join public.profiles m on m.id = e.manager_id
      where r.id = p_request
+       -- Nobody decides their own leave, admins included: an admin's request
+       -- goes to their manager or another admin.
+       and r.profile_id <> p_user
        and (u.role = 'admin'
-         or (r.profile_id <> p_user and e.manager_id = p_user)
-         or (r.profile_id <> p_user and m.backup_approver_id = p_user
+         or e.manager_id = p_user
+         or (m.backup_approver_id = p_user
              and (public.manager_is_away(m.id) or r.escalated_at is not null))))
 $$;
+
+-- One-click decisions from email: each approver gets their own link per
+-- request. Only a hash of the token is stored; a link works once, for 14 days,
+-- and only while the request is pending and the approver may still decide it.
+create table if not exists public.decision_links (
+  token_hash  text primary key,
+  request_id  uuid not null references public.leave_requests(id) on delete cascade,
+  approver_id uuid not null references public.profiles(id) on delete cascade,
+  created_at  timestamptz not null default now(),
+  expires_at  timestamptz not null,
+  used_at     timestamptz
+);
+create index if not exists idx_decision_links_request on public.decision_links(request_id);
 
 -- Who may open a request and its thread/attachments.
 create or replace function public.can_view_request(p_request uuid, p_user uuid)
@@ -574,6 +590,8 @@ create index if not exists idx_audit_at      on public.audit_log(at desc);
 create index if not exists idx_audit_subject on public.audit_log(subject_id, at desc);
 create index if not exists idx_audit_actor   on public.audit_log(actor_id, at desc);
 create index if not exists idx_audit_action  on public.audit_log(action);
+-- Sign-in and password-reset limits count recent rows by action (src/lib/rateLimit.ts).
+create index if not exists idx_audit_action_at on public.audit_log(action, at desc);
 
 create or replace function public.audit_log_immutable()
 returns trigger language plpgsql as $$
@@ -645,6 +663,17 @@ create table if not exists public.google_calendar_links (
   refresh_token_enc text not null, -- AES-256-GCM, see src/lib/secretBox.ts
   connected_at      timestamptz not null default now()
 );
+-- Gmail auto-reply during approved leave (opt-in, needs the extra
+-- gmail.settings.basic permission). scopes = what Google actually granted.
+-- gmail_reply_request/start/end = the auto-reply TimeOff last set, so it only
+-- ever switches off a reply it put there itself.
+alter table public.google_calendar_links add column if not exists scopes text not null default '';
+alter table public.google_calendar_links add column if not exists gmail_reply_on boolean not null default false;
+alter table public.google_calendar_links add column if not exists gmail_reply_message text;
+alter table public.google_calendar_links add column if not exists gmail_reply_request uuid;
+alter table public.google_calendar_links add column if not exists gmail_reply_start bigint;
+alter table public.google_calendar_links add column if not exists gmail_reply_end bigint;
+
 -- The Google event each request created, so it can be updated or removed.
 create table if not exists public.request_google_events (
   request_id      uuid primary key references public.leave_requests(id) on delete cascade,

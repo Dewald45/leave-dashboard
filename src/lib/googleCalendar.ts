@@ -23,6 +23,8 @@ const TOKEN_URL = `${OAUTH2_BASE}/token`;
 const REVOKE_URL = `${OAUTH2_BASE}/revoke`;
 const EVENTS_URL = `${API_BASE}/calendar/v3/calendars/primary/events`;
 const SCOPES = ["openid", "email", "https://www.googleapis.com/auth/calendar.events"];
+/** Asked for only when someone turns on the Gmail auto-reply. */
+export const GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.settings.basic";
 const TZ = "Africa/Johannesburg";
 
 export function isGoogleConfigured() {
@@ -38,12 +40,12 @@ export function redirectUri() {
 }
 
 /** Where to send someone to approve calendar access. */
-export function authUrl(state: string, loginHint?: string) {
+export function authUrl(state: string, loginHint?: string, withGmail = false) {
   const p = new URLSearchParams({
     client_id: process.env.GOOGLE_CLIENT_ID as string,
     redirect_uri: redirectUri(),
     response_type: "code",
-    scope: SCOPES.join(" "),
+    scope: (withGmail ? [...SCOPES, GMAIL_SCOPE] : SCOPES).join(" "),
     access_type: "offline",
     // Always show consent so Google returns a refresh token every time.
     prompt: "consent",
@@ -59,6 +61,8 @@ type TokenResponse = {
   expires_in: number;
   refresh_token?: string;
   id_token?: string;
+  /** Space-separated permissions actually granted (including earlier ones). */
+  scope?: string;
   error?: string;
 };
 
@@ -98,27 +102,44 @@ export async function connectWithCode(profileId: string, code: string) {
   if (!t.refresh_token) throw new Error("Google didn't return offline access — try again.");
   const email = emailFromIdToken(t.id_token) ?? "unknown";
   await q(
-    `insert into google_calendar_links (profile_id, google_email, refresh_token_enc)
-     values ($1, $2, $3)
+    `insert into google_calendar_links (profile_id, google_email, refresh_token_enc, scopes)
+     values ($1, $2, $3, $4)
      on conflict (profile_id) do update
        set google_email = excluded.google_email,
            refresh_token_enc = excluded.refresh_token_enc,
+           scopes = excluded.scopes,
            connected_at = now()`,
-    [profileId, email, seal(t.refresh_token)]
+    [profileId, email, seal(t.refresh_token), t.scope ?? ""]
   );
   tokenCache.set(profileId, { token: t.access_token, expires: Date.now() + (t.expires_in - 60) * 1000 });
   return email;
 }
 
 export function getGoogleLink(profileId: string) {
-  return q1<{ google_email: string; connected_at: string }>(
-    "select google_email, connected_at::text from google_calendar_links where profile_id = $1",
-    [profileId]
+  return q1<{
+    google_email: string;
+    connected_at: string;
+    gmail_allowed: boolean;
+    gmail_reply_on: boolean;
+    gmail_reply_message: string | null;
+  }>(
+    `select google_email, connected_at::text,
+            position($2 in scopes) > 0 as gmail_allowed,
+            gmail_reply_on, gmail_reply_message
+       from google_calendar_links where profile_id = $1`,
+    [profileId, GMAIL_SCOPE]
   );
 }
 
 /** Forget the link and revoke TimeOff's access at Google. Events already made stay. */
 export async function disconnect(profileId: string) {
+  // Switch off an auto-reply TimeOff set while it still has access to do so.
+  try {
+    const { stopOurAutoReply } = await import("@/lib/gmailAutoReply");
+    await stopOurAutoReply(profileId);
+  } catch (err) {
+    console.error("[gmail] couldn't switch off auto-reply on disconnect:", err);
+  }
   const row = await q1<{ refresh_token_enc: string }>(
     "delete from google_calendar_links where profile_id = $1 returning refresh_token_enc",
     [profileId]
@@ -139,7 +160,7 @@ const g = globalThis as unknown as { _gTokens?: Map<string, { token: string; exp
 const tokenCache = (g._gTokens ??= new Map());
 
 /** A fresh access token, or null if this person hasn't connected (or revoked it). */
-async function accessToken(profileId: string): Promise<string | null> {
+export async function accessToken(profileId: string): Promise<string | null> {
   const cached = tokenCache.get(profileId);
   if (cached && cached.expires > Date.now()) return cached.token;
 
@@ -236,6 +257,24 @@ async function gfetch(token: string, url: string, init: RequestInit) {
  */
 export async function syncRequestToGoogle(requestId: string): Promise<void> {
   if (!isGoogleConfigured()) return;
+  await syncCalendarEvent(requestId);
+  // The Gmail auto-reply follows the person's next approved leave, so any
+  // change to their requests may move it.
+  try {
+    const owner = await q1<{ profile_id: string }>(
+      "select profile_id from leave_requests where id = $1",
+      [requestId]
+    );
+    if (owner) {
+      const { syncGmailAutoReply } = await import("@/lib/gmailAutoReply");
+      await syncGmailAutoReply(owner.profile_id);
+    }
+  } catch (err) {
+    console.error("[gmail] auto-reply sync failed:", err);
+  }
+}
+
+async function syncCalendarEvent(requestId: string): Promise<void> {
   try {
     const r = await q1<LeaveForEvent & { profile_id: string; google_event_id: string | null }>(
       `select r.id, r.profile_id, r.start_date::text as start_date, r.end_date::text as end_date,

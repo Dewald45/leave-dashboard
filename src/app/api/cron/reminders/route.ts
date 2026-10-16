@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { runReminders } from "@/lib/reminders";
 import { ensureHolidays, runHolidayReminders } from "@/lib/holidayReminders";
+import { syncAllGmailAutoReplies } from "@/lib/gmailAutoReply";
 
 export const dynamic = "force-dynamic";
 
@@ -25,5 +26,7 @@ export async function POST(req: NextRequest) {
   if (holidays.holidays) {
     console.log(`[reminders] announced ${holidays.holidays} public holiday(s) in ${holidays.emails} email(s)`);
   }
-  return NextResponse.json({ ...result, holiday_reminders: holidays });
+  // When someone's leave ends, line their Gmail auto-reply up for the next one.
+  const gmail = await syncAllGmailAutoReplies();
+  return NextResponse.json({ ...result, holiday_reminders: holidays, gmail_auto_replies: gmail });
 }

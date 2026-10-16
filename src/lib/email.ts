@@ -183,6 +183,25 @@ function requestUrl(id: string) {
   return `${appUrl()}/requests/${id}`;
 }
 
+/** An approver's copy of a request email, with their own Approve / Decline link. */
+export type ApproverRecipient = { email: string; decideToken: string };
+
+/**
+ * Approve and Decline buttons. They open a confirm page (nothing is decided on
+ * the click itself, so mail scanners that follow links can't approve anything).
+ */
+function decisionButtons(token: string) {
+  const href = (d: string) => `${appUrl()}/decide/${token}?d=${d}`;
+  const btn = (label: string, d: string, bg: string, fg: string, border: string) =>
+    `<a href="${href(d)}" style="display:inline-block;background:${bg};color:${fg};border:1px solid ${border};text-decoration:none;padding:11px 22px;border-radius:999px;font-weight:700;font-size:14px;margin:0 8px 8px 0">${label}</a>`;
+  return `
+    <div style="margin:18px 0 4px">
+      ${btn("Approve", "approved", "#047857", "#ffffff", "#047857")}
+      ${btn("Decline", "rejected", "#ffffff", "#b42318", "#f4c7c3")}
+    </div>
+    <p style="margin:0 0 4px;color:#7a7a7a;font-size:12px">No sign-in needed. You'll confirm on the next page, and can add a note.</p>`;
+}
+
 function invite(ics: { ics: string; method: string } | undefined): Attachment[] | undefined {
   if (!ics) return undefined;
   return [
@@ -214,7 +233,7 @@ function leaveRows(l: LeaveSummary): Array<[string, string]> {
 /** New request submitted → notify the approver(s). */
 export async function notifyManagerOfRequest(
   args: LeaveSummary & {
-    to: string[];
+    to: ApproverRecipient[];
     employeeName: string;
     reason: string | null;
     hasAttachment: boolean;
@@ -232,14 +251,17 @@ export async function notifyManagerOfRequest(
     ${detailRows(rows)}
     <p style="margin:0;color:#7a7a7a">Approve it, deny it, or ask a question in the request thread — your call.</p>
   `;
-  await sendEmail({
-    to: args.to,
-    subject: `${args.employeeName} wants time off — your call`,
-    html: layout("A leave request needs your verdict", body, {
-      href: requestUrl(args.requestId),
-      label: "Review & decide",
-    }),
-  });
+  // One email per approver: each carries that person's own decision link.
+  for (const r of args.to) {
+    await sendEmail({
+      to: [r.email],
+      subject: `${args.employeeName} wants time off — your call`,
+      html: layout("A leave request needs your verdict", body + decisionButtons(r.decideToken), {
+        href: requestUrl(args.requestId),
+        label: "Open the request",
+      }),
+    });
+  }
 }
 
 /** Employee's own copy of a submission, carrying the out-of-office invite. */
@@ -396,7 +418,7 @@ export async function notifyNewMessage(args: {
 /** A pending request is going stale → nudge (or escalate to) the approvers. */
 export async function notifyApprovalReminder(
   args: LeaveSummary & {
-    to: string[];
+    to: ApproverRecipient[];
     employeeName: string;
     waitingDays: number;
     escalated: boolean;
@@ -406,16 +428,19 @@ export async function notifyApprovalReminder(
   const lede = args.escalated
     ? `<strong>${esc(args.employeeName)}</strong> has been waiting <strong>${args.waitingDays} days</strong> for an answer, so this has been escalated to you. You can approve or decline it directly.`
     : `<strong>${esc(args.employeeName)}</strong> has been waiting <strong>${args.waitingDays} days</strong> for an answer. A yes, a no, or even a question would make their week.`;
-  await sendEmail({
-    to: args.to,
-    subject: args.escalated
-      ? `Escalated: ${args.employeeName}'s leave has waited ${args.waitingDays} days`
-      : `Reminder: ${args.employeeName}'s leave is waiting on you`,
-    html: layout(title, `<p style="margin:0">${lede}</p>${detailRows(leaveRows(args))}`, {
-      href: requestUrl(args.requestId),
-      label: "Review & decide",
-    }),
-  });
+  for (const r of args.to) {
+    await sendEmail({
+      to: [r.email],
+      subject: args.escalated
+        ? `Escalated: ${args.employeeName}'s leave has waited ${args.waitingDays} days`
+        : `Reminder: ${args.employeeName}'s leave is waiting on you`,
+      html: layout(
+        title,
+        `<p style="margin:0">${lede}</p>${detailRows(leaveRows(args))}${decisionButtons(r.decideToken)}`,
+        { href: requestUrl(args.requestId), label: "Open the request" }
+      ),
+    });
+  }
 }
 
 /** Carried-over leave is about to expire → warn the employee. */

@@ -3,12 +3,12 @@ import { q1 } from "@/lib/db";
 import { getManagersAndAdmins } from "@/lib/data";
 import PageHeader from "@/components/PageHeader";
 import ScreenPage from "@/components/ScreenPage";
-import CopyField from "@/components/CopyField";
 import ChangePasswordForm from "./ChangePasswordForm";
+import InstallApp from "@/components/InstallApp";
 import {
   disconnectGoogleCalendar,
-  rotateCalendarToken,
   setBackupApprover,
+  setGmailAutoReply,
   setHolidayEmails,
 } from "./actions";
 import { getGoogleLink, isGoogleConfigured } from "@/lib/googleCalendar";
@@ -18,11 +18,9 @@ const GOOGLE_MESSAGES: Record<string, { tone: "ok" | "warn"; text: string }> = {
   declined: { tone: "warn", text: "No problem — Google Calendar wasn't connected." },
   failed: { tone: "warn", text: "Couldn't connect Google Calendar. Please try again." },
   unavailable: { tone: "warn", text: "Google Calendar isn't switched on for TimeOff yet — ask an admin." },
+  gmail_on: { tone: "ok", text: "Gmail auto-reply is on. It switches itself on for your next approved leave." },
+  gmail_declined: { tone: "warn", text: "Gmail wasn't given permission, so the auto-reply stays off. Your calendar is still connected." },
 };
-
-function appUrl() {
-  return process.env.APP_URL || "http://localhost:3000";
-}
 
 const card = "rounded-3xl bg-white p-6";
 const heading = "text-lg font-semibold text-ink-900";
@@ -36,8 +34,8 @@ export default async function AccountPage({
   const isManager = profile.role === "manager" || profile.role === "admin";
 
   const [extras, approvers] = await Promise.all([
-    q1<{ calendar_token: string | null; backup_approver_id: string | null; holiday_emails: boolean }>(
-      "select calendar_token, backup_approver_id, holiday_emails from profiles where id = $1",
+    q1<{ backup_approver_id: string | null; holiday_emails: boolean }>(
+      "select backup_approver_id, holiday_emails from profiles where id = $1",
       [profile.id]
     ),
     isManager ? getManagersAndAdmins() : Promise.resolve([]),
@@ -45,9 +43,6 @@ export default async function AccountPage({
   const googleOn = isGoogleConfigured();
   const googleLink = googleOn ? await getGoogleLink(profile.id) : null;
   const googleMsg = searchParams.google ? GOOGLE_MESSAGES[searchParams.google] : undefined;
-  const feedUrl = extras?.calendar_token
-    ? `${appUrl()}/api/calendar/${extras.calendar_token}.ics`
-    : null;
 
   return (
     <ScreenPage>
@@ -67,7 +62,7 @@ export default async function AccountPage({
       ) : null}
 
       <div className="grid items-start gap-4 fit:min-h-0 fit:flex-1 lg:grid-cols-2 fit:grid-rows-[minmax(0,1fr)]">
-      {/* Left: calendars and reminders */}
+      {/* Left: Google Calendar and reminders */}
       <div className="space-y-4 fit:max-h-full fit:overflow-y-auto">
       {/* Google Calendar */}
       {googleOn ? (
@@ -81,6 +76,62 @@ export default async function AccountPage({
                 marked pending until it&apos;s approved, and removed if it&apos;s rejected or
                 cancelled. Meetings booked over it are declined for you.
               </p>
+              {/* Gmail auto-reply (needs one extra Google permission) */}
+              <div className="mt-5 border-t border-sand-100 pt-4">
+                <h3 className="text-sm font-semibold text-ink-900">Gmail auto-reply</h3>
+                {googleLink.gmail_allowed ? (
+                  <form action={setGmailAutoReply} className="mt-2 space-y-3">
+                    <label className="flex min-h-[44px] cursor-pointer items-start gap-3 text-sm text-ink-800">
+                      <input
+                        type="checkbox"
+                        name="gmail_reply_on"
+                        defaultChecked={googleLink.gmail_reply_on}
+                        className="mt-0.5 h-5 w-5 rounded border-sand-300 accent-ink-900"
+                      />
+                      <span>
+                        Switch on my Gmail out-of-office reply during approved leave, and off
+                        again when I&apos;m back. Half days are skipped.
+                      </span>
+                    </label>
+                    <div>
+                      <label htmlFor="gmail-reply-message" className="mb-1 block text-sm font-medium text-ink-800">
+                        Message <span className="font-normal text-sand-500">(optional)</span>
+                      </label>
+                      <textarea
+                        id="gmail-reply-message"
+                        name="gmail_reply_message"
+                        rows={3}
+                        maxLength={2000}
+                        defaultValue={googleLink.gmail_reply_message ?? ""}
+                        placeholder="Leave blank for: Thanks for your email. I'm on leave and back on <date>. I'll reply when I'm back."
+                        className="w-full rounded-xl border border-sand-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      className="min-h-[40px] rounded-full bg-ink-900 px-5 text-sm font-semibold text-white hover:bg-ink-800"
+                    >
+                      Save
+                    </button>
+                  </form>
+                ) : (
+                  <>
+                    <p className="mt-1 text-sm text-ink-800">
+                      Let TimeOff switch on your Gmail out-of-office reply while you&apos;re on
+                      approved leave, and off when you&apos;re back. Google will ask for
+                      permission to change your Gmail settings; TimeOff only touches the
+                      auto-reply.
+                    </p>
+                    <a
+                      href="/api/google/connect?gmail=1"
+                      className="mt-3 inline-flex min-h-[44px] items-center rounded-full border border-sand-300 px-5 text-sm font-semibold text-ink-900 hover:bg-sand-50"
+                    >
+                      Turn on Gmail auto-reply
+                    </a>
+                  </>
+                )}
+              </div>
+
               <form action={disconnectGoogleCalendar} className="mt-4">
                 <button
                   type="submit"
@@ -113,46 +164,10 @@ export default async function AccountPage({
         </section>
       ) : null}
 
-      {/* Calendar */}
-      <section className={card} aria-labelledby="cal-heading">
-        <h2 id="cal-heading" className={heading}>Calendar</h2>
-        <p className="mt-2 text-sm text-ink-800">
-          Every request you submit is emailed to you as an out-of-office event. For
-          something that keeps itself up to date, subscribe to your TimeOff calendar
-          {isManager ? " — it includes your team's approved leave too" : ""}.
-        </p>
-
-        {feedUrl ? (
-          <div className="mt-4 space-y-3">
-            <CopyField value={feedUrl} label="Calendar subscription link" />
-            <ul className="space-y-1 text-xs text-sand-600">
-              <li><strong className="text-ink-800">Google Calendar:</strong> Other calendars → + → From URL → paste.</li>
-              <li><strong className="text-ink-800">Outlook:</strong> Add calendar → Subscribe from web → paste.</li>
-              <li><strong className="text-ink-800">Apple Calendar:</strong> File → New Calendar Subscription → paste.</li>
-            </ul>
-            <p className="text-xs text-sand-500">
-              Treat this link like a password — anyone with it can see the calendar. Calendar
-              apps refresh subscriptions every few hours.
-            </p>
-            <form action={rotateCalendarToken}>
-              <button
-                type="submit"
-                className="min-h-[40px] rounded-full border border-sand-300 px-4 text-sm font-medium text-sand-600 hover:bg-sand-50"
-              >
-                Replace link (old one stops working)
-              </button>
-            </form>
-          </div>
-        ) : (
-          <form action={rotateCalendarToken} className="mt-4">
-            <button
-              type="submit"
-              className="min-h-[40px] rounded-full bg-ink-900 px-5 text-sm font-semibold text-white hover:bg-ink-800"
-            >
-              Create my calendar link
-            </button>
-          </form>
-        )}
+      {/* Home-screen app */}
+      <section className={card} aria-labelledby="app-heading">
+        <h2 id="app-heading" className={heading}>TimeOff on your phone</h2>
+        <InstallApp />
       </section>
 
       {/* Holiday reminders */}

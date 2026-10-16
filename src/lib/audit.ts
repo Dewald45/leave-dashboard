@@ -16,10 +16,20 @@ export type AuditEntry = {
   details?: Record<string, unknown>;
 };
 
-function clientIp(): string | null {
+/**
+ * The visitor's IP. Cloudflare's CF-Connecting-IP comes first: the first entry
+ * of X-Forwarded-For can be made up by the visitor, so it's only a fallback
+ * (for running without Cloudflare in front).
+ */
+export function clientIp(): string | null {
   try {
     const h = headers();
-    return h.get("x-forwarded-for")?.split(",")[0].trim() || h.get("x-real-ip") || null;
+    return (
+      h.get("cf-connecting-ip") ||
+      h.get("x-forwarded-for")?.split(",")[0].trim() ||
+      h.get("x-real-ip") ||
+      null
+    );
   } catch {
     return null; // outside a request (shouldn't happen, but never block on it)
   }
