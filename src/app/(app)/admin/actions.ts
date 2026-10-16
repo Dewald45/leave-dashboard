@@ -6,6 +6,10 @@ import { getSessionProfile } from "@/lib/session";
 import { hashPassword } from "@/lib/password";
 import { audit, diff } from "@/lib/audit";
 import type { Profile } from "@/lib/types";
+import { randomBytes } from "node:crypto";
+import { readImport, type ImportRow } from "@/lib/employeeImport";
+import { createResetToken } from "@/lib/passwordReset";
+import { sendWelcomeEmail } from "@/lib/email";
 
 export type AdminResult = { error?: string; success?: string };
 
@@ -424,4 +428,121 @@ export async function updateLeaveDefault(formData: FormData): Promise<void> {
     details: { leave_type: before.name, changes },
   });
   revalidatePath("/admin");
+}
+
+// ---------- bulk import ----------
+
+export type ImportPreview = {
+  error?: string;
+  csv?: string;
+  rows?: ImportRow[];
+  done?: { added: number; emailed: number; skipped: number };
+};
+
+/** How long the "choose your password" link in a welcome email lasts. */
+const WELCOME_LINK_DAYS = 7;
+const MAX_IMPORT_BYTES = 1_000_000;
+
+async function existingEmails(): Promise<Set<string>> {
+  const rows = await q<{ email: string }>("select lower(email) as email from users");
+  return new Set(rows.map((r) => r.email));
+}
+
+async function csvFrom(formData: FormData): Promise<string | { error: string }> {
+  const file = formData.get("file");
+  if (file && typeof file !== "string" && file.size > 0) {
+    if (file.size > MAX_IMPORT_BYTES) return { error: "That file is over 1 MB. Is it the right one?" };
+    return await file.text();
+  }
+  const pasted = String(formData.get("csv") || "");
+  if (!pasted.trim()) return { error: "Choose a CSV file first." };
+  if (pasted.length > MAX_IMPORT_BYTES) return { error: "That's too much text." };
+  return pasted;
+}
+
+/** Step 1: read the spreadsheet and show what would happen, changing nothing. */
+export async function previewImport(_prev: ImportPreview, formData: FormData): Promise<ImportPreview> {
+  try {
+    await assertAdmin();
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+  const csv = await csvFrom(formData);
+  if (typeof csv !== "string") return csv;
+  const { rows, error } = readImport(csv, await existingEmails());
+  if (error) return { error };
+  return { csv, rows };
+}
+
+/**
+ * Step 2: add everyone whose row has no problems. Rows are checked again here
+ * (someone may have been added in between). Managers are linked after
+ * everyone exists, so a manager can be further down the same file.
+ */
+export async function runImport(_prev: ImportPreview, formData: FormData): Promise<ImportPreview> {
+  let me: Profile;
+  try {
+    me = await assertAdmin();
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+  const csv = String(formData.get("csv") || "");
+  const sendWelcome = formData.get("send_welcome") === "on";
+  const { rows, error } = readImport(csv, await existingEmails());
+  if (error) return { error };
+
+  const good = rows.filter((r) => r.problems.length === 0);
+  const ids = new Map<string, string>();
+  let emailed = 0;
+
+  for (const r of good) {
+    // Nobody knows this password: people choose their own from the welcome link
+    // (or "Forgot it?").
+    const hash = await hashPassword(randomBytes(24).toString("base64url"));
+    const user = await q1<{ id: string }>(
+      "insert into users (email, password_hash) values ($1, $2) on conflict do nothing returning id",
+      [r.email, hash]
+    );
+    if (!user) continue; // added by someone else a moment ago
+    await q(
+      `insert into profiles (id, full_name, email, role, department, job_title, gender, employment_start_date)
+       values ($1, $2, $3, $4, $5, $6, $7, coalesce($8::date, current_date))`,
+      [user.id, r.full_name, r.email, r.role, r.department || null, r.job_title || null,
+       r.gender || null, r.start_date || null]
+    );
+    ids.set(r.email, user.id);
+  }
+
+  for (const r of good) {
+    const id = ids.get(r.email);
+    if (!id) continue;
+    if (r.manager_email) {
+      await q(
+        `update profiles set manager_id = (select id from profiles where lower(email) = lower($2))
+          where id = $1`,
+        [id, r.manager_email]
+      );
+    }
+    await q("select public.sync_leave_eligibility($1)", [id]);
+    await audit({
+      actor: me,
+      action: "employee.created",
+      entityType: "profile",
+      entityId: id,
+      subject: { id, full_name: r.full_name },
+      summary: `Added ${r.full_name} (${r.email}) as ${r.role} from a spreadsheet import`,
+      details: { profile: await profileSnapshot(id), via: "import", welcome_email: sendWelcome },
+    });
+    if (sendWelcome) {
+      const token = await createResetToken(id, WELCOME_LINK_DAYS * 24 * 60);
+      if (token) {
+        await sendWelcomeEmail({ to: r.email, name: r.full_name, token, days: WELCOME_LINK_DAYS });
+        emailed++;
+      }
+    }
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/team");
+  return { done: { added: ids.size, emailed, skipped: rows.length - ids.size } };
 }
