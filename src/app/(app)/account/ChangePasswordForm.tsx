@@ -56,7 +56,8 @@ export default function ChangePasswordForm() {
       {state?.success ? (
         <p role="status" className="rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{state.success}</p>
       ) : null}
-      <div className="flex justify-end">
+      {/* Pinned to the bottom of the scrolling column on laptops. */}
+      <div className="flex justify-end fit:sticky fit:bottom-0 fit:z-10 fit:-mx-6 fit:-mb-6 fit:rounded-b-3xl fit:border-t fit:border-sand-100 fit:bg-white fit:px-6 fit:pb-6 fit:pt-4">
         <SubmitButton />
       </div>
     </form>

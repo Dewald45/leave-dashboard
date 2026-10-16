@@ -114,13 +114,13 @@ export default async function AdminPage({
                   >
                     <input type="hidden" name="id" value={p.id} />
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-sand-600">
+                      <label htmlFor={`emp-${p.id}-role`} className="mb-1 block text-xs font-medium text-sand-600">
                         Role
                       </label>
-                      <select
+                      <select id={`emp-${p.id}-role`}
                         name="role"
                         defaultValue={p.role}
-                        className="rounded-xl border border-sand-300 px-3 py-1.5 text-sm"
+                        className="min-h-11 sm:min-h-0 rounded-xl border border-sand-300 px-3 py-1.5 text-sm"
                       >
                         <option value="employee">Employee</option>
                         <option value="manager">Manager</option>
@@ -128,13 +128,13 @@ export default async function AdminPage({
                       </select>
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-sand-600">
+                      <label htmlFor={`emp-${p.id}-manager-id`} className="mb-1 block text-xs font-medium text-sand-600">
                         Line manager
                       </label>
-                      <select
+                      <select id={`emp-${p.id}-manager-id`}
                         name="manager_id"
                         defaultValue={p.manager_id ?? ""}
-                        className="rounded-xl border border-sand-300 px-3 py-1.5 text-sm"
+                        className="min-h-11 sm:min-h-0 rounded-xl border border-sand-300 px-3 py-1.5 text-sm"
                       >
                         <option value="">— None —</option>
                         {managers
@@ -147,23 +147,23 @@ export default async function AdminPage({
                       </select>
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-sand-600">
+                      <label htmlFor={`emp-${p.id}-department`} className="mb-1 block text-xs font-medium text-sand-600">
                         Department
                       </label>
-                      <input
+                      <input id={`emp-${p.id}-department`}
                         name="department"
                         defaultValue={p.department ?? ""}
-                        className="rounded-xl border border-sand-300 px-3 py-1.5 text-sm"
+                        className="min-h-11 sm:min-h-0 rounded-xl border border-sand-300 px-3 py-1.5 text-sm"
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-sand-600">
+                      <label htmlFor={`emp-${p.id}-gender`} className="mb-1 block text-xs font-medium text-sand-600">
                         Gender
                       </label>
-                      <select
+                      <select id={`emp-${p.id}-gender`}
                         name="gender"
                         defaultValue={p.gender ?? ""}
-                        className="rounded-xl border border-sand-300 px-3 py-1.5 text-sm"
+                        className="min-h-11 sm:min-h-0 rounded-xl border border-sand-300 px-3 py-1.5 text-sm"
                       >
                         <option value="">— Unset —</option>
                         <option value="male">Male</option>
@@ -172,13 +172,13 @@ export default async function AdminPage({
                     </div>
                     {p.role !== "employee" ? (
                       <div>
-                        <label className="mb-1 block text-xs font-medium text-sand-600">
+                        <label htmlFor={`emp-${p.id}-backup-approver-id`} className="mb-1 block text-xs font-medium text-sand-600">
                           Backup approver
                         </label>
-                        <select
+                        <select id={`emp-${p.id}-backup-approver-id`}
                           name="backup_approver_id"
                           defaultValue={p.backup_approver_id ?? ""}
-                          className="rounded-xl border border-sand-300 px-3 py-1.5 text-sm"
+                          className="min-h-11 sm:min-h-0 rounded-xl border border-sand-300 px-3 py-1.5 text-sm"
                         >
                           <option value="">— Admins cover —</option>
                           {approvers
@@ -193,7 +193,7 @@ export default async function AdminPage({
                     ) : null}
                     <button
                       type="submit"
-                      className="rounded-full bg-ink-900 px-4 py-1.5 text-sm font-semibold text-white hover:bg-ink-800"
+                      className="min-h-11 sm:min-h-0 rounded-full bg-ink-900 px-4 py-1.5 text-sm font-semibold text-white hover:bg-ink-800"
                     >
                       Save
                     </button>
@@ -232,7 +232,7 @@ export default async function AdminPage({
                                   type="number"
                                   step="0.5"
                                   defaultValue={b.full_entitled_days}
-                                  className="mt-0.5 w-20 rounded border border-sand-300 px-2 py-1 text-sm"
+                                  className="min-h-11 sm:min-h-0 mt-0.5 w-20 rounded border border-sand-300 px-2 py-1 text-sm"
                                 />
                               </label>
                               <label className="text-[11px] text-sand-500">
@@ -242,7 +242,7 @@ export default async function AdminPage({
                                   type="number"
                                   step="0.5"
                                   defaultValue={b.reserved_days}
-                                  className="mt-0.5 w-20 rounded border border-sand-300 px-2 py-1 text-sm"
+                                  className="min-h-11 sm:min-h-0 mt-0.5 w-20 rounded border border-sand-300 px-2 py-1 text-sm"
                                 />
                               </label>
                               {b.carry_months > 0 ? (
@@ -254,7 +254,7 @@ export default async function AdminPage({
                                     step="0.5"
                                     min="0"
                                     defaultValue={b.carried_days}
-                                    className="mt-0.5 w-20 rounded border border-sand-300 px-2 py-1 text-sm"
+                                    className="min-h-11 sm:min-h-0 mt-0.5 w-20 rounded border border-sand-300 px-2 py-1 text-sm"
                                   />
                                 </label>
                               ) : null}
@@ -266,7 +266,7 @@ export default async function AdminPage({
                           </div>
                           <button
                             type="submit"
-                            className="rounded-full border border-sand-300 bg-white px-3 py-1.5 text-xs font-medium text-sand-600 hover:bg-sand-100"
+                            className="min-h-11 sm:min-h-0 rounded-full border border-sand-300 bg-white px-3 py-1.5 text-xs font-medium text-sand-600 hover:bg-sand-100"
                           >
                             Update
                           </button>
@@ -348,7 +348,7 @@ export default async function AdminPage({
                         step="0.5"
                         min="0"
                         defaultValue={t.default_days}
-                        className="mt-0.5 w-20 rounded border border-sand-300 px-2 py-1 text-sm"
+                        className="min-h-11 sm:min-h-0 mt-0.5 w-20 rounded border border-sand-300 px-2 py-1 text-sm"
                       />
                     </label>
                     {t.default_reserved > 0 ? (
@@ -360,7 +360,7 @@ export default async function AdminPage({
                           step="0.5"
                           min="0"
                           defaultValue={t.default_reserved}
-                          className="mt-0.5 w-20 rounded border border-sand-300 px-2 py-1 text-sm"
+                          className="min-h-11 sm:min-h-0 mt-0.5 w-20 rounded border border-sand-300 px-2 py-1 text-sm"
                         />
                       </label>
                     ) : (
@@ -370,7 +370,7 @@ export default async function AdminPage({
                 </div>
                 <button
                   type="submit"
-                  className="rounded-full border border-sand-300 bg-white px-3 py-1.5 text-xs font-medium text-sand-600 hover:bg-sand-100"
+                  className="min-h-11 sm:min-h-0 rounded-full border border-sand-300 bg-white px-3 py-1.5 text-xs font-medium text-sand-600 hover:bg-sand-100"
                 >
                   Save
                 </button>

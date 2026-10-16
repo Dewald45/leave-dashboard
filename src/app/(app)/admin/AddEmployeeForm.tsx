@@ -59,20 +59,20 @@ export default function AddEmployeeForm({
       {/* Two across on phones/tablets; one per row in Admin's narrow column on laptops. */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 2xl:grid-cols-2">
         <div>
-          <label className="mb-1 block text-sm font-medium text-ink-800">
+          <label htmlFor="add-full-name" className="mb-1 block text-sm font-medium text-ink-800">
             Full name
           </label>
-          <input
+          <input id="add-full-name"
             name="full_name"
             required
             className="w-full rounded-xl border border-sand-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-ink-800">
+          <label htmlFor="add-email" className="mb-1 block text-sm font-medium text-ink-800">
             Work email
           </label>
-          <input
+          <input id="add-email"
             name="email"
             type="email"
             required
@@ -80,11 +80,11 @@ export default function AddEmployeeForm({
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-ink-800">
+          <label htmlFor="add-password" className="mb-1 block text-sm font-medium text-ink-800">
             Temporary password
           </label>
           <div className="flex gap-2">
-            <input
+            <input id="add-password"
               name="password"
               value={pw}
               onChange={(e) => setPw(e.target.value)}
@@ -102,10 +102,10 @@ export default function AddEmployeeForm({
           </div>
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-ink-800">
+          <label htmlFor="add-role" className="mb-1 block text-sm font-medium text-ink-800">
             Role
           </label>
-          <select
+          <select id="add-role"
             name="role"
             defaultValue="employee"
             className="w-full rounded-xl border border-sand-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
@@ -116,10 +116,10 @@ export default function AddEmployeeForm({
           </select>
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-ink-800">
+          <label htmlFor="add-gender" className="mb-1 block text-sm font-medium text-ink-800">
             Gender <span className="font-normal text-sand-500">(sets parental vs maternity leave)</span>
           </label>
-          <select
+          <select id="add-gender"
             name="gender"
             value={gender}
             onChange={(e) => setGender(e.target.value)}
@@ -131,10 +131,10 @@ export default function AddEmployeeForm({
           </select>
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-ink-800">
+          <label htmlFor="add-manager-id" className="mb-1 block text-sm font-medium text-ink-800">
             Line manager
           </label>
-          <select
+          <select id="add-manager-id"
             name="manager_id"
             defaultValue=""
             className="w-full rounded-xl border border-sand-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
@@ -148,28 +148,28 @@ export default function AddEmployeeForm({
           </select>
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-ink-800">
+          <label htmlFor="add-department" className="mb-1 block text-sm font-medium text-ink-800">
             Department
           </label>
-          <input
+          <input id="add-department"
             name="department"
             className="w-full rounded-xl border border-sand-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-ink-800">
+          <label htmlFor="add-job-title" className="mb-1 block text-sm font-medium text-ink-800">
             Job title
           </label>
-          <input
+          <input id="add-job-title"
             name="job_title"
             className="w-full rounded-xl border border-sand-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-ink-800">
+          <label htmlFor="add-employment-start-date" className="mb-1 block text-sm font-medium text-ink-800">
             Employment start date
           </label>
-          <input
+          <input id="add-employment-start-date"
             name="employment_start_date"
             type="date"
             className="w-full rounded-xl border border-sand-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"

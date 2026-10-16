@@ -535,9 +535,12 @@ returns boolean language sql stable as $$
       join public.profiles u on u.id = p_user
       left join public.profiles m on m.id = e.manager_id
      where r.id = p_request
+       -- Nobody decides their own leave, admins included: an admin's request
+       -- goes to their manager or another admin.
+       and r.profile_id <> p_user
        and (u.role = 'admin'
-         or (r.profile_id <> p_user and e.manager_id = p_user)
-         or (r.profile_id <> p_user and m.backup_approver_id = p_user
+         or e.manager_id = p_user
+         or (m.backup_approver_id = p_user
              and (public.manager_is_away(m.id) or r.escalated_at is not null))))
 $$;
 
@@ -587,6 +590,8 @@ create index if not exists idx_audit_at      on public.audit_log(at desc);
 create index if not exists idx_audit_subject on public.audit_log(subject_id, at desc);
 create index if not exists idx_audit_actor   on public.audit_log(actor_id, at desc);
 create index if not exists idx_audit_action  on public.audit_log(action);
+-- Sign-in and password-reset limits count recent rows by action (src/lib/rateLimit.ts).
+create index if not exists idx_audit_action_at on public.audit_log(action, at desc);
 
 create or replace function public.audit_log_immutable()
 returns trigger language plpgsql as $$
