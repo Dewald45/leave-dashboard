@@ -2,6 +2,24 @@
 
 What changed in TimeOff, newest first.
 
+## 2026-10-16 (approve from email)
+
+### Approve or decline straight from the email
+- The "wants time off" email and the reminder / escalation emails now have
+  **Approve** and **Decline** buttons. They open a short page with the request
+  and an optional note; nothing is decided until you press Confirm (so email
+  security scanners that open links can't approve anything by accident).
+- No sign-in needed. Each approver gets their own link, it works once, and it
+  expires after 14 days. It stops working as soon as the request is decided or
+  cancelled, or if that person is no longer allowed to decide it.
+- The audit trail notes when a decision came "from the email link". The
+  employee is told exactly as before.
+- Anyone the approver forwards the email to could use the link, so don't
+  forward these.
+
+### Needs attention when deploying
+- Nothing on the server. The database adds a `decision_links` table on boot.
+
 ## 2026-10-16 (login protection)
 
 ### Security
