@@ -8,6 +8,7 @@ import InstallApp from "@/components/InstallApp";
 import {
   disconnectGoogleCalendar,
   setBackupApprover,
+  setGmailAutoReply,
   setHolidayEmails,
 } from "./actions";
 import { getGoogleLink, isGoogleConfigured } from "@/lib/googleCalendar";
@@ -17,6 +18,8 @@ const GOOGLE_MESSAGES: Record<string, { tone: "ok" | "warn"; text: string }> = {
   declined: { tone: "warn", text: "No problem — Google Calendar wasn't connected." },
   failed: { tone: "warn", text: "Couldn't connect Google Calendar. Please try again." },
   unavailable: { tone: "warn", text: "Google Calendar isn't switched on for TimeOff yet — ask an admin." },
+  gmail_on: { tone: "ok", text: "Gmail auto-reply is on. It switches itself on for your next approved leave." },
+  gmail_declined: { tone: "warn", text: "Gmail wasn't given permission, so the auto-reply stays off. Your calendar is still connected." },
 };
 
 const card = "rounded-3xl bg-white p-6";
@@ -73,6 +76,62 @@ export default async function AccountPage({
                 marked pending until it&apos;s approved, and removed if it&apos;s rejected or
                 cancelled. Meetings booked over it are declined for you.
               </p>
+              {/* Gmail auto-reply (needs one extra Google permission) */}
+              <div className="mt-5 border-t border-sand-100 pt-4">
+                <h3 className="text-sm font-semibold text-ink-900">Gmail auto-reply</h3>
+                {googleLink.gmail_allowed ? (
+                  <form action={setGmailAutoReply} className="mt-2 space-y-3">
+                    <label className="flex min-h-[44px] cursor-pointer items-start gap-3 text-sm text-ink-800">
+                      <input
+                        type="checkbox"
+                        name="gmail_reply_on"
+                        defaultChecked={googleLink.gmail_reply_on}
+                        className="mt-0.5 h-5 w-5 rounded border-sand-300 accent-ink-900"
+                      />
+                      <span>
+                        Switch on my Gmail out-of-office reply during approved leave, and off
+                        again when I&apos;m back. Half days are skipped.
+                      </span>
+                    </label>
+                    <div>
+                      <label htmlFor="gmail-reply-message" className="mb-1 block text-sm font-medium text-ink-800">
+                        Message <span className="font-normal text-sand-500">(optional)</span>
+                      </label>
+                      <textarea
+                        id="gmail-reply-message"
+                        name="gmail_reply_message"
+                        rows={3}
+                        maxLength={2000}
+                        defaultValue={googleLink.gmail_reply_message ?? ""}
+                        placeholder="Leave blank for: Thanks for your email. I'm on leave and back on <date>. I'll reply when I'm back."
+                        className="w-full rounded-xl border border-sand-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      className="min-h-[40px] rounded-full bg-ink-900 px-5 text-sm font-semibold text-white hover:bg-ink-800"
+                    >
+                      Save
+                    </button>
+                  </form>
+                ) : (
+                  <>
+                    <p className="mt-1 text-sm text-ink-800">
+                      Let TimeOff switch on your Gmail out-of-office reply while you&apos;re on
+                      approved leave, and off when you&apos;re back. Google will ask for
+                      permission to change your Gmail settings; TimeOff only touches the
+                      auto-reply.
+                    </p>
+                    <a
+                      href="/api/google/connect?gmail=1"
+                      className="mt-3 inline-flex min-h-[44px] items-center rounded-full border border-sand-300 px-5 text-sm font-semibold text-ink-900 hover:bg-sand-50"
+                    >
+                      Turn on Gmail auto-reply
+                    </a>
+                  </>
+                )}
+              </div>
+
               <form action={disconnectGoogleCalendar} className="mt-4">
                 <button
                   type="submit"

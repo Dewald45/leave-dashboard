@@ -7,6 +7,7 @@ import { getSessionProfile, SESSION_COOKIE } from "@/lib/session";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { audit } from "@/lib/audit";
 import { disconnect as disconnectGoogle, getGoogleLink } from "@/lib/googleCalendar";
+import { syncGmailAutoReply } from "@/lib/gmailAutoReply";
 
 export type AccountResult = { error?: string; success?: string };
 
@@ -126,4 +127,36 @@ export async function setBackupApprover(formData: FormData): Promise<void> {
   }
   revalidatePath("/account");
   revalidatePath("/admin");
+}
+
+/** Turn the Gmail auto-reply on or off, and save its message. */
+export async function setGmailAutoReply(formData: FormData): Promise<void> {
+  const me = await getSessionProfile();
+  if (!me) return;
+  const link = await getGoogleLink(me.id);
+  if (!link?.gmail_allowed) return;
+  const on = formData.get("gmail_reply_on") === "on";
+  const message = String(formData.get("gmail_reply_message") || "").trim().slice(0, 2000) || null;
+
+  await q(
+    "update google_calendar_links set gmail_reply_on = $2, gmail_reply_message = $3 where profile_id = $1",
+    [me.id, on, message]
+  );
+  if (on !== link.gmail_reply_on || message !== link.gmail_reply_message) {
+    await audit({
+      actor: me,
+      action: on ? "calendar.gmail_reply_on" : "calendar.gmail_reply_off",
+      entityType: "account",
+      entityId: me.id,
+      subject: me,
+      summary: on
+        ? link.gmail_reply_on
+          ? "Changed the Gmail auto-reply message"
+          : "Turned on the Gmail auto-reply for approved leave"
+        : "Turned off the Gmail auto-reply",
+      details: { message_changed: message !== link.gmail_reply_message },
+    });
+  }
+  await syncGmailAutoReply(me.id, true);
+  revalidatePath("/account");
 }

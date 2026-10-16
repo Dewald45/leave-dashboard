@@ -663,6 +663,17 @@ create table if not exists public.google_calendar_links (
   refresh_token_enc text not null, -- AES-256-GCM, see src/lib/secretBox.ts
   connected_at      timestamptz not null default now()
 );
+-- Gmail auto-reply during approved leave (opt-in, needs the extra
+-- gmail.settings.basic permission). scopes = what Google actually granted.
+-- gmail_reply_request/start/end = the auto-reply TimeOff last set, so it only
+-- ever switches off a reply it put there itself.
+alter table public.google_calendar_links add column if not exists scopes text not null default '';
+alter table public.google_calendar_links add column if not exists gmail_reply_on boolean not null default false;
+alter table public.google_calendar_links add column if not exists gmail_reply_message text;
+alter table public.google_calendar_links add column if not exists gmail_reply_request uuid;
+alter table public.google_calendar_links add column if not exists gmail_reply_start bigint;
+alter table public.google_calendar_links add column if not exists gmail_reply_end bigint;
+
 -- The Google event each request created, so it can be updated or removed.
 create table if not exists public.request_google_events (
   request_id      uuid primary key references public.leave_requests(id) on delete cascade,
