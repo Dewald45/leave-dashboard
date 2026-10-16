@@ -15,9 +15,96 @@ What changed in TimeOff, newest first.
 - Same rule as the balances: 15 days spread evenly over your leave year.
   Carried-over days are used first, so they don't count as booking ahead.
 
+## 2026-10-16 (account page)
+
+### Account
+- The **Calendar** box (subscription link to copy into a calendar app) is gone
+  from the Account page. Connecting **Google Calendar** is now the one way to
+  get leave into your calendar. Request emails still carry the out-of-office
+  invite for people who haven't connected Google.
+- Subscription links that people already set up keep working, but nobody can
+  create or replace one any more.
+
+## 2026-10-16 (approve from email)
+
+### Approve or decline straight from the email
+- The "wants time off" email and the reminder / escalation emails now have
+  **Approve** and **Decline** buttons. They open a short page with the request
+  and an optional note; nothing is decided until you press Confirm (so email
+  security scanners that open links can't approve anything by accident).
+- No sign-in needed. Each approver gets their own link, it works once, and it
+  expires after 14 days. It stops working as soon as the request is decided or
+  cancelled, or if that person is no longer allowed to decide it.
+- The audit trail notes when a decision came "from the email link". The
+  employee is told exactly as before.
+- Anyone the approver forwards the email to could use the link, so don't
+  forward these.
+
+### Needs attention when deploying
+- Nothing on the server. The database adds a `decision_links` table on boot.
+
+## 2026-10-16 (login protection)
+
+### Security
+- **Brakes on password guessing.** After 5 wrong passwords for one email
+  address within 15 minutes, that address can't sign in for the rest of those
+  15 minutes, even with the right password; the message says how long to wait
+  and points to "Forgot it?". A connection that gets 20 wrong passwords in 15
+  minutes (across any addresses) is paused the same way. A successful sign-in
+  clears the count.
+- **Password reset requests:** at most 10 per hour from one connection, and
+  requests for addresses that have no account are now recorded in the audit
+  trail. (Each account could already only be sent one reset email at a time.)
+- The audit trail records the visitor's real address from Cloudflare instead
+  of a header the visitor can fake.
+- New audit entries: "Sign-in blocked" and "Password reset asked for an
+  unknown address".
+
 ### Needs attention when deploying
 - Nothing on the server.
 
+
+
+
+
+## 2026-10-16
+
+From an audit of the live site on laptop and phone.
+
+### Security
+- **Nobody approves their own leave any more, admins included.** An admin's
+  request now goes to their line manager, or to another admin if they have
+  none. If there is only one admin and they have no manager, their leave can't
+  be approved until someone else is made an admin or set as their manager.
+- The site now sends standard browser security headers: it can't be shown
+  inside another site's frame (which stops click-tricking), browsers are told
+  to stick to https, and pages don't leak their full address to other sites.
+
+### Layout
+- **Apply** and **Account → Password**: on short laptop screens the submit
+  button stays pinned at the bottom of the card instead of hiding below it.
+- **Dashboard** on short laptop screens (under 800px tall): tighter spacing,
+  so "Recently attempted" shows more than one row.
+- **Audit trail**: Download CSV sits with the results it exports, below the
+  tabs, instead of above them.
+
+### Phones
+- **Account** is labelled next to your initials in the top bar instead of
+  being a bare avatar.
+- **Admin tabs** wrap onto a second line instead of scrolling sideways out of
+  sight.
+- Admin fields and buttons are full finger size (44px).
+- Bottom-bar labels, request date chips and card badges are at least 11px.
+
+### Accessibility
+- Every field on the Admin page (Add employee, editing someone, password
+  reset) is linked to its label, so screen readers announce it and tapping the
+  label focuses the field.
+
+### Needs attention when deploying
+- Nothing on the server. Separately, Bjorn should turn on **Always Use HTTPS**
+  in Cloudflare: the site still answers on plain `http://`, including the login
+  page.
 ## 2026-10-15 (night)
 
 ### Every page fits on one screen
