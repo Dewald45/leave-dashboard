@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getSessionProfile } from "@/lib/session";
-import { backfillUpcoming, connectWithCode } from "@/lib/googleCalendar";
+import { backfillUpcoming, connectWithCode, getGoogleLink } from "@/lib/googleCalendar";
+import { syncGmailAutoReply } from "@/lib/gmailAutoReply";
+import { q } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { publicUrl } from "@/lib/publicUrl";
 
@@ -23,7 +25,8 @@ export async function GET(req: NextRequest) {
   if (params.get("error")) return back("declined");
 
   // The state must match what we set for this same person a moment ago.
-  const [expected, forProfile] = (req.cookies.get(STATE_COOKIE)?.value ?? "").split(".");
+  const [expected, forProfile, flag] = (req.cookies.get(STATE_COOKIE)?.value ?? "").split(".");
+  const wantedGmail = flag === "gmail";
   const state = params.get("state");
   const code = params.get("code");
   if (!expected || !state || state !== expected || forProfile !== me.id || !code) {
@@ -42,6 +45,23 @@ export async function GET(req: NextRequest) {
       details: { google_email: email },
     });
     await backfillUpcoming(me.id);
+
+    if (wantedGmail) {
+      // People can untick the Gmail permission on Google's screen.
+      const link = await getGoogleLink(me.id);
+      if (!link?.gmail_allowed) return back("gmail_declined");
+      await q("update google_calendar_links set gmail_reply_on = true where profile_id = $1", [me.id]);
+      await audit({
+        actor: me,
+        action: "calendar.gmail_reply_on",
+        entityType: "account",
+        entityId: me.id,
+        subject: me,
+        summary: "Turned on the Gmail auto-reply for approved leave",
+      });
+      await syncGmailAutoReply(me.id, true);
+      return back("gmail_on");
+    }
     return back("connected");
   } catch (err) {
     console.error("[google] connect failed:", err);

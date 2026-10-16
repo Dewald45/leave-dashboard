@@ -14,9 +14,11 @@ export async function GET(req: NextRequest) {
   if (!me) return NextResponse.redirect(publicUrl("/login", req));
   if (!isGoogleConfigured()) return NextResponse.redirect(publicUrl("/account?google=unavailable", req));
 
+  // ?gmail=1 comes from "Turn on Gmail auto-reply": ask for that permission too.
+  const withGmail = req.nextUrl.searchParams.get("gmail") === "1";
   const state = randomBytes(24).toString("hex");
-  const res = NextResponse.redirect(authUrl(state, me.email));
-  res.cookies.set(STATE_COOKIE, `${state}.${me.id}`, {
+  const res = NextResponse.redirect(authUrl(state, me.email, withGmail));
+  res.cookies.set(STATE_COOKIE, `${state}.${me.id}${withGmail ? ".gmail" : ""}`, {
     httpOnly: true,
     sameSite: "lax", // sent on Google's top-level redirect back to us
     secure: process.env.NODE_ENV === "production",
