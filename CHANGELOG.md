@@ -2,6 +2,19 @@
 
 What changed in TimeOff, newest first.
 
+## 2026-10-16 (account page)
+
+### Account
+- The **Calendar** box (subscription link to copy into a calendar app) is gone
+  from the Account page. Connecting **Google Calendar** is now the one way to
+  get leave into your calendar. Request emails still carry the out-of-office
+  invite for people who haven't connected Google.
+- Subscription links that people already set up keep working, but nobody can
+  create or replace one any more.
+
+### Needs attention when deploying
+- Nothing on the server.
+
 ## 2026-10-15 (night)
 
 ### Every page fits on one screen
