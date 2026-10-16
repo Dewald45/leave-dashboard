@@ -2,6 +2,26 @@
 
 What changed in TimeOff, newest first.
 
+## 2026-10-16 (login protection)
+
+### Security
+- **Brakes on password guessing.** After 5 wrong passwords for one email
+  address within 15 minutes, that address can't sign in for the rest of those
+  15 minutes, even with the right password; the message says how long to wait
+  and points to "Forgot it?". A connection that gets 20 wrong passwords in 15
+  minutes (across any addresses) is paused the same way. A successful sign-in
+  clears the count.
+- **Password reset requests:** at most 10 per hour from one connection, and
+  requests for addresses that have no account are now recorded in the audit
+  trail. (Each account could already only be sent one reset email at a time.)
+- The audit trail records the visitor's real address from Cloudflare instead
+  of a header the visitor can fake.
+- New audit entries: "Sign-in blocked" and "Password reset asked for an
+  unknown address".
+
+### Needs attention when deploying
+- Nothing on the server.
+
 ## 2026-10-15 (night)
 
 ### Every page fits on one screen
