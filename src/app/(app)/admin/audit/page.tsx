@@ -87,17 +87,7 @@ export default async function AuditPage({
 
   return (
     <ScreenPage>
-      <PageHeader
-        title="Audit trail"
-        action={
-          <a
-            href={`/api/export/audit${qs ? `?${qs}` : ""}`}
-            className="inline-flex min-h-[40px] items-center rounded-full bg-brand-500 px-4 text-sm font-bold text-white hover:bg-brand-600"
-          >
-            Download CSV
-          </a>
-        }
-      >
+      <PageHeader title="Audit trail">
         Every submission, decision, cancellation, profile change, deletion and sign-in —
         recorded permanently. Entries can&apos;t be edited or removed, even by admins.
       </PageHeader>
@@ -139,10 +129,19 @@ export default async function AuditPage({
         </div>
       </form>
 
-      <p className="text-sm text-sand-600">
-        {total.toLocaleString("en-ZA")} entr{total === 1 ? "y" : "ies"}
-        {qs ? " match these filters" : ""}. The download includes all of them, not just this page.
-      </p>
+      {/* The download sits with the results it exports, below the tabs. */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-sand-600">
+          {total.toLocaleString("en-ZA")} entr{total === 1 ? "y" : "ies"}
+          {qs ? " match these filters" : ""}. The download includes all of them, not just this page.
+        </p>
+        <a
+          href={`/api/export/audit${qs ? `?${qs}` : ""}`}
+          className="inline-flex min-h-11 shrink-0 items-center rounded-full bg-ink-900 px-4 text-sm font-semibold text-white hover:bg-ink-800 sm:min-h-[40px]"
+        >
+          Download CSV
+        </a>
+      </div>
 
       {/* Entries */}
       {rows.length ? (

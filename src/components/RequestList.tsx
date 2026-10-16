@@ -48,7 +48,7 @@ export default function RequestList({
               <span className="text-sm font-bold text-ink-900">
                 {start.getUTCDate()}
               </span>
-              <span className="mt-0.5 text-[9px] font-semibold uppercase text-ink-700">
+              <span className="mt-0.5 text-[11px] font-semibold uppercase text-ink-700">
                 {start.toLocaleDateString("en-ZA", {
                   month: "short",
                   timeZone: "UTC",

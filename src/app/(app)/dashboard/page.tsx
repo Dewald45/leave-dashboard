@@ -44,7 +44,7 @@ export default async function DashboardPage() {
     // (5rem = the shell's page margin plus <main>'s vertical padding.)
     <div className="flex flex-col gap-4 [@media(min-width:1024px)_and_(min-height:640px)]:h-[calc(100vh-5rem)]">
       <div className="grid gap-4 lg:grid-cols-5">
-        <div className="flex flex-col items-start justify-between gap-5 rounded-3xl bg-ink-900 p-6 lg:col-span-2">
+        <div className="flex flex-col items-start justify-between gap-5 rounded-3xl bg-ink-900 p-6 short:gap-3 short:p-5 lg:col-span-2">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-white">
               Right then, {profile.full_name.split(" ")[0]}.
@@ -63,7 +63,7 @@ export default async function DashboardPage() {
         </div>
 
         {/* Year-end closure, in plain English */}
-        <div className="rounded-3xl bg-white p-6 lg:col-span-3">
+        <div className="rounded-3xl bg-white p-6 short:p-5 lg:col-span-3">
           <div className="flex items-center gap-2">
             <span className="flex h-7 w-7 items-center justify-center rounded-full bg-ink-900 text-xs text-white">
               ❄
@@ -72,24 +72,24 @@ export default async function DashboardPage() {
               Year-end closure
             </h2>
           </div>
-          <p className="mt-3 text-sm text-ink-800">
+          <p className="mt-3 text-sm text-ink-800 short:mt-2">
             The office closes for {num(gifted + taken)} working days over
             December. Everyone is off, and you don&apos;t apply for any of it.
           </p>
-          <dl className="mt-3 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-2xl bg-emerald-50 p-3.5">
+          <dl className="mt-3 grid gap-3 short:mt-2 sm:grid-cols-2">
+            <div className="rounded-2xl bg-emerald-50 p-3.5 short:p-3">
               <dt className="text-sm font-semibold text-emerald-800">
                 +{num(gifted)} days: a gift from the company
               </dt>
-              <dd className="mt-1 text-xs text-ink-700">
+              <dd className="mt-1 text-xs text-ink-700 short:hidden">
                 Extra paid days off. They don&apos;t come out of your leave.
               </dd>
             </div>
-            <div className="rounded-2xl bg-brand-50 p-3.5">
+            <div className="rounded-2xl bg-brand-50 p-3.5 short:p-3">
               <dt className="text-sm font-semibold text-brand-800">
                 −{num(taken)} days: taken from your annual leave
               </dt>
-              <dd className="mt-1 text-xs text-ink-700">
+              <dd className="mt-1 text-xs text-ink-700 short:hidden">
                 Set aside from the start of your leave year, so you can&apos;t
                 book them for anything else.
               </dd>

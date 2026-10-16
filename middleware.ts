@@ -5,7 +5,10 @@ import { NextResponse, type NextRequest } from "next/server";
 // session is validated against Postgres in requireProfile() on each page.
 const SESSION_COOKIE = "lv_session";
 // /api/calendar and /api/cron authenticate with their own secret instead.
-const PUBLIC_PATHS = ["/login", "/auth", "/forgot-password", "/reset-password", "/api/calendar", "/api/cron"];
+// /decide/<token> is the one-click decision page from emails; the token is its credential.
+const PUBLIC_PATHS = ["/login", "/auth", "/forgot-password", "/reset-password", "/decide/", "/api/calendar", "/api/cron",
+  // The installable-app manifest and its icons are fetched without a session.
+  "/manifest.webmanifest", "/app-icon/"];
 
 export function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
