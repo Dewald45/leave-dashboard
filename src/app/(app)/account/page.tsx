@@ -4,6 +4,7 @@ import { getManagersAndAdmins } from "@/lib/data";
 import PageHeader from "@/components/PageHeader";
 import ScreenPage from "@/components/ScreenPage";
 import ChangePasswordForm from "./ChangePasswordForm";
+import InstallApp from "@/components/InstallApp";
 import {
   disconnectGoogleCalendar,
   setBackupApprover,
@@ -103,6 +104,12 @@ export default async function AccountPage({
           )}
         </section>
       ) : null}
+
+      {/* Home-screen app */}
+      <section className={card} aria-labelledby="app-heading">
+        <h2 id="app-heading" className={heading}>TimeOff on your phone</h2>
+        <InstallApp />
+      </section>
 
       {/* Holiday reminders */}
       <section className={card} aria-labelledby="holiday-heading">
