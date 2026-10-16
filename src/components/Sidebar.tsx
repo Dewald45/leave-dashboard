@@ -131,7 +131,7 @@ export default function Sidebar({
         key={l.href}
         href={l.href}
         aria-current={active ? "page" : undefined}
-        className={`flex min-h-12 min-w-12 flex-col items-center justify-center gap-0.5 rounded-2xl px-1 text-[10px] leading-none ${
+        className={`flex min-h-12 min-w-12 flex-col items-center justify-center gap-0.5 rounded-2xl px-1 text-[11px] leading-none ${
           active ? "font-semibold text-ink-900" : "font-medium text-sand-600"
         }`}
       >
@@ -257,12 +257,18 @@ export default function Sidebar({
         <div className="flex items-center gap-1">
           <Link
             href="/account"
-            aria-label="Your account"
-            className="flex h-11 w-11 items-center justify-center rounded-full"
+            aria-current={isActive("/account") ? "page" : undefined}
+            className={`flex h-11 items-center gap-2 rounded-full pl-1 pr-3.5 text-sm font-medium text-ink-800 ${
+              isActive("/account") ? "bg-white" : "hover:bg-white"
+            }`}
           >
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-500 text-xs font-semibold text-white">
+            <span
+              aria-hidden="true"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-500 text-xs font-semibold text-white"
+            >
               {initials}
             </span>
+            Account
           </Link>
           <form action="/auth/signout" method="post">
             <button
