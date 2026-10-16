@@ -65,6 +65,10 @@ If you'd rather not build on the server, build in CI and pull the image:
   (behind the proxy the app can't tell its public address on its own), and as
   the Google sign-in return address.
 - `RESEND_FROM` must be on your verified Resend domain to reach all staff.
+- In Cloudflare, keep **Always Use HTTPS** on so nobody signs in over plain
+  `http://`. The app sends HSTS, but only once someone has reached it on https.
+- Approve-from-email links are public pages (`/decide/<token>`): the token is
+  the credential. They depend on `APP_URL` being right.
 - Sessions are database-backed; no session secret to manage. Rotating
   `POSTGRES_PASSWORD` requires updating it in the stack env.
 
@@ -83,6 +87,11 @@ Google Workspace:
    and Google doesn't need to review the app).
 4. **Data access → Add or remove scopes**: add
    `https://www.googleapis.com/auth/calendar.events` (plus `openid` and `email`).
+   For the Gmail out-of-office option, also enable the **Gmail API** (step 2)
+   and add `https://www.googleapis.com/auth/gmail.settings.basic`. Google calls
+   it a *restricted* scope: fine with an **Internal** audience, but an External
+   app needs Google's review first. People are only asked for it when they tick
+   the Gmail option.
 5. **Clients → Create client** → type **Web application**. Under
    **Authorized redirect URIs** add:
    - `https://leave.zenithlabs.space/api/google/callback`
@@ -97,4 +106,6 @@ Notes:
   otherwise the client secret — rotating either means everyone reconnects.
 - "Out of office" events need a Workspace calendar; a personal Gmail account
   gets an ordinary busy event instead.
+- Gmail auto-replies are set as Gmail's own vacation responder, so they keep
+  working if the server is down on the day. TimeOff re-checks them hourly.
 

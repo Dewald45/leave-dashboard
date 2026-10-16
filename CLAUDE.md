@@ -66,6 +66,12 @@ instead of sending them.
   For laptops that are wide but not tall (under 800px), the `short:` variant
   tightens spacing (used on the dashboard). Pin a long form's submit row to
   the bottom of its scrolling card so it never hides below the fold.
+- **Server actions:** every export of a `"use server"` file can be called from
+  the browser. Keep shared logic (e.g. `applyDecision` in `src/lib/decide.ts`)
+  in plain `server-only` lib files and export only real actions.
+- **Pages without sign-in** (login, `/decide/<token>`, the app manifest and
+  icons, cron/calendar APIs) must be listed in `PUBLIC_PATHS` in
+  `middleware.ts`; everything else redirects to login.
 - **Redirects** from route handlers use `publicUrl()` (`src/lib/publicUrl.ts`),
   never `request.url` — behind the proxy that's `0.0.0.0:3000`.
 
@@ -78,3 +84,8 @@ instead of sending them.
   waiting on Bjorn's redeploy). After that: connect, submit a test request,
   confirm the Out of office block. Plain-Gmail fallback is untested.
 - Real email delivery through Resend hasn't been verified end to end.
+- 16 Oct release (PRs #7–#14) is on `main`, waiting on Bjorn's redeploy plus
+  two jobs outside the server: Cloudflare **Always Use HTTPS**, and the Gmail
+  API + `gmail.settings.basic` scope in Google Cloud (see the CHANGELOG
+  checklist). After that: test the Gmail auto-reply and an approve-from-email
+  link on the live site.

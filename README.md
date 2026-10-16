@@ -56,8 +56,18 @@ advises on labour law before relying on them.
 - **Half days** — single-day requests can be morning or afternoon (0.5 days).
 - **Calendar** — submitting emails the employee an out-of-office `.ics` event
   that updates itself on approval and disappears on rejection/cancellation.
-  Everyone can also subscribe to a personal iCal feed (Account page); managers'
-  feeds include their team's approved leave.
+  (The personal iCal feed at `/api/calendar` still works for existing links,
+  but the Account page now only offers Google Calendar.)
+- **Approve from the email** — each approver gets their own email with
+  Approve / Decline buttons. The button opens a confirm page (`/decide/<token>`)
+  that works without signing in; links are single-use, last 14 days and stop
+  working once the request is decided (`src/lib/decisionLinks.ts`).
+- **Nobody approves their own leave**, admins included (`can_approve()` in the
+  schema). An admin's own requests go to their manager, backup or another admin.
+- **Balance forecast** — the Apply form shows how much annual leave will have
+  built up by the chosen dates and how far ahead the booking is; the Apply page
+  shows the next few month-ends and the year end (`earnedBy()` in
+  `src/lib/leave.ts`).
 - **Reminders & backup approvers** — approvers are nudged after 3 days; after
   5 days the request escalates to the manager's backup approver (or admins).
   While a manager is on leave, their backup can approve for them.
@@ -65,9 +75,26 @@ advises on labour law before relying on them.
   (payroll), all requests, and balances, per year.
 - **Passwords** — self-service "forgot password" via emailed one-time link;
   change password on the Account page.
+- **Login protection** — 5 wrong passwords for one email (or 20 from one
+  connection) in 15 minutes pauses sign-in for the rest of those 15 minutes;
+  reset requests are capped too (`src/lib/rateLimit.ts`, counted from the
+  audit trail). Security headers (HSTS, no framing, nosniff) are set in
+  `next.config.mjs`.
 - **Google Calendar** — optional "Connect Google Calendar" on the Account page
   puts each person's leave straight into their own calendar as an Out of office
   event (pending → confirmed → removed). Setup in [DEPLOY.md](DEPLOY.md).
+- **Gmail out-of-office** — opt-in under Google Calendar on the Account page.
+  TimeOff sets Gmail's own vacation responder for the person's next approved
+  full-day leave, with a "back on <next working day>" message or their own.
+  Gmail starts and stops replying by itself; TimeOff only ever switches off a
+  reply it set (`src/lib/gmailAutoReply.ts`, re-checked hourly).
+- **Install as an app** — the Account page explains how to add TimeOff to a
+  phone's home screen (or installs it directly where the browser allows).
+  Manifest in `src/app/manifest.ts`, icons drawn by `src/app/app-icon/`.
+- **Bulk import** — Admin → People → Import a spreadsheet: upload a CSV
+  (template in `public/import-template.csv`, comma or semicolon), check the
+  preview, then add up to 500 people, optionally emailing each a 7-day link to
+  choose their password (`src/lib/employeeImport.ts`).
 - **Leave allowances** — company defaults per leave type are edited in
   Admin → Leave defaults; Add employee (Admin → People) prefills them and lets you set a person's own numbers, which
   carry into every future leave year.
@@ -148,7 +175,10 @@ npm run dev
   `.env.local`: every email (incl. calendar invites) is saved there as HTML.
 - Google Calendar stays hidden until `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`
   are set. The `GOOGLE_AUTH_BASE`, `GOOGLE_OAUTH2_BASE` and `GOOGLE_API_BASE`
-  variables can point the integration at a local stand-in for testing.
+  variables can point the integration (Calendar and Gmail) at a local stand-in
+  for testing; any dummy client id/secret then makes the card appear.
+- Approve-from-email links are in the saved emails in `email-outbox/`; open
+  them while signed out to see what an approver sees.
 - Background jobs (approval reminders, holiday emails) can be triggered with
   `curl -X POST -H "x-cron-secret: $CRON_SECRET" http://localhost:3000/api/cron/reminders`
   when `CRON_SECRET` is set.
