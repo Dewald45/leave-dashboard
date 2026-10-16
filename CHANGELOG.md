@@ -2,6 +2,19 @@
 
 What changed in TimeOff, newest first.
 
+## 2026-10-16 (balance forecast)
+
+### Plan ahead
+- **Apply page, as you pick dates:** for annual leave it now says how much
+  you'll have earned by your first day off, and whether the request books
+  ahead of that ("This books 4.37 days ahead of what you've earned — that's
+  allowed, and you'll have caught up by 31 Mar 2027").
+- **"How your annual leave builds"** on the Apply page lists what you'll have
+  earned by the end of each of the next few months and by the end of your
+  leave year.
+- Same rule as the balances: 15 days spread evenly over your leave year.
+  Carried-over days are used first, so they don't count as booking ahead.
+
 ## 2026-10-16 (account page)
 
 ### Account
@@ -49,6 +62,8 @@ What changed in TimeOff, newest first.
 
 ### Needs attention when deploying
 - Nothing on the server.
+
+
 
 
 
