@@ -11,6 +11,8 @@ const config: Config = {
          * smaller screens get a normal scrolling page.
          */
         fit: { raw: "(min-width: 1024px) and (min-height: 640px)" },
+        /** Laptop width but not much height (e.g. 1280×680): tighten spacing. */
+        short: { raw: "(min-width: 1024px) and (max-height: 799px)" },
       },
       colors: {
         /**

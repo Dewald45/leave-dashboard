@@ -10,7 +10,7 @@ function Submit() {
     <button
       type="submit"
       disabled={pending}
-      className="rounded-full bg-ink-900 px-4 py-1.5 text-sm font-semibold text-white hover:bg-ink-800 disabled:opacity-50"
+      className="min-h-11 sm:min-h-0 rounded-full bg-ink-900 px-4 py-1.5 text-sm font-semibold text-white hover:bg-ink-800 disabled:opacity-50"
     >
       {pending ? "Saving…" : "Set password"}
     </button>
@@ -33,23 +33,23 @@ export default function ResetPasswordForm({ id }: { id: string }) {
     <form action={formAction} className="flex flex-wrap items-end gap-2">
       <input type="hidden" name="id" value={id} />
       <div>
-        <label className="mb-1 block text-xs font-medium text-sand-600">
+        <label htmlFor={`reset-${id}-password`} className="mb-1 block text-xs font-medium text-sand-600">
           New password
         </label>
-        <input
+        <input id={`reset-${id}-password`}
           name="password"
           value={pw}
           onChange={(e) => setPw(e.target.value)}
           minLength={8}
           required
           placeholder="At least 8 characters"
-          className="w-56 rounded-xl border border-sand-300 px-3 py-1.5 text-sm"
+          className="w-56 min-h-11 sm:min-h-0 rounded-xl border border-sand-300 px-3 py-1.5 text-sm"
         />
       </div>
       <button
         type="button"
         onClick={() => setPw(randomPassword())}
-        className="rounded-full border border-sand-200 px-3 py-1.5 text-xs font-medium text-sand-600 hover:bg-sand-50"
+        className="min-h-11 sm:min-h-0 rounded-full border border-sand-200 px-3 py-1.5 text-xs font-medium text-sand-600 hover:bg-sand-50"
       >
         Generate
       </button>
