@@ -1,6 +1,5 @@
 "use server";
 
-import { randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { q, q1 } from "@/lib/db";
@@ -55,31 +54,6 @@ export async function changePassword(
     summary: "Changed own password (other devices signed out)",
   });
   return { success: "Password changed. Other devices have been signed out." };
-}
-
-/** Create (or replace, invalidating the old link) the calendar feed token. */
-export async function rotateCalendarToken(): Promise<void> {
-  const me = await getSessionProfile();
-  if (!me) return;
-  const had = await q1<{ calendar_token: string | null }>(
-    "select calendar_token from profiles where id = $1",
-    [me.id]
-  );
-  await q("update profiles set calendar_token = $1 where id = $2", [
-    randomBytes(24).toString("hex"),
-    me.id,
-  ]);
-  await audit({
-    actor: me,
-    action: had?.calendar_token ? "calendar.link_replaced" : "calendar.link_created",
-    entityType: "account",
-    entityId: me.id,
-    subject: me,
-    summary: had?.calendar_token
-      ? "Replaced calendar subscription link (old link disabled)"
-      : "Created calendar subscription link",
-  });
-  revalidatePath("/account");
 }
 
 export async function disconnectGoogleCalendar(): Promise<void> {

@@ -45,7 +45,7 @@ export default function BalanceCard({ b }: { b: BalanceSummary }) {
             />
             <h3 className="text-sm font-semibold text-ink-900">{b.leave_name}</h3>
           </div>
-          <span className="shrink-0 rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-700">
+          <span className="shrink-0 rounded-full bg-white/70 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-ink-700">
             Automatic
           </span>
         </div>
@@ -89,7 +89,7 @@ export default function BalanceCard({ b }: { b: BalanceSummary }) {
       : null;
 
   return (
-    <div className="flex h-full flex-col rounded-3xl p-5" style={tint}>
+    <div className="flex h-full flex-col rounded-3xl p-5 short:p-4" style={tint}>
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2">
           <span
@@ -99,13 +99,13 @@ export default function BalanceCard({ b }: { b: BalanceSummary }) {
           <h3 className="text-sm font-semibold text-ink-900">{b.leave_name}</h3>
         </div>
         {!b.deducts_balance ? (
-          <span className="shrink-0 rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-700">
+          <span className="shrink-0 rounded-full bg-white/70 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-ink-700">
             Free
           </span>
         ) : null}
       </div>
 
-      <div className="mt-3 flex items-baseline gap-1.5">
+      <div className="mt-3 flex items-baseline gap-1.5 short:mt-2">
         <span className="text-4xl font-bold leading-none text-ink-900">
           {b.deducts_balance ? fmt(Math.max(0, available - pending)) : total}
         </span>

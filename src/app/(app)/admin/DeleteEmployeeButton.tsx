@@ -18,7 +18,7 @@ function Button({ name }: { name: string }) {
           e.preventDefault();
         }
       }}
-      className="rounded-full border border-rose-200 bg-white px-4 py-1.5 text-sm font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-50"
+      className="min-h-11 sm:min-h-0 rounded-full border border-rose-200 bg-white px-4 py-1.5 text-sm font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-50"
     >
       {pending ? "Removing…" : "Remove employee"}
     </button>

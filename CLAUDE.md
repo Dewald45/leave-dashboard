@@ -63,6 +63,9 @@ instead of sending them.
   `tailwind.config.ts`). Side-by-side panels sit in a grid with
   `fit:grid-rows-[minmax(0,1fr)]`. Check new pages at 1280×680 (no page
   scroll) and 375 wide (normal scroll, nothing sideways).
+  For laptops that are wide but not tall (under 800px), the `short:` variant
+  tightens spacing (used on the dashboard). Pin a long form's submit row to
+  the bottom of its scrolling card so it never hides below the fold.
 - **Redirects** from route handlers use `publicUrl()` (`src/lib/publicUrl.ts`),
   never `request.url` — behind the proxy that's `0.0.0.0:3000`.
 
