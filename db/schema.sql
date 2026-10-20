@@ -324,8 +324,7 @@ values
   ('sick','Sick Leave','Paid sick leave — 30 days per 36-month cycle (BCEA). Capped to 1 day per 26 days worked in your first six months.',30,0,true,false,true,36,'start',0,0,'all','#f59e0b',2),
   ('family','Family Responsibility','Family responsibility leave — 3 days a year (BCEA). Kicks in after four months'' service.',3,0,true,false,true,12,'start',0,4,'all','#22c55e',3),
   ('closure','Year-End Closure (Company Paid)','Company-paid festive shutdown. Granted automatically — everyone gets these, nobody applies.',5,0,false,false,false,12,'calendar',0,0,'all','#0ea5e9',4),
-  ('parental','Parental Leave','10 days for new dads to meet the tiny human, panic quietly and lose all sleep. Take them within four months of the birth. None of this is set in stone — every family (and the law) is different, so come speak to HR before you bank on it.',10,0,true,false,true,12,'calendar',0,0,'male','#8b5cf6',5),
-  ('maternity','Maternity Leave','Four consecutive months to grow, deliver and keep a brand-new human alive — the hardest leave you will ever earn (roughly 90 working days). None of this is set in stone — come speak to HR and they will sort the details with you.',90,0,true,false,true,12,'calendar',0,0,'female','#ec4899',6)
+  ('parental','Parental Leave','Four months and ten days for new parents to share between you, however works for your family — and the tiny human. Upload a letter signed by both parents saying how you are splitting it (say, one month for one parent and three months and ten days for the other). Only one of you works here, or a single parent? Say so in the letter. Not sure? Come speak to HR before you bank on it.',100,0,true,false,true,12,'calendar',0,0,'all','#8b5cf6',5)
 -- default_days / default_reserved are only set when a type is first created:
 -- after that they're the company defaults edited on the Admin page.
 on conflict (code) do update set
@@ -680,6 +679,55 @@ create table if not exists public.request_google_events (
   profile_id      uuid not null references public.profiles(id) on delete cascade,
   google_event_id text not null
 );
+
+-- One-time switch to shared parental leave (BCEA, after the Constitutional
+-- Court's 2025 Van Wyk ruling): parents share four months and ten days between
+-- them, whatever their gender. Maternity folds into Parental Leave, which now
+-- applies to everyone at 100 working days. Runs once (guarded by the
+-- leave.parental_shared marker row); after that the default is the Admin page's.
+do $$
+declare v_par int; v_mat int;
+begin
+  if exists (select 1 from public.audit_log where action = 'leave.parental_shared') then return; end if;
+  select id into v_par from public.leave_types where code = 'parental';
+  select id into v_mat from public.leave_types where code = 'maternity';
+  if v_par is null then return; end if;
+
+  update public.leave_types set default_days = 100 where id = v_par;
+  -- This year's (and later) allowances still on the old 10 days for dads move
+  -- up, unless an admin set that person's allowance by hand.
+  update public.leave_balances b set entitled_days = 100
+   where b.leave_type_id = v_par and b.entitled_days = 10
+     and b.year >= extract(year from current_date)::int
+     and not exists (select 1 from public.profile_leave_entitlements e
+                      where e.profile_id = b.profile_id and e.leave_type_id = v_par);
+
+  if v_mat is not null then
+    -- Per-person maternity allowances carry over to parental leave.
+    insert into public.profile_leave_entitlements (profile_id, leave_type_id, days)
+    select profile_id, v_par, days from public.profile_leave_entitlements where leave_type_id = v_mat
+    on conflict do nothing;
+    -- Maternity requests (history included) become parental leave requests.
+    update public.leave_requests set leave_type_id = v_par where leave_type_id = v_mat;
+    -- A mum's maternity allowance becomes her parental allowance (the old
+    -- 90-day default moves up to the new 100).
+    insert into public.leave_balances (profile_id, leave_type_id, year, entitled_days, reserved_days)
+    select b.profile_id, v_par, b.year,
+           case when b.entitled_days = 90 and e.profile_id is null then 100 else b.entitled_days end,
+           b.reserved_days
+      from public.leave_balances b
+      left join public.profile_leave_entitlements e
+        on e.profile_id = b.profile_id and e.leave_type_id = v_mat
+     where b.leave_type_id = v_mat
+    on conflict (profile_id, leave_type_id, year) do nothing;
+    delete from public.leave_types where id = v_mat; -- cascades its balances/allowances
+  end if;
+
+  insert into public.audit_log (action, entity_type, summary, details)
+  values ('leave.parental_shared', 'account',
+          'Maternity and parental leave merged into shared Parental Leave (4 months and 10 days, 100 working days)',
+          jsonb_build_object('parental_type_id', v_par, 'maternity_type_id', v_mat));
+end $$;
 
 -- Keep last year, this year and the next two years of public holidays filled in
 -- (also re-checked daily by the reminder job, so new years appear on their own).

@@ -24,8 +24,8 @@ export default async function ApplyPage({
     getBalances(userId),
     getHolidayDates(),
   ]);
-  // Only offer leave the employee is actually entitled to (scopes parental vs
-  // maternity to the right person) AND that can be applied for — auto-granted
+  // Only offer leave the employee is actually entitled to AND that can be
+  // applied for — auto-granted
   // leave like the year-end closure is shown on the dashboard, never booked.
   const eligibleTypeIds = new Set(balanceRows.map((b) => b.leave_type_id));
   const eligibleTypes = ((types ?? []) as LeaveType[]).filter(

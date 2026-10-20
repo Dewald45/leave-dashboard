@@ -77,8 +77,6 @@ instead of sending them.
 
 ## Open items
 
-- Parental leave: update for the BCEA shared-parental-leave changes once Jono
-  has explained what the company is adopting.
 - Google Calendar: the settings are on the server and the real Google sign-in
   works; the return trip failed on the `0.0.0.0` redirect bug (fixed in PR #4,
   waiting on Bjorn's redeploy). After that: connect, submit a test request,

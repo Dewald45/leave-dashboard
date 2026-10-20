@@ -93,7 +93,8 @@ export async function createRequest(
     };
   }
 
-  // Sick note: required by policy for more than two consecutive sick days.
+  // Supporting document: optional for any leave, required for long sick leave
+  // (medical certificate) and for parental leave (the parents' signed split).
   const file = fileFromForm(formData, "attachment");
   if (file) {
     const problem = validateAttachment(file);
@@ -102,6 +103,11 @@ export async function createRequest(
   if (lt.code === "sick" && days > SICK_NOTE_THRESHOLD_DAYS && !file) {
     return {
       error: `Sick leave longer than ${SICK_NOTE_THRESHOLD_DAYS} days needs a medical certificate — please attach it.`,
+    };
+  }
+  if (lt.code === "parental" && !file) {
+    return {
+      error: "Parental leave needs a letter signed by both parents saying how you're splitting the four months and ten days — please attach it.",
     };
   }
 

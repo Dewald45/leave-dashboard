@@ -46,7 +46,7 @@ export default function AddEmployeeForm({
   const [state, formAction] = useFormState(createEmployee, {} as AdminResult);
   const [pw, setPw] = useState("");
   const [gender, setGender] = useState("");
-  // Parental vs maternity follows the gender picked above.
+  // Leave types limited to one gender only show once it's picked.
   const shownTypes = leaveTypes.filter(
     (t) => t.applies_to === "all" || t.applies_to === gender
   );
@@ -117,7 +117,7 @@ export default function AddEmployeeForm({
         </div>
         <div>
           <label htmlFor="add-gender" className="mb-1 block text-sm font-medium text-ink-800">
-            Gender <span className="font-normal text-sand-500">(sets parental vs maternity leave)</span>
+            Gender
           </label>
           <select id="add-gender"
             name="gender"
@@ -185,7 +185,6 @@ export default function AddEmployeeForm({
         <p className="mb-3 text-xs text-sand-600">
           Filled in with the company defaults. Change any of them for this person — it
           sticks for every leave year, not just the first.
-          {gender ? "" : " Pick a gender to see parental or maternity leave."}
         </p>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-2 2xl:grid-cols-3">
           {shownTypes.map((t) => (

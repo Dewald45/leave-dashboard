@@ -1,7 +1,7 @@
 # timeoff
 
 A company leave-application dashboard for a South African company — annual, sick,
-family-responsibility, parental/maternity and year-end-closure leave, with an
+family-responsibility, shared parental and year-end-closure leave, with an
 employee → line-manager approval flow and email notifications.
 
 **Fully self-hosted**: **Next.js** (App Router, TypeScript, Tailwind) + **plain
@@ -16,11 +16,13 @@ backend — runs anywhere Docker runs.
 | Year-end closure (paid) | 5 company-paid days                          | Auto-granted — explained on the dashboard, never applied for |
 | Sick leave              | 30 days / 36-month cycle (BCEA)              | Throttled in the first 6 months |
 | Family responsibility   | 3 days per leave year (BCEA)                 | After 4 months' service |
-| Parental leave (fathers)| 10 days                                      | Male profiles; "speak to HR" note |
-| Maternity leave (mothers)| ~4 months (≈90 working days)                | Female profiles; "speak to HR" note |
+| Parental leave          | 4 months and 10 days (100 working days), shared between the parents | Everyone; needs a signed agreement of the split uploaded |
 
-Working days exclude weekends and South African public holidays. Parental vs
-maternity is scoped by the employee's `gender` on their profile.
+Working days exclude weekends and South African public holidays. Parental
+leave follows the Constitutional Court's 2025 shared-parental-leave ruling:
+parents split four months and ten days between them, so every application
+needs a letter signed by both saying how. Any request can carry a supporting
+document.
 
 ### Annual leave rules
 
@@ -205,5 +207,4 @@ For the Docker stack, `docker-compose.yml` builds `DATABASE_URL` from
 ## First sign-in
 
 Log in with the seeded `SEED_ADMIN_*` credentials, then add staff from **Admin → People**
-(set each person's role, line manager, department and **gender** so they get the
-right parental/maternity leave). Change your password after first sign-in.
+(set each person's role, line manager and department). Change your password after first sign-in.

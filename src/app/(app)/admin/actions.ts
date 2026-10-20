@@ -115,7 +115,7 @@ export async function createEmployee(
     }
   }
 
-  // Grant the gender-appropriate leave (parental vs maternity) + the rest.
+  // Grant every leave type this person qualifies for.
   await q("select public.sync_leave_eligibility($1)", [user.id]);
 
   await audit({
