@@ -2,6 +2,28 @@
 
 What changed in TimeOff, newest first.
 
+## 2026-10-20 (shared parental leave, documents on any request)
+
+### Parental leave is now shared
+- **Maternity and parental leave are now one type: Parental Leave**, for
+  everyone, whatever their gender. Parents share **four months and ten days**
+  between them (the Constitutional Court's 2025 ruling), set at 100 working
+  days. Admins can still change the default, or one person's allowance, on the
+  Admin page.
+- Applying for it needs a **letter signed by both parents** saying how
+  they're splitting it (e.g. one month for one parent, three months and ten
+  days for the other). The request can't be sent without it.
+- Existing maternity requests and allowances moved across to Parental Leave
+  automatically. Dads still on the old 10 days moved up to 100, unless their
+  allowance had been set by hand.
+
+### Attach a document to any request
+- Every leave type now has an optional **Supporting document** upload (PDF
+  or a photo, up to 5 MB) when applying, not just sick leave.
+
+### Needs attention when deploying
+- Nothing on the server: pull and redeploy, the database updates itself.
+
 ## 2026-10-16: deploy checklist for Bjorn
 
 Today's release is the eight entries below, from "bulk import" down to the

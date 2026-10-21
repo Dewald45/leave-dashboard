@@ -81,7 +81,8 @@ export default function ApplyForm({
   }, [start, end, halfDay, holidaySet]);
 
   const isSick = selectedType?.code === "sick";
-  const noteRequired = isSick && days > SICK_NOTE_THRESHOLD_DAYS;
+  const isParental = selectedType?.code === "parental";
+  const noteRequired = (isSick && days > SICK_NOTE_THRESHOLD_DAYS) || isParental;
 
   const deducts = selectedType?.deducts_balance === true;
   // Leave starting after this cycle ends counts against the next one, which
@@ -309,45 +310,66 @@ export default function ApplyForm({
         />
       </div>
 
-      {/* Sick note */}
-      {isSick ? (
-        <div>
-          <label htmlFor="attachment" className="mb-1 block text-sm font-medium text-ink-800">
-            Medical certificate{" "}
-            {noteRequired ? (
-              <span className="font-normal text-brand-700">(required for more than {SICK_NOTE_THRESHOLD_DAYS} days)</span>
-            ) : (
-              <span className="font-normal text-sand-500">(optional)</span>
-            )}
-          </label>
-          <input
-            id="attachment"
-            type="file"
-            name="attachment"
-            required={noteRequired}
-            aria-describedby="attachment-help"
-            accept="application/pdf,image/jpeg,image/png,image/webp,image/heic,image/heif"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              // Catch big files here — past ~6 MB the upload fails before our checks run.
-              if (f && f.size > MAX_ATTACHMENT_BYTES) {
-                e.target.value = "";
-                setFileError("That file is over 5 MB — try a smaller scan or a photo.");
-              } else {
-                setFileError("");
-              }
-            }}
-            className="block w-full text-sm text-sand-600 file:mr-3 file:min-h-[40px] file:cursor-pointer file:rounded-full file:border-0 file:bg-ink-900 file:px-4 file:text-sm file:font-semibold file:text-white hover:file:bg-ink-800"
-          />
-          {fileError ? (
-            <p role="alert" className="mt-1 text-xs font-medium text-rose-700">{fileError}</p>
-          ) : null}
-          <p id="attachment-help" className="mt-1 text-xs text-sand-500">
-            PDF or a photo, up to 5 MB. Don&apos;t have it yet? Submit a shorter
-            request, or add it later from the request&apos;s thread.
-          </p>
-        </div>
-      ) : null}
+      {/* Supporting document — any leave type; required for long sick leave
+          and for parental leave. */}
+      <div>
+        <label htmlFor="attachment" className="mb-1 block text-sm font-medium text-ink-800">
+          {isSick
+            ? "Medical certificate"
+            : isParental
+              ? "Signed parental leave agreement"
+              : "Supporting document"}{" "}
+          {isParental ? (
+            <span className="font-normal text-brand-700">(required)</span>
+          ) : noteRequired ? (
+            <span className="font-normal text-brand-700">(required for more than {SICK_NOTE_THRESHOLD_DAYS} days)</span>
+          ) : (
+            <span className="font-normal text-sand-500">(optional)</span>
+          )}
+        </label>
+        <input
+          id="attachment"
+          type="file"
+          name="attachment"
+          required={noteRequired}
+          aria-describedby="attachment-help"
+          accept="application/pdf,image/jpeg,image/png,image/webp,image/heic,image/heif"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            // Catch big files here — past ~6 MB the upload fails before our checks run.
+            if (f && f.size > MAX_ATTACHMENT_BYTES) {
+              e.target.value = "";
+              setFileError("That file is over 5 MB — try a smaller scan or a photo.");
+            } else {
+              setFileError("");
+            }
+          }}
+          className="block w-full text-sm text-sand-600 file:mr-3 file:min-h-[40px] file:cursor-pointer file:rounded-full file:border-0 file:bg-ink-900 file:px-4 file:text-sm file:font-semibold file:text-white hover:file:bg-ink-800"
+        />
+        {fileError ? (
+          <p role="alert" className="mt-1 text-xs font-medium text-rose-700">{fileError}</p>
+        ) : null}
+        <p id="attachment-help" className="mt-1 text-xs text-sand-500">
+          {isParental ? (
+            <>
+              A letter signed by both parents, in good faith, saying how you&apos;re
+              splitting the four months and ten days — e.g. one month for one parent,
+              three months and ten days for the other. PDF or a photo, up to 5 MB.
+            </>
+          ) : isSick ? (
+            <>
+              PDF or a photo, up to 5 MB. Don&apos;t have it yet? Submit a shorter
+              request, or add it later from the request&apos;s thread.
+            </>
+          ) : (
+            <>
+              Anything that backs up your request — a booking, a letter, a
+              certificate. PDF or a photo, up to 5 MB. You can add more later
+              from the request&apos;s thread.
+            </>
+          )}
+        </p>
+      </div>
 
       {state?.error ? (
         <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">
