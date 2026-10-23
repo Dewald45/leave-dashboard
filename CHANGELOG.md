@@ -6,8 +6,8 @@ What changed in TimeOff, newest first.
 
 ### Easier to read
 - **Dashboard:** one big annual leave number with a ring, small cards for the
-  other leave types, and your recent requests beside them. December closure is
-  now one line.
+  other leave types, and "Recently attempted" underneath. The December closure
+  explainer moves to the top right, with its original wording.
 - **Apply:** shorter intro, and the live **Leave calculator** (working days, what
   you have, what's left after) is a clear block under the dates.
 

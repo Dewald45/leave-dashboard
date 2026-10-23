@@ -87,14 +87,19 @@ export default async function DashboardPage() {
     // One screen on laptops (see ScreenPage); stacked and scrolling on phones.
     <div className="flex flex-col gap-4 [@media(min-width:1024px)_and_(min-height:640px)]:h-[calc(100vh-5rem)]">
       <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-        <h1 className="text-2xl font-bold tracking-tight text-ink-900 sm:text-3xl">
-          Hi {profile.full_name.split(" ")[0]}
-        </h1>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-ink-900 sm:text-3xl">
+            Right then, {profile.full_name.split(" ")[0]}.
+          </h1>
+          <p className="mt-1 text-sm text-sand-600">
+            Everything you&apos;re owed, and everything you&apos;ve already spent. No judgement. Some judgement.
+          </p>
+        </div>
         <Link
           href="/apply"
           className="inline-flex min-h-[44px] items-center rounded-full bg-brand-500 px-6 text-sm font-bold text-white transition hover:bg-brand-600"
         >
-          Apply for leave →
+          Plot an escape →
         </Link>
       </div>
 
@@ -134,30 +139,50 @@ export default async function DashboardPage() {
             ))}
           </section>
 
-          {closure ? (
-            <p className="rounded-3xl bg-white px-5 py-3.5 text-sm text-ink-800 short:py-3">
-              <span className="mr-1.5" aria-hidden="true">❄</span>
-              <strong className="font-semibold">December closure:</strong> {fmt(gifted + held)} days off for
-              everyone. {fmt(gifted)} are a gift, {fmt(held)} come from your annual leave.
-            </p>
-          ) : null}
+          {/* Recent requests sit under the balances */}
+          <section className="flex min-h-[12rem] flex-1 flex-col overflow-hidden rounded-3xl bg-white p-2 lg:min-h-0">
+            <div className="flex items-center justify-between px-4 pb-1 pt-3">
+              <h2 className="text-base font-semibold text-ink-900">Recently attempted</h2>
+              <Link href="/requests" className="text-sm font-medium text-brand-700 hover:underline">
+                Full history →
+              </Link>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              {reqs.length ? (
+                <RequestList rows={reqs} stats={stats} allowCancel />
+              ) : (
+                <p className="px-4 py-6 text-center text-sm text-sand-600">
+                  Nothing here. Either you love this place or you&apos;re due a break.
+                </p>
+              )}
+            </div>
+          </section>
         </div>
 
-        {/* Right: what happened lately */}
-        <section className="flex min-h-[12rem] flex-col overflow-hidden rounded-3xl bg-white p-2 lg:col-span-2 lg:min-h-0">
-          <div className="flex items-center justify-between px-4 pb-1 pt-3">
-            <h2 className="text-base font-semibold text-ink-900">Recent requests</h2>
-            <Link href="/requests" className="text-sm font-medium text-brand-700 hover:underline">
-              See all →
-            </Link>
+        {/* Right: the December closure, in plain English */}
+        <section className="self-start rounded-3xl bg-white p-6 lg:col-span-2">
+          <div className="flex items-center gap-2">
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-ink-900 text-xs text-white" aria-hidden="true">
+              ❄
+            </span>
+            <h2 className="text-base font-semibold text-ink-900">Year-end closure</h2>
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto">
-            {reqs.length ? (
-              <RequestList rows={reqs} stats={stats} allowCancel />
-            ) : (
-              <p className="px-4 py-6 text-center text-sm text-sand-600">No requests yet.</p>
-            )}
-          </div>
+          <p className="mt-3 text-sm text-ink-800">
+            The office closes for {fmt(gifted + held)} working days over December. Everyone is off, and you
+            don&apos;t apply for any of it.
+          </p>
+          <dl className="mt-3 grid gap-3">
+            <div className="rounded-2xl bg-emerald-50 p-3.5">
+              <dt className="text-sm font-semibold text-emerald-800">+{fmt(gifted)} days: a gift from the company</dt>
+              <dd className="mt-1 text-xs text-ink-700">Extra paid days off. They don&apos;t come out of your leave.</dd>
+            </div>
+            <div className="rounded-2xl bg-brand-50 p-3.5">
+              <dt className="text-sm font-semibold text-brand-800">−{fmt(held)} days: taken from your annual leave</dt>
+              <dd className="mt-1 text-xs text-ink-700">
+                Set aside from the start of your leave year, so you can&apos;t book them for anything else.
+              </dd>
+            </div>
+          </dl>
         </section>
       </div>
     </div>

@@ -67,8 +67,10 @@ export default async function ApplyPage({
 
   return (
     <ScreenPage>
-      <PageHeader title="Apply for leave">
-        Pick your dates and we count the working days. Weekends and public holidays are free.
+      <PageHeader title="Plot your escape">
+        We count the working days for you. Weekends and South African public
+        holidays don&apos;t count against you, so no sneaky maths needed. Your
+        manager gets the final word.
       </PageHeader>
       <div className="grid items-start gap-4 fit:min-h-0 fit:flex-1 lg:grid-cols-3 fit:grid-rows-[minmax(0,1fr)]">
         <div className="fit:max-h-full fit:overflow-y-auto fit:rounded-3xl lg:col-span-2">
