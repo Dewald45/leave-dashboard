@@ -1,4 +1,5 @@
 import Sidebar from "@/components/Sidebar";
+import Onboarding from "@/components/Onboarding";
 import { requireProfile } from "@/lib/auth";
 import { ensureCurrentBalances, getBalances } from "@/lib/data";
 import { leaveAccent } from "@/lib/leave";
@@ -28,6 +29,7 @@ export default async function AppLayout({
         <main className="min-w-0 flex-1 px-4 pb-28 pt-4 md:px-6 md:py-7 lg:px-8">
           {children}
         </main>
+        {profile.onboarded_at ? null : <Onboarding role={profile.role} />}
       </div>
     </div>
   );

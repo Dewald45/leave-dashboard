@@ -729,6 +729,16 @@ begin
           jsonb_build_object('parental_type_id', v_par, 'maternity_type_id', v_mat));
 end $$;
 
+-- First-run walkthrough: null = hasn't seen it yet. People who already had an
+-- account when this column was added are marked as done, so only new users see it.
+do $$ begin
+  if not exists (select 1 from information_schema.columns
+                  where table_schema = 'public' and table_name = 'profiles' and column_name = 'onboarded_at') then
+    alter table public.profiles add column onboarded_at timestamptz;
+    update public.profiles set onboarded_at = now();
+  end if;
+end $$;
+
 -- Keep last year, this year and the next two years of public holidays filled in
 -- (also re-checked daily by the reminder job, so new years appear on their own).
 select public.ensure_sa_holidays(extract(year from current_date)::int - 1, 4);

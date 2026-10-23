@@ -233,38 +233,35 @@ export default function ApplyForm({
         <input type="hidden" name="duration" value="full" />
       )}
 
-      {/* Live summary */}
-      <div className="flex flex-wrap items-center gap-4 rounded-2xl bg-sand-100 px-4 py-3 text-sm">
-        <div>
-          <span className="text-sand-500">Working days: </span>
-          <span className="font-semibold text-ink-900">
-            {formatDays(days, halfDay)}
-          </span>
-        </div>
-        {balance && !deducts ? (
+      {/* Leave calculator: updates as the dates change */}
+      <div className="rounded-2xl bg-sand-100 p-4" aria-live="polite">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-sand-600">Leave calculator</h2>
+        <dl className="mt-2 grid grid-cols-3 gap-3 text-center">
           <div>
-            <span className="text-sand-500">Available: </span>
-            <span className="font-semibold text-ink-900">
-              {balance.entitled_days} (company paid)
-            </span>
+            <dd className="text-2xl font-bold tabular-nums text-ink-900">{formatDays(days, halfDay)}</dd>
+            <dt className="text-xs text-sand-600">Working days</dt>
           </div>
-        ) : null}
-        {showMaths ? (
-          <>
-            <div>
-              <span className="text-sand-500">You have: </span>
-              <span className="font-semibold text-ink-900">{fmt(bookable)}</span>
-            </div>
-            {days > 0 && !overBalance ? (
+          {showMaths ? (
+            <>
               <div>
-                <span className="text-sand-500">Left after this: </span>
-                <span className="font-semibold text-ink-900">
-                  {fmt(leftAfter)}
-                </span>
+                <dd className="text-2xl font-bold tabular-nums text-ink-900">{fmt(bookable)}</dd>
+                <dt className="text-xs text-sand-600">You have</dt>
               </div>
-            ) : null}
-          </>
-        ) : null}
+              <div>
+                <dd className={`text-2xl font-bold tabular-nums ${overBalance ? "text-rose-700" : "text-ink-900"}`}>
+                  {days > 0 ? fmt(leftAfter) : "–"}
+                </dd>
+                <dt className="text-xs text-sand-600">Left after</dt>
+              </div>
+            </>
+          ) : balance && !deducts ? (
+            <div className="col-span-2">
+              <dd className="text-2xl font-bold tabular-nums text-ink-900">{balance.entitled_days}</dd>
+              <dt className="text-xs text-sand-600">Company paid</dt>
+            </div>
+          ) : null}
+        </dl>
+        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
         {nextCycle && deducts ? (
           <span className="text-xs text-sand-600">
             This starts in your next leave year, so it comes off that
@@ -293,6 +290,7 @@ export default function ApplyForm({
             )}
           </p>
         ) : null}
+        </div>
       </div>
 
       {/* Reason */}
