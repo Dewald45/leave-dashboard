@@ -160,3 +160,35 @@ export async function setGmailAutoReply(formData: FormData): Promise<void> {
   await syncGmailAutoReply(me.id, true);
   revalidatePath("/account");
 }
+
+/** Closes the first-run walkthrough (finished or skipped) so it doesn't come back. */
+export async function finishOnboarding(): Promise<void> {
+  const me = await getSessionProfile();
+  if (!me) return;
+  await q("update profiles set onboarded_at = now() where id = $1", [me.id]);
+  await audit({
+    actor: me,
+    action: "onboarding.completed",
+    entityType: "account",
+    entityId: me.id,
+    subject: me,
+    summary: "Finished the welcome walkthrough",
+  });
+  revalidatePath("/", "layout");
+}
+
+/** Puts the walkthrough back so it shows again on the next page. */
+export async function restartOnboarding(): Promise<void> {
+  const me = await getSessionProfile();
+  if (!me) return;
+  await q("update profiles set onboarded_at = null where id = $1", [me.id]);
+  await audit({
+    actor: me,
+    action: "onboarding.restarted",
+    entityType: "account",
+    entityId: me.id,
+    subject: me,
+    summary: "Asked to see the welcome walkthrough again",
+  });
+  revalidatePath("/", "layout");
+}

@@ -13,6 +13,8 @@ export interface Profile {
   gender: Gender | null;
   employment_start_date: string;
   created_at: string;
+  /** When they finished the first-run walkthrough; null = still to show. */
+  onboarded_at?: string | null;
   /** Stand-in who approves this person's reports while they're away. */
   backup_approver_id?: string | null;
 }

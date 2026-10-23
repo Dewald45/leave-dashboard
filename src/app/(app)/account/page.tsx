@@ -7,6 +7,7 @@ import ChangePasswordForm from "./ChangePasswordForm";
 import InstallApp from "@/components/InstallApp";
 import {
   disconnectGoogleCalendar,
+  restartOnboarding,
   setBackupApprover,
   setGmailAutoReply,
   setHolidayEmails,
@@ -241,6 +242,20 @@ export default async function AccountPage({
       <section className={card} aria-labelledby="pw-heading">
         <h2 id="pw-heading" className={`${heading} mb-4`}>Password</h2>
         <ChangePasswordForm />
+      </section>
+
+      {/* Tour */}
+      <section className={card} aria-labelledby="tour-heading">
+        <h2 id="tour-heading" className={`${heading} mb-1`}>Welcome tour</h2>
+        <p className="mb-4 text-sm text-sand-600">A 30-second walk through TimeOff.</p>
+        <form action={restartOnboarding}>
+          <button
+            type="submit"
+            className="min-h-[40px] rounded-full border border-sand-300 px-5 text-sm font-semibold text-ink-900 hover:bg-sand-50"
+          >
+            Show it again
+          </button>
+        </form>
       </section>
       </div>
       </div>

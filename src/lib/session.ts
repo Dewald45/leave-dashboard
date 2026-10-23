@@ -44,7 +44,7 @@ export async function getSessionProfile(): Promise<Profile | null> {
   return q1<Profile>(
     `select p.id, p.full_name, p.email, p.role, p.manager_id, p.department,
             p.job_title, p.gender, p.employment_start_date::text as employment_start_date,
-            p.created_at
+            p.created_at, p.onboarded_at
        from sessions s
        join profiles p on p.id = s.user_id
       where s.token = $1 and s.expires_at > now()`,

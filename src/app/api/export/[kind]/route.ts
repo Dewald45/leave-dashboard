@@ -6,6 +6,7 @@ import { isWeekendOrHoliday } from "@/lib/leave";
 
 export const dynamic = "force-dynamic";
 
+const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 type Cell = string | number | null | undefined;
@@ -116,6 +117,36 @@ async function monthlyCsv(year: number) {
   return toCsv(["Employee", "Email", "Department", "Leave type", ...MONTHS, "Total"], out);
 }
 
+/** One person's own leave, day by day — what the employee sees on My requests. */
+async function mineCsv(year: number, me: { id: string }) {
+  const holidays = await getHolidaySet();
+  const rows = await q<{
+    leave_type: string; start_date: string; end_date: string; days: number;
+    half_day: string | null; status: string; reason: string | null; decision_note: string | null;
+  }>(
+    `select lt.name as leave_type, r.start_date::text as start_date, r.end_date::text as end_date,
+            r.days::float8 as days, r.half_day, r.status::text as status, r.reason, r.decision_note
+       from leave_requests r join leave_types lt on lt.id = r.leave_type_id
+      where r.profile_id = $1
+        and r.start_date <= make_date($2, 12, 31) and r.end_date >= make_date($2, 1, 1)
+      order by r.start_date`,
+    [me.id, year]
+  );
+  const out: Cell[][] = [];
+  for (const r of rows) {
+    const cur = new Date(r.start_date + "T00:00:00Z");
+    const end = new Date(r.end_date + "T00:00:00Z");
+    while (cur <= end) {
+      const iso = cur.toISOString().slice(0, 10);
+      if (cur.getUTCFullYear() === year && !isWeekendOrHoliday(iso, holidays)) {
+        out.push([iso, DAYS[cur.getUTCDay()], r.leave_type, r.half_day ? 0.5 : 1, r.status, r.reason, r.decision_note]);
+      }
+      cur.setUTCDate(cur.getUTCDate() + 1);
+    }
+  }
+  return toCsv(["Date", "Weekday", "Leave type", "Days", "Status", "Reason", "Manager note"], out);
+}
+
 const BUILDERS: Record<string, (year: number) => Promise<string>> = {
   requests: requestsCsv,
   balances: balancesCsv,
@@ -125,9 +156,11 @@ const BUILDERS: Record<string, (year: number) => Promise<string>> = {
 export async function GET(req: NextRequest, { params }: { params: { kind: string } }) {
   const me = await getSessionProfile();
   if (!me) return new NextResponse("Not signed in", { status: 401 });
-  if (me.role !== "admin") return new NextResponse("Administrator access required", { status: 403 });
+  // "mine" is open to everyone (their own leave only); the rest are admin-only.
+  const isMine = params.kind === "mine";
+  if (!isMine && me.role !== "admin") return new NextResponse("Administrator access required", { status: 403 });
 
-  const build = BUILDERS[params.kind];
+  const build = isMine ? (y: number) => mineCsv(y, me) : BUILDERS[params.kind];
   if (!build) return new NextResponse("Unknown export", { status: 404 });
 
   const year = Number(req.nextUrl.searchParams.get("year")) || new Date().getUTCFullYear();

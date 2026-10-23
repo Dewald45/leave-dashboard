@@ -2,6 +2,25 @@
 
 What changed in TimeOff, newest first.
 
+## 2026-10-23 (simpler dashboard, welcome tour, personal CSV export)
+
+### Easier to read
+- **Dashboard:** one big annual leave number with a ring, small cards for the
+  other leave types, and "Recently attempted" underneath. The December closure
+  explainer moves to the top right, with its original wording.
+- **Apply:** shorter intro, and the live **Leave calculator** (working days, what
+  you have, what's left after) is a clear block under the dates.
+
+### New
+- **Welcome tour:** first sign-in shows a short step-by-step (managers get an
+  extra step on approvals). Skip any time; replay it from Account.
+- **Export my leave days (CSV):** button on My requests. One row per working day
+  of your leave for the year.
+
+### Needs attention when deploying
+- Nothing on the server: pull and redeploy, the database updates itself.
+  People who already have an account won't see the tour.
+
 ## 2026-10-20 (shared parental leave, documents on any request)
 
 ### Parental leave is now shared
