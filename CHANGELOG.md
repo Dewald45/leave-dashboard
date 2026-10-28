@@ -2,6 +2,21 @@
 
 What changed in TimeOff, newest first.
 
+## 2026-10-28 (dashboard v2)
+
+- **Your leave year at a glance:** a strip with one square per working day
+  across your leave year, showing leave taken, booked, pending, public
+  holidays and today.
+- **Take a break nudge:** after 3+ months without leave (and nothing booked),
+  the dashboard suggests the next public holiday you can turn into a long
+  weekend, with a button that opens Apply with those days filled in.
+- **Less text:** shorter header line, other leave types in one compact list,
+  "Recent requests" shows the last three.
+- **Year-end closure** is a one-line summary (tap for details) for most of the
+  year, and the full card from October to December.
+- The year strip doesn't show the closure days, because the app only knows
+  how many there are, not the dates.
+
 ## 2026-10-28 (import past leave, edit names & start dates)
 
 ### New
