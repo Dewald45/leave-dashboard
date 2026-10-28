@@ -2,7 +2,7 @@
 
 What changed in TimeOff, newest first.
 
-## 2026-10-28 (import past leave, edit names)
+## 2026-10-28 (import past leave, edit names & start dates)
 
 ### New
 - **Import past leave (Admin → Import past leave):** upload a "Leave
@@ -12,8 +12,11 @@ What changed in TimeOff, newest first.
   request, so balances and history reflect it using the normal
   start-date / cycle / carry-over rules (no rule changes). "Waiting" entries are
   optional; re-imports skip duplicates.
-- **Edit an employee's name:** Admin → People now has a **Full name** field on
-  each person (handy after an import that only carried surnames + initials).
+- **Edit an employee's name and start date:** Admin → People now has **Full
+  name** and **Start date** fields on each person. Changing the start date
+  re-provisions their leave cycles (leave still resets on the start date), so
+  balances update accordingly. Handy after an import that only carried surnames
+  + initials.
 
 ### Needs attention when deploying
 - None. The schema change is automatic on boot: a nullable

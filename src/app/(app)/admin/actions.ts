@@ -147,16 +147,34 @@ export async function updateEmployee(formData: FormData): Promise<void> {
   const managerId = String(formData.get("manager_id") || "") || null;
   const department = String(formData.get("department") || "").trim() || null;
   const gender = normaliseGender(formData.get("gender"));
+  const startRaw = String(formData.get("employment_start_date") || "").trim();
+  const startDate = /^\d{4}-\d{2}-\d{2}$/.test(startRaw) ? startRaw : null;
   let backupId = String(formData.get("backup_approver_id") || "") || null;
   if (backupId === id || role === "employee") backupId = null;
 
   await q(
     `update profiles set full_name = coalesce(nullif($1, ''), full_name),
             role = $2, manager_id = $3, department = $4, gender = $5,
-            backup_approver_id = $6
-      where id = $7`,
-    [fullName, role, managerId, department, gender, backupId, id]
+            backup_approver_id = $6,
+            employment_start_date = coalesce($7::date, employment_start_date)
+      where id = $8`,
+    [fullName, role, managerId, department, gender, backupId, startDate, id]
   );
+
+  // Changing the start date moves every leave cycle, so re-provision the cycles
+  // this person has leave in (oldest first) — same as the leave import does.
+  if (startDate && startDate !== before.employment_start_date) {
+    const dates = await q<{ d: string }>(
+      "select distinct start_date::text as d from leave_requests where profile_id = $1",
+      [id]
+    );
+    const asOf = Array.from(
+      new Set([...dates.map((r) => r.d), new Date().toISOString().slice(0, 10)])
+    ).sort();
+    for (const d of asOf) {
+      await q("select public.provision_balances($1, $2::date)", [id, d]);
+    }
+  }
   await q("select public.sync_leave_eligibility($1)", [id]);
 
   const after = await profileSnapshot(id);
