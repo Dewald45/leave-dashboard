@@ -3,6 +3,7 @@ import AddEmployeeForm from "./AddEmployeeForm";
 import ImportEmployees from "./ImportEmployees";
 import DeleteEmployeeButton from "./DeleteEmployeeButton";
 import ResetPasswordForm from "./ResetPasswordForm";
+import StartDateEditor from "./StartDateEditor";
 import HolidayForm from "./HolidayForm";
 import ExportPanel from "./ExportPanel";
 import { updateEmployee, updateBalance, deleteHoliday, updateLeaveDefault } from "./actions";
@@ -183,17 +184,6 @@ export default async function AdminPage({
                         <option value="female">Female</option>
                       </select>
                     </div>
-                    <div>
-                      <label htmlFor={`emp-${p.id}-start`} className="mb-1 block text-xs font-medium text-sand-600">
-                        Start date
-                      </label>
-                      <input id={`emp-${p.id}-start`}
-                        type="date"
-                        name="employment_start_date"
-                        defaultValue={p.employment_start_date}
-                        className="min-h-11 sm:min-h-0 rounded-xl border border-sand-300 px-3 py-1.5 text-sm"
-                      />
-                    </div>
                     {p.role !== "employee" ? (
                       <div>
                         <label htmlFor={`emp-${p.id}-backup-approver-id`} className="mb-1 block text-xs font-medium text-sand-600">
@@ -222,6 +212,13 @@ export default async function AdminPage({
                       Save
                     </button>
                   </form>
+
+                  {/* Start date — changing it moves every leave cycle, so it
+                      needs a reason and is logged to the audit trail. */}
+                  <StartDateEditor
+                    id={p.id}
+                    current={p.employment_start_date}
+                  />
 
                   {/* Balances */}
                   <div className="mt-5">
