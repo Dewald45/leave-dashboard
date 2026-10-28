@@ -45,3 +45,7 @@ email-outbox/
 
 # Local development database (npm run db:local)
 .pglite/
+
+# Uploaded employee data — never commit (PII, public repo)
+current leave/
+*.xlsx

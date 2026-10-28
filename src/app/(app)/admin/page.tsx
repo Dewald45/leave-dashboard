@@ -312,12 +312,20 @@ export default async function AdminPage({
               <h2 id="add-employee-heading" className="text-base font-semibold text-ink-900">
                 {importing ? "Import from a spreadsheet" : "Add an employee"}
               </h2>
-              <a
-                href={importing ? "/admin" : "/admin?add=import"}
-                className="text-sm font-medium text-brand-700 underline underline-offset-2"
-              >
-                {importing ? "Add one person instead" : "Import a spreadsheet"}
-              </a>
+              <div className="flex flex-wrap items-center gap-3">
+                <a
+                  href={importing ? "/admin" : "/admin?add=import"}
+                  className="text-sm font-medium text-brand-700 underline underline-offset-2"
+                >
+                  {importing ? "Add one person instead" : "Import a spreadsheet"}
+                </a>
+                <a
+                  href="/admin/import-leave"
+                  className="text-sm font-medium text-brand-700 underline underline-offset-2"
+                >
+                  Import past leave
+                </a>
+              </div>
             </div>
             <div className="fit:min-h-0 fit:flex-1 fit:overflow-y-auto fit:rounded-3xl">
               {importing ? (
