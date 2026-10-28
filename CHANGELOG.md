@@ -23,6 +23,29 @@ What changed in TimeOff, newest first.
   `leave_requests.source` column (tags imported entries). No new environment
   variables.
 
+## 2026-10-28 (sprint: New Recs 2)
+
+### Dashboard
+- **Going negative is now visible.** If you've booked more annual leave than you
+  have, the number shows as negative (e.g. −3) in red, with "You're 3 days into
+  next year's leave". Before, it just said 0.
+- **Pending requests are spelled out:** "10 available now · 5 pending → 5 once
+  approved", and the ring shows pending days as a faded section.
+- **Next up:** a new card with your next booked or pending leave.
+- **Use it or lose it:** a warning when carried-over days expire within 60 days.
+
+### Apply
+- **New calendar:** pick your first and last day on a month view. Weekends and
+  public holidays are greyed out (holidays have a dot), since they're free.
+- **Simpler leave calculator:** one sentence and a bar, e.g. "9 Nov → 13 Nov
+  costs 5 days of leave. You'll have 5 of 10 left."
+
+### My requests
+- **Filters:** by status (All, Upcoming, Pending, Approved, Declined, Cancelled)
+  and by leave type, with counts.
+- **Cancelling:** approved leave can only be cancelled before it starts. Pending
+  requests can still be withdrawn any time; admins can still cancel anything.
+
 ## 2026-10-23 (simpler dashboard, welcome tour, personal CSV export)
 
 ### Easier to read
