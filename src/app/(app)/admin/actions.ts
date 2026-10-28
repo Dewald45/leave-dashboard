@@ -142,6 +142,7 @@ export async function updateEmployee(formData: FormData): Promise<void> {
   const before = await profileSnapshot(id);
   if (!before) return;
 
+  const fullName = String(formData.get("full_name") || "").trim();
   const role = normaliseRole(formData.get("role"));
   const managerId = String(formData.get("manager_id") || "") || null;
   const department = String(formData.get("department") || "").trim() || null;
@@ -149,11 +150,14 @@ export async function updateEmployee(formData: FormData): Promise<void> {
   let backupId = String(formData.get("backup_approver_id") || "") || null;
   if (backupId === id || role === "employee") backupId = null;
 
+  // Note: the start date is changed separately (changeStartDate) because it
+  // moves every leave cycle and must capture a reason for the audit trail.
   await q(
-    `update profiles set role = $1, manager_id = $2, department = $3, gender = $4,
-            backup_approver_id = $5
-      where id = $6`,
-    [role, managerId, department, gender, backupId, id]
+    `update profiles set full_name = coalesce(nullif($1, ''), full_name),
+            role = $2, manager_id = $3, department = $4, gender = $5,
+            backup_approver_id = $6
+      where id = $7`,
+    [fullName, role, managerId, department, gender, backupId, id]
   );
   await q("select public.sync_leave_eligibility($1)", [id]);
 
@@ -174,6 +178,73 @@ export async function updateEmployee(formData: FormData): Promise<void> {
   revalidatePath("/admin");
   revalidatePath("/team");
   revalidatePath("/dashboard");
+}
+
+/**
+ * Change an employee's start date. This moves every leave cycle, so it requires
+ * a reason, is written to the audit trail, and re-provisions the cycles the
+ * person has leave in (oldest first) — the same rules as elsewhere.
+ */
+export async function changeStartDate(
+  _prev: AdminResult,
+  formData: FormData
+): Promise<AdminResult> {
+  let me;
+  try {
+    me = await assertAdmin();
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+
+  const id = String(formData.get("id") || "");
+  const startDate = String(formData.get("employment_start_date") || "").trim();
+  const reason = String(formData.get("reason") || "").trim();
+
+  if (!id) return { error: "No employee specified." };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate)) {
+    return { error: "Enter a valid start date." };
+  }
+  if (reason.length < 3) {
+    return { error: "Please give a reason for the change — it's recorded in the audit trail." };
+  }
+
+  const before = await profileSnapshot(id);
+  if (!before) return { error: "That employee no longer exists." };
+  const from = before.employment_start_date;
+  if (from === startDate) return { error: "That's already their start date." };
+
+  await q("update profiles set employment_start_date = $1::date where id = $2", [
+    startDate,
+    id,
+  ]);
+
+  // Re-provision the cycles this person has leave in (oldest first), then today.
+  const dates = await q<{ d: string }>(
+    "select distinct start_date::text as d from leave_requests where profile_id = $1",
+    [id]
+  );
+  const asOf = Array.from(
+    new Set([...dates.map((r) => r.d), new Date().toISOString().slice(0, 10)])
+  ).sort();
+  for (const d of asOf) {
+    await q("select public.provision_balances($1, $2::date)", [id, d]);
+  }
+  await q("select public.sync_leave_eligibility($1)", [id]);
+
+  await audit({
+    actor: me,
+    action: "profile.start_date_changed",
+    entityType: "profile",
+    entityId: id,
+    subject: { id, full_name: before.full_name ?? "" },
+    summary: `Changed ${before.full_name}'s start date from ${from} to ${startDate}`,
+    details: { from, to: startDate, reason },
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/team");
+  revalidatePath("/dashboard");
+  return { success: `Start date changed to ${startDate}.` };
 }
 
 export async function updateBalance(formData: FormData): Promise<void> {

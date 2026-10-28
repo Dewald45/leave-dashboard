@@ -3,6 +3,7 @@ import AddEmployeeForm from "./AddEmployeeForm";
 import ImportEmployees from "./ImportEmployees";
 import DeleteEmployeeButton from "./DeleteEmployeeButton";
 import ResetPasswordForm from "./ResetPasswordForm";
+import StartDateEditor from "./StartDateEditor";
 import HolidayForm from "./HolidayForm";
 import ExportPanel from "./ExportPanel";
 import { updateEmployee, updateBalance, deleteHoliday, updateLeaveDefault } from "./actions";
@@ -117,6 +118,16 @@ export default async function AdminPage({
                   >
                     <input type="hidden" name="id" value={p.id} />
                     <div>
+                      <label htmlFor={`emp-${p.id}-name`} className="mb-1 block text-xs font-medium text-sand-600">
+                        Full name
+                      </label>
+                      <input id={`emp-${p.id}-name`}
+                        name="full_name"
+                        defaultValue={p.full_name}
+                        className="min-h-11 sm:min-h-0 rounded-xl border border-sand-300 px-3 py-1.5 text-sm"
+                      />
+                    </div>
+                    <div>
                       <label htmlFor={`emp-${p.id}-role`} className="mb-1 block text-xs font-medium text-sand-600">
                         Role
                       </label>
@@ -201,6 +212,13 @@ export default async function AdminPage({
                       Save
                     </button>
                   </form>
+
+                  {/* Start date — changing it moves every leave cycle, so it
+                      needs a reason and is logged to the audit trail. */}
+                  <StartDateEditor
+                    id={p.id}
+                    current={p.employment_start_date}
+                  />
 
                   {/* Balances */}
                   <div className="mt-5">
@@ -312,12 +330,20 @@ export default async function AdminPage({
               <h2 id="add-employee-heading" className="text-base font-semibold text-ink-900">
                 {importing ? "Import from a spreadsheet" : "Add an employee"}
               </h2>
-              <a
-                href={importing ? "/admin" : "/admin?add=import"}
-                className="text-sm font-medium text-brand-700 underline underline-offset-2"
-              >
-                {importing ? "Add one person instead" : "Import a spreadsheet"}
-              </a>
+              <div className="flex flex-wrap items-center gap-3">
+                <a
+                  href={importing ? "/admin" : "/admin?add=import"}
+                  className="text-sm font-medium text-brand-700 underline underline-offset-2"
+                >
+                  {importing ? "Add one person instead" : "Import a spreadsheet"}
+                </a>
+                <a
+                  href="/admin/import-leave"
+                  className="text-sm font-medium text-brand-700 underline underline-offset-2"
+                >
+                  Import past leave
+                </a>
+              </div>
             </div>
             <div className="fit:min-h-0 fit:flex-1 fit:overflow-y-auto fit:rounded-3xl">
               {importing ? (

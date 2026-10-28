@@ -101,6 +101,8 @@ create table if not exists public.leave_requests (
 );
 create index if not exists idx_requests_profile on public.leave_requests(profile_id);
 create index if not exists idx_requests_status  on public.leave_requests(status);
+-- Tags where a request came from (e.g. 'import'); null for normal in-app applications.
+alter table public.leave_requests add column if not exists source text;
 
 -- ============================================================================
 -- Leave business logic (pure SQL — no auth dependency)
