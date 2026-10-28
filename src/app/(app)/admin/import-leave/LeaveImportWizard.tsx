@@ -114,18 +114,33 @@ function EmployeeRow({
       </div>
 
       {isNew ? (
-        <label className="block text-xs font-medium text-sand-700">
-          Gender (only sets parental vs maternity — optional)
-          <select
-            name={`gender_${emp.idx}`}
-            defaultValue=""
-            className="mt-1 block w-56 rounded-xl border border-sand-300 px-3 py-2 text-sm"
-          >
-            <option value="">— Prefer not to say —</option>
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-          </select>
-        </label>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="text-xs font-medium text-sand-700">
+            Full name <span className="text-rose-600">*</span>
+            <input
+              type="text"
+              name={`name_${emp.idx}`}
+              defaultValue={emp.name}
+              placeholder="e.g. Jonathan Barrow"
+              className="mt-1 block w-full rounded-xl border border-sand-300 px-3 py-2 text-sm"
+            />
+            <span className="mt-0.5 block text-[11px] font-normal text-sand-500">
+              The report only gives a surname &amp; initials — set their real name.
+            </span>
+          </label>
+          <label className="text-xs font-medium text-sand-700">
+            Gender (only sets parental vs maternity — optional)
+            <select
+              name={`gender_${emp.idx}`}
+              defaultValue=""
+              className="mt-1 block w-full rounded-xl border border-sand-300 px-3 py-2 text-sm"
+            >
+              <option value="">— Prefer not to say —</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </label>
+        </div>
       ) : null}
     </li>
   );

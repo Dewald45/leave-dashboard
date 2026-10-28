@@ -213,7 +213,9 @@ export async function runLeaveImport(
           [email, hash]
         );
         profileId = user!.id;
-        const fullName = emp.initials ? `${emp.name} (${emp.initials})` : emp.name;
+        const nameInput = String(formData.get(`name_${i}`) || "").trim();
+        const fullName =
+          nameInput || (emp.initials ? `${emp.name} (${emp.initials})` : emp.name);
         await q(
           `insert into profiles (id, full_name, email, role, gender, employment_start_date)
            values ($1, $2, $3, 'employee', $4, $5)`,
