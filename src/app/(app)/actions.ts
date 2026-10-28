@@ -223,7 +223,10 @@ export async function createRequest(
   redirect(`/requests/${requestId}?submitted=1${left}`);
 }
 
-/** Requester cancels their own pending or approved request (admins may cancel either). */
+/**
+ * Requester cancels their own pending request, or approved leave that hasn't
+ * started yet. Admins may cancel either, at any time (to correct records).
+ */
 export async function cancelRequest(formData: FormData): Promise<void> {
   const me = await getSessionProfile();
   if (!me) return;
@@ -236,7 +239,9 @@ export async function cancelRequest(formData: FormData): Promise<void> {
 
   const updated = await q1<{ calendar_seq: number }>(
     `update leave_requests set status = 'cancelled', calendar_seq = calendar_seq + 1
-      where id = $1 and status in ('pending', 'approved') and (profile_id = $2 or $3)
+      where id = $1 and (profile_id = $2 or $3)
+        and (status = 'pending' or $3
+             or (status = 'approved' and start_date > (now() at time zone 'Africa/Johannesburg')::date))
       returning calendar_seq`,
     [id, me.id, me.role === "admin"]
   );

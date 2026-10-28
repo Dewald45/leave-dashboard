@@ -12,6 +12,7 @@ import {
   dateEarning,
 } from "@/lib/leave";
 import type { BalanceSummary, LeaveType } from "@/lib/types";
+import RangeCalendar from "./RangeCalendar";
 
 // Mirror SICK_NOTE_THRESHOLD_DAYS / MAX_ATTACHMENT_BYTES in src/lib/attachments.ts (server-only).
 const SICK_NOTE_THRESHOLD_DAYS = 2;
@@ -153,43 +154,21 @@ export default function ApplyForm({
       </div>
 
       {/* Dates */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label htmlFor="start_date" className="mb-1 block text-sm font-medium text-ink-800">
-            Start date
-          </label>
-          <input
-            type="date"
-            id="start_date"
-          name="start_date"
-            value={start}
-            onChange={(e) => {
-              setStart(e.target.value);
-              if (!end || end < e.target.value) setEnd(e.target.value);
-            }}
-            required
-            className={inputClass}
-          />
-        </div>
-        <div>
-          <label htmlFor="end_date" className="mb-1 block text-sm font-medium text-ink-800">
-            End date
-          </label>
-          <input
-            type="date"
-            id="end_date"
-          name="end_date"
-            value={end}
-            min={start || undefined}
-            onChange={(e) => {
-              setEnd(e.target.value);
-              if (e.target.value !== start) setDuration("full");
-            }}
-            required
-            className={inputClass}
-          />
-        </div>
-      </div>
+      <fieldset>
+        <legend className="mb-1 block text-sm font-medium text-ink-800">When?</legend>
+        <RangeCalendar
+          start={start}
+          end={end}
+          holidays={holidaySet}
+          onChange={(s, e) => {
+            setStart(s);
+            setEnd(e);
+            if (e !== s) setDuration("full");
+          }}
+        />
+        <input type="hidden" name="start_date" value={start} />
+        <input type="hidden" name="end_date" value={end} />
+      </fieldset>
 
       {/* Half days — only for a single date */}
       {singleDay ? (
@@ -233,64 +212,65 @@ export default function ApplyForm({
         <input type="hidden" name="duration" value="full" />
       )}
 
-      {/* Leave calculator: updates as the dates change */}
+      {/* Leave calculator: one sentence and one bar, updating as dates change */}
       <div className="rounded-2xl bg-sand-100 p-4" aria-live="polite">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-sand-600">Leave calculator</h2>
-        <dl className="mt-2 grid grid-cols-3 gap-3 text-center">
-          <div>
-            <dd className="text-2xl font-bold tabular-nums text-ink-900">{formatDays(days, halfDay)}</dd>
-            <dt className="text-xs text-sand-600">Working days</dt>
-          </div>
-          {showMaths ? (
-            <>
-              <div>
-                <dd className="text-2xl font-bold tabular-nums text-ink-900">{fmt(bookable)}</dd>
-                <dt className="text-xs text-sand-600">You have</dt>
+        {!start ? (
+          <p className="text-sm text-sand-600">Pick your dates and we&apos;ll do the maths.</p>
+        ) : (
+          <>
+            <p className="text-sm text-ink-800">
+              <span className="font-semibold text-ink-900">
+                {start === end || !end ? formatDate(start) : `${formatDate(start)} → ${formatDate(end)}`}
+              </span>
+              {" "}costs{" "}
+              <span className="text-lg font-bold tabular-nums text-ink-900">{formatDays(days, halfDay)}</span>{" "}
+              {days === 1 ? "day" : "days"} of leave
+              {showMaths && days > 0 ? (
+                <>
+                  .{" "}
+                  {overBalance ? (
+                    <span className="font-semibold text-rose-700">
+                      That&apos;s {fmt(days - bookable)} more than the {fmt(bookable)} you have.
+                    </span>
+                  ) : (
+                    <>
+                      You&apos;ll have{" "}
+                      <span className="font-semibold text-ink-900">{fmt(leftAfter)}</span> of {fmt(bookable)} left.
+                    </>
+                  )}
+                </>
+              ) : balance && !deducts ? (
+                <>. It doesn&apos;t come off your annual leave.</>
+              ) : (
+                "."
+              )}
+            </p>
+            {showMaths && bookable > 0 && days > 0 ? (
+              <div
+                className="mt-3 flex h-2.5 overflow-hidden rounded-full bg-white"
+                role="img"
+                aria-label={`${fmt(Math.min(days, bookable))} of ${fmt(bookable)} days used by this request`}
+              >
+                <div
+                  className={overBalance ? "bg-rose-500" : "bg-ink-900"}
+                  style={{ width: `${Math.min(100, (days / bookable) * 100)}%` }}
+                />
               </div>
-              <div>
-                <dd className={`text-2xl font-bold tabular-nums ${overBalance ? "text-rose-700" : "text-ink-900"}`}>
-                  {days > 0 ? fmt(leftAfter) : "–"}
-                </dd>
-                <dt className="text-xs text-sand-600">Left after</dt>
-              </div>
-            </>
-          ) : balance && !deducts ? (
-            <div className="col-span-2">
-              <dd className="text-2xl font-bold tabular-nums text-ink-900">{balance.entitled_days}</dd>
-              <dt className="text-xs text-sand-600">Company paid</dt>
-            </div>
-          ) : null}
-        </dl>
-        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
-        {nextCycle && deducts ? (
-          <span className="text-xs text-sand-600">
-            This starts in your next leave year, so it comes off that
-            year&apos;s days.
-          </span>
-        ) : null}
-        {overBalance ? (
-          <span className="rounded bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-700">
-            {fmt(days - bookable)} more than you have left
-          </span>
-        ) : null}
-        {forecast ? (
-          <p className="basis-full text-xs text-ink-700">
-            By {formatDate(start)} you&apos;ll have earned{" "}
-            <strong className="text-ink-900">{fmt(forecast.earned)}</strong> of{" "}
-            {fmt(Number(balance?.entitled_days ?? 0))} days.{" "}
-            {forecast.ahead > 0 ? (
-              <>
-                This books{" "}
-                <strong className="text-ink-900">{fmt(forecast.ahead)} days ahead</strong> of
-                what you&apos;ve earned — that&apos;s allowed
-                {forecast.catchUp ? <>, and you&apos;ll have caught up by {formatDate(forecast.catchUp)}</> : null}.
-              </>
-            ) : (
-              <>You&apos;re not borrowing ahead.</>
-            )}
-          </p>
-        ) : null}
-        </div>
+            ) : null}
+            {nextCycle && deducts ? (
+              <p className="mt-2 text-xs text-sand-600">
+                This starts in your next leave year, so it comes off that year&apos;s days.
+              </p>
+            ) : null}
+            {forecast && forecast.ahead > 0 ? (
+              <p className="mt-2 text-xs text-ink-700">
+                Heads up: by {formatDate(start)} you&apos;ll have earned {fmt(forecast.earned)} days, so this
+                borrows {fmt(forecast.ahead)} ahead. That&apos;s allowed
+                {forecast.catchUp ? <> and you&apos;ll catch up by {formatDate(forecast.catchUp)}</> : null}.
+              </p>
+            ) : null}
+          </>
+        )}
       </div>
 
       {/* Reason */}

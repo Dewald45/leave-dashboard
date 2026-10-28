@@ -1,7 +1,7 @@
 import RequestList from "@/components/RequestList";
 import StatusBadge from "@/components/StatusBadge";
 import ThreadBadge from "@/components/ThreadBadge";
-import { formatDate, formatDays, leaveAccent } from "@/lib/leave";
+import { canCancel, formatDate, formatDays, leaveAccent } from "@/lib/leave";
 import { cancelRequest } from "@/app/(app)/actions";
 import type { RequestWithRelations, ThreadStats } from "@/lib/types";
 
@@ -120,7 +120,7 @@ export default function RequestsTable({
               </td>
               {allowCancel ? (
                 <td className="px-5 py-2.5 text-right">
-                  {r.status === "pending" || r.status === "approved" ? (
+                  {canCancel(r) ? (
                     <form action={cancelRequest}>
                       <input type="hidden" name="id" value={r.id} />
                       <button

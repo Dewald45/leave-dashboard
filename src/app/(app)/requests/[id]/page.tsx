@@ -10,7 +10,7 @@ import {
   markRequestRead,
 } from "@/lib/data";
 import { formatBytes } from "@/lib/attachments";
-import { describeDuration, formatDate, formatDateTime, formatDays } from "@/lib/leave";
+import { describeDuration, formatDate, formatDateTime, formatDays, canCancel as canCancelRequest } from "@/lib/leave";
 import { cancelRequest } from "@/app/(app)/actions";
 import PageHeader from "@/components/PageHeader";
 import ScreenPage from "@/components/ScreenPage";
@@ -52,7 +52,9 @@ export default async function RequestPage({
       ? formatDate(r.start_date)
       : `${formatDate(r.start_date)} → ${formatDate(r.end_date)}`;
   const canCancel =
-    (mine || profile.role === "admin") && (r.status === "pending" || r.status === "approved");
+    profile.role === "admin"
+      ? r.status === "pending" || r.status === "approved"
+      : mine && canCancelRequest(r);
   const isSick = r.leave_types?.code === "sick";
 
   const timeline: TimelineItem[] = [

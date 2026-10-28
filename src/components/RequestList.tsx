@@ -1,7 +1,7 @@
 import Link from "next/link";
 import StatusBadge from "@/components/StatusBadge";
 import ThreadBadge from "@/components/ThreadBadge";
-import { describeDuration, formatDateRange, leaveAccent } from "@/lib/leave";
+import { canCancel, describeDuration, formatDateRange, leaveAccent } from "@/lib/leave";
 import { cancelRequest } from "@/app/(app)/actions";
 import type { RequestWithRelations, ThreadStats } from "@/lib/types";
 
@@ -76,7 +76,7 @@ export default function RequestList({
             <div className="flex shrink-0 items-center gap-2">
               <StatusBadge status={r.status} />
               <ThreadBadge requestId={r.id} stats={stats[r.id]} compact />
-              {allowCancel && (r.status === "pending" || r.status === "approved") ? (
+              {allowCancel && canCancel(r) ? (
                 <form action={cancelRequest}>
                   <input type="hidden" name="id" value={r.id} />
                   <button

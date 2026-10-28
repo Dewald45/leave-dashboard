@@ -11,6 +11,20 @@ function toISO(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
+/** Today's date (YYYY-MM-DD) in South Africa, whatever the server's timezone. */
+export function todaySA(): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Johannesburg" });
+}
+
+/**
+ * Whether the requester can still cancel: pending requests any time, approved
+ * leave only until it starts (once it has begun it's been taken).
+ */
+export function canCancel(r: { status: string; start_date: string }): boolean {
+  if (r.status === "pending") return true;
+  return r.status === "approved" && r.start_date > todaySA();
+}
+
 /** Count working days (Mon–Fri, excluding the given public holidays) inclusive. */
 export function workingDaysBetween(
   startISO: string,
