@@ -142,6 +142,7 @@ export async function updateEmployee(formData: FormData): Promise<void> {
   const before = await profileSnapshot(id);
   if (!before) return;
 
+  const fullName = String(formData.get("full_name") || "").trim();
   const role = normaliseRole(formData.get("role"));
   const managerId = String(formData.get("manager_id") || "") || null;
   const department = String(formData.get("department") || "").trim() || null;
@@ -150,10 +151,11 @@ export async function updateEmployee(formData: FormData): Promise<void> {
   if (backupId === id || role === "employee") backupId = null;
 
   await q(
-    `update profiles set role = $1, manager_id = $2, department = $3, gender = $4,
-            backup_approver_id = $5
-      where id = $6`,
-    [role, managerId, department, gender, backupId, id]
+    `update profiles set full_name = coalesce(nullif($1, ''), full_name),
+            role = $2, manager_id = $3, department = $4, gender = $5,
+            backup_approver_id = $6
+      where id = $7`,
+    [fullName, role, managerId, department, gender, backupId, id]
   );
   await q("select public.sync_leave_eligibility($1)", [id]);
 

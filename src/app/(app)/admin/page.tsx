@@ -117,6 +117,16 @@ export default async function AdminPage({
                   >
                     <input type="hidden" name="id" value={p.id} />
                     <div>
+                      <label htmlFor={`emp-${p.id}-name`} className="mb-1 block text-xs font-medium text-sand-600">
+                        Full name
+                      </label>
+                      <input id={`emp-${p.id}-name`}
+                        name="full_name"
+                        defaultValue={p.full_name}
+                        className="min-h-11 sm:min-h-0 rounded-xl border border-sand-300 px-3 py-1.5 text-sm"
+                      />
+                    </div>
+                    <div>
                       <label htmlFor={`emp-${p.id}-role`} className="mb-1 block text-xs font-medium text-sand-600">
                         Role
                       </label>

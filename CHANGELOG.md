@@ -2,6 +2,24 @@
 
 What changed in TimeOff, newest first.
 
+## 2026-10-28 (import past leave, edit names)
+
+### New
+- **Import past leave (Admin → Import past leave):** upload a "Leave
+  Transactions Report" .xlsx (one or more files). Match each person to an
+  existing employee or create a new one — with an editable **full name**, email
+  and start date — then import. Each approved entry becomes a real leave
+  request, so balances and history reflect it using the normal
+  start-date / cycle / carry-over rules (no rule changes). "Waiting" entries are
+  optional; re-imports skip duplicates.
+- **Edit an employee's name:** Admin → People now has a **Full name** field on
+  each person (handy after an import that only carried surnames + initials).
+
+### Needs attention when deploying
+- None. The schema change is automatic on boot: a nullable
+  `leave_requests.source` column (tags imported entries). No new environment
+  variables.
+
 ## 2026-10-23 (simpler dashboard, welcome tour, personal CSV export)
 
 ### Easier to read
