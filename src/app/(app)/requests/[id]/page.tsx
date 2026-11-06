@@ -5,6 +5,7 @@ import {
   canApproveRequest,
   canViewRequest,
   getAttachments,
+  getBalanceForType,
   getMessages,
   getRequestById,
   markRequestRead,
@@ -16,6 +17,7 @@ import PageHeader from "@/components/PageHeader";
 import ScreenPage from "@/components/ScreenPage";
 import StatusBadge from "@/components/StatusBadge";
 import DecisionForm from "@/components/DecisionForm";
+import ApproverBalance from "@/components/ApproverBalance";
 import MessageForm from "./MessageForm";
 import AutoRefresh from "./AutoRefresh";
 import ScrollToLatest from "./ScrollToLatest";
@@ -44,6 +46,10 @@ export default async function RequestPage({
   ]);
   if (!r) notFound();
   await markRequestRead(id, profile.id);
+  const showBalance = canDecide && r.status === "pending" && r.profile_id !== profile.id;
+  const balance = showBalance
+    ? await getBalanceForType(r.profile_id, r.leave_type_id, r.start_date)
+    : null;
 
   const mine = r.profile_id === profile.id;
   const firstName = r.profiles?.full_name?.split(" ")[0] ?? "Their";
@@ -246,6 +252,9 @@ export default async function RequestPage({
           {canDecide && r.status === "pending" ? (
             <div className="rounded-3xl bg-white p-6">
               <h2 className="mb-3 text-base font-semibold text-ink-900">Your call</h2>
+              <div className="mb-4 -mt-3">
+                <ApproverBalance balance={balance} days={r.days} name={firstName} />
+              </div>
               <DecisionForm requestId={r.id} stacked />
             </div>
           ) : null}
