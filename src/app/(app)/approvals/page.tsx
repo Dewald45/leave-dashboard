@@ -5,6 +5,7 @@ import {
   getPendingApprovals,
   getRecentDecisions,
   getThreadStats,
+  getBalanceForType,
 } from "@/lib/data";
 import PageHeader from "@/components/PageHeader";
 import ScreenPage from "@/components/ScreenPage";
@@ -23,6 +24,9 @@ export default async function ApprovalsPage() {
   const stats = await getThreadStats(
     [...pendingRows, ...decidedRows].map((r) => r.id),
     profile.id
+  );
+  const balances = await Promise.all(
+    pendingRows.map((r) => getBalanceForType(r.profile_id, r.leave_type_id, r.start_date))
   );
 
   return (
@@ -48,8 +52,8 @@ export default async function ApprovalsPage() {
           </div>
           <div className="space-y-4 fit:min-h-0 fit:flex-1 fit:overflow-y-auto fit:pr-1">
             {pendingRows.length ? (
-              pendingRows.map((r) => (
-                <ApprovalCard key={r.id} r={r} stats={stats[r.id]} />
+              pendingRows.map((r, i) => (
+                <ApprovalCard key={r.id} r={r} stats={stats[r.id]} balance={balances[i]} />
               ))
             ) : (
               <div className="rounded-3xl border border-dashed border-sand-300 bg-white/60 p-8 text-center text-sm text-sand-500">

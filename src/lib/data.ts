@@ -165,6 +165,7 @@ export type RequestForNotify = {
   employee_email: string;
   employee_name: string;
   leave_name: string;
+  leave_type_id: number;
 };
 
 /** Row needed to authorise + notify a decision / cancellation / message. */
@@ -173,7 +174,7 @@ export function getRequestForDecision(id: string) {
     `select r.id, r.profile_id, p.manager_id, r.status, r.start_date::text as start_date,
             r.end_date::text as end_date, r.days::float8 as days, r.half_day,
             r.calendar_seq, p.email as employee_email, p.full_name as employee_name,
-            lt.name as leave_name
+            lt.name as leave_name, r.leave_type_id
        from leave_requests r
        join profiles p on p.id = r.profile_id
        join leave_types lt on lt.id = r.leave_type_id

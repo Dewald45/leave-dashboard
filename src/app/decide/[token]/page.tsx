@@ -1,6 +1,7 @@
 import AuthShell from "@/components/AuthShell";
 import { findDecisionLink } from "@/lib/decisionLinks";
-import { getRequestForDecision, canApproveRequest } from "@/lib/data";
+import { getRequestForDecision, canApproveRequest, getBalanceForType } from "@/lib/data";
+import ApproverBalance from "@/components/ApproverBalance";
 import { formatDate } from "@/lib/leave";
 import DecideForm from "./DecideForm";
 
@@ -22,6 +23,11 @@ export default async function DecidePage({
     cancelled: "cancelled",
   };
 
+  const balance =
+    req && allowed && req.status === "pending"
+      ? await getBalanceForType(req.profile_id, req.leave_type_id, req.start_date)
+      : null;
+
   let problem: string | null = null;
   if (!link || (link.expired && !link.used)) problem = "This link has expired. Open the request in TimeOff to decide it.";
   else if (!req) problem = "This request no longer exists.";
@@ -42,6 +48,7 @@ export default async function DecidePage({
             <p className="mt-1 text-sm text-sand-600">
               {req.leave_name} · {formatDate(req.start_date)} → {formatDate(req.end_date)} · {Number(req.days)} working day{Number(req.days) === 1 ? "" : "s"}
             </p>
+            <ApproverBalance balance={balance} days={Number(req.days)} />
             <div className="mt-5">
               <DecideForm token={params.token} initial={searchParams.d === "rejected" ? "rejected" : "approved"} />
             </div>

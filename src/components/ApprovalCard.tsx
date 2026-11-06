@@ -1,7 +1,8 @@
 import DecisionForm from "@/components/DecisionForm";
+import ApproverBalance from "@/components/ApproverBalance";
 import ThreadBadge from "@/components/ThreadBadge";
 import { describeDuration, formatDate, leaveAccent } from "@/lib/leave";
-import type { RequestWithRelations, ThreadStats } from "@/lib/types";
+import type { BalanceSummary, RequestWithRelations, ThreadStats } from "@/lib/types";
 
 /** Same colour the balance cards use for this leave type. */
 const typeColor = (r: RequestWithRelations) =>
@@ -12,9 +13,11 @@ const typeColor = (r: RequestWithRelations) =>
 export default function ApprovalCard({
   r,
   stats,
+  balance = null,
 }: {
   r: RequestWithRelations;
   stats?: ThreadStats;
+  balance?: BalanceSummary | null;
 }) {
   const sameDay = r.start_date === r.end_date;
   const isSick = r.leave_types?.code === "sick";
@@ -46,6 +49,7 @@ export default function ApprovalCard({
               “{r.reason}”
             </p>
           ) : null}
+          <ApproverBalance balance={balance} days={r.days} />
           {isSick && r.days > 2 && !stats?.attachments ? (
             <p className="mt-2 text-xs font-medium text-brand-700">No medical certificate attached yet.</p>
           ) : null}
