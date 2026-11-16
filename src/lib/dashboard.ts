@@ -9,7 +9,14 @@ const iso = (t: number) => new Date(t).toISOString().slice(0, 10);
 const parse = (s: string) => Date.parse(s + "T00:00:00Z");
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-export type DayKind = "out" | "free" | "holiday" | "taken" | "booked" | "pending";
+export type DayKind = "out" | "free" | "holiday" | "closed" | "taken" | "booked" | "pending";
+
+/** Annual office shutdown: closed from 18 Dec up to and including 6 Jan. */
+export const CLOSURE = { from: "12-18", to: "01-06" } as const;
+export const isClosureDay = (date: string) => {
+  const md = date.slice(5);
+  return md >= CLOSURE.from || md <= CLOSURE.to;
+};
 export type StripDay = { date: string; kind: DayKind; today: boolean; note: string };
 export type StripWeek = { label: string; days: StripDay[] };
 
@@ -60,8 +67,8 @@ export function buildYearStrip(
       days.push({
         date,
         today: date === today,
-        kind: !inCycle ? "out" : hit ? hit.kind : hol ? "holiday" : "free",
-        note: hit?.note ?? hol ?? "",
+        kind: !inCycle ? "out" : hit ? hit.kind : isClosureDay(date) ? "closed" : hol ? "holiday" : "free",
+        note: hit?.note ?? (isClosureDay(date) ? "Company closed" : hol ?? ""),
       });
     }
     weeks.push({ label, days });

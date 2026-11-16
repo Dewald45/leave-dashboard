@@ -206,7 +206,7 @@ export default async function DashboardPage() {
               <h2 id="closure-h" className="text-base font-semibold text-ink-900">
                 Year-end closure: {fmt(gifted + held)} working days
               </h2>
-              <p className="mt-1 text-sm text-ink-800">Everyone&apos;s off. You don&apos;t need to apply.</p>
+              <p className="mt-1 text-sm text-ink-800">Office closed 18 Dec – 6 Jan. Everyone&apos;s off. You don&apos;t need to apply.</p>
               <dl className="mt-3 grid grid-cols-2 gap-3">
                 <div className="rounded-2xl bg-emerald-50 p-3">
                   <dt className="sr-only">Gifted</dt>
@@ -232,7 +232,7 @@ export default async function DashboardPage() {
                 <span className="font-semibold text-brand-700 group-open:hidden">Details</span>
               </summary>
               <p className="mt-2 text-sm text-ink-800">
-                The office closes for {fmt(gifted + held)} working days over December. {fmt(gifted)} are a gift
+                The office closes from 18 Dec to 6 Jan ({fmt(gifted + held)} working days of your leave year). {fmt(gifted)} are a gift
                 from the company; {fmt(held)} are set aside from your annual leave at the start of your leave
                 year, so you can&apos;t book them for anything else.
               </p>

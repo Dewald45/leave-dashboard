@@ -9,6 +9,7 @@ const FILL: Record<DayKind, string> = {
   out: "bg-transparent",
   free: "bg-sand-200",
   holiday: "bg-white border-2 border-sand-500",
+  closed: "bg-emerald-500",
   taken: "bg-ink-900",
   booked: "bg-brand-500",
   pending: "bg-brand-200",
@@ -19,6 +20,7 @@ const LEGEND: [DayKind, string][] = [
   ["booked", "Booked"],
   ["pending", "Pending"],
   ["holiday", "Public holiday"],
+  ["closed", "Company closed (18 Dec – 6 Jan)"],
 ];
 
 export default function YearStrip({
