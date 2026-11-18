@@ -5,6 +5,7 @@ import { q, q1 } from "@/lib/db";
 import { getSessionProfile } from "@/lib/session";
 import { hashPassword } from "@/lib/password";
 import { parseLeaveReports, type ImportEmployee } from "@/lib/leave-import";
+import { getHolidaySet } from "@/lib/holidays";
 
 async function assertAdmin() {
   const me = await getSessionProfile();
@@ -49,6 +50,8 @@ export interface PreviewEmployee {
   txnCount: number;
   unknownTypes: string[];
   suggestedProfileId: string | null;
+  recountedDays: number;
+  nonWorkingTxns: number;
 }
 
 export interface LeavePreview {
@@ -93,9 +96,10 @@ export async function previewLeaveImport(
   const files = await filesFromForm(formData);
   if (files.length === 0) return { error: "Choose at least one .xlsx report to upload." };
 
+  const holidays = await getHolidaySet();
   let employees: ImportEmployee[];
   try {
-    employees = parseLeaveReports(files.map((f) => toUint8(f.b64)));
+    employees = parseLeaveReports(files.map((f) => toUint8(f.b64)), holidays);
   } catch {
     return { error: "Could not read that file. Is it a valid .xlsx leave report?" };
   }
@@ -123,6 +127,8 @@ export async function previewLeaveImport(
       txnCount: emp.transactions.length,
       unknownTypes: emp.unknownTypes,
       suggestedProfileId: suggestMatch(emp, profiles),
+      recountedDays: emp.recountedDays,
+      nonWorkingTxns: emp.nonWorkingTxns,
     })),
   };
 }
@@ -146,7 +152,8 @@ export async function runLeaveImport(
   }
   if (!files.length) return { error: "Upload expired — please check the file again." };
 
-  const employees = parseLeaveReports(files.map((f) => toUint8(f.b64)));
+  const holidays = await getHolidaySet();
+  const employees = parseLeaveReports(files.map((f) => toUint8(f.b64)), holidays);
   const includeWaiting = formData.get("include_waiting") === "on";
 
   // Cache leave-type ids by code.
@@ -236,6 +243,14 @@ export async function runLeaveImport(
       if (t.status === "pending" && !includeWaiting) continue;
       const typeId = typeByCode.get(t.leaveCode);
       if (!typeId) continue;
+      // Nothing but weekends and/or public holidays -- no leave was taken.
+      if (t.days <= 0) {
+        warnings.push(
+          `${emp.name}: ${t.leaveLabel} ${t.startDate} to ${t.endDate} is all weekend/public holiday — not imported.`
+        );
+        leaveSkipped++;
+        continue;
+      }
 
       const existing = await q1(
         `select 1 from leave_requests

@@ -9,7 +9,15 @@ const iso = (t: number) => new Date(t).toISOString().slice(0, 10);
 const parse = (s: string) => Date.parse(s + "T00:00:00Z");
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-export type DayKind = "out" | "free" | "holiday" | "closed" | "taken" | "booked" | "pending";
+export type DayKind =
+  | "out"
+  | "free"
+  | "weekend"
+  | "holiday"
+  | "closed"
+  | "taken"
+  | "booked"
+  | "pending";
 
 /** Annual office shutdown: closed from 18 Dec up to and including 6 Jan. */
 export const CLOSURE = { from: "12-18", to: "01-06" } as const;
@@ -75,6 +83,106 @@ export function buildYearStrip(
     monday += 7 * DAY;
   }
   return weeks;
+}
+
+/** One day in the calendar, keyed by ISO date in `CalendarData.days`. */
+export type CalendarDay = { kind: DayKind; note: string };
+
+export interface CalendarMonth {
+  /** "2026-11" */
+  key: string;
+  label: string;
+  /** Working days in this month that cost the employee leave. */
+  leaveDays: number;
+}
+
+export interface CalendarData {
+  /** Only days that are something other than an ordinary working day. */
+  days: Record<string, CalendarDay>;
+  /** Every month the leave cycle touches, in order. */
+  months: CalendarMonth[];
+  /** Month to open on: the current one when it's in the cycle, else the first. */
+  initialMonth: string;
+}
+
+/**
+ * The dashboard calendar: every notable day in the leave cycle, plus the list
+ * of months it spans.
+ *
+ * Only days worth marking are stored — ordinary working days and weekends are
+ * left out and the component fills them in. That keeps the payload to the
+ * client small (a few dozen entries rather than 365).
+ */
+export function buildCalendar(
+  cycleStart: string,
+  cycleEnd: string,
+  today: string,
+  requests: RequestWithRelations[],
+  holidays: PublicHoliday[]
+): CalendarData {
+  const holidayName = new Map(holidays.map((h) => [h.holiday_date, h.name]));
+  const days: Record<string, CalendarDay> = {};
+
+  const start = parse(cycleStart);
+  const end = parse(cycleEnd);
+
+  // Holidays and the closure first, so a request laid over them wins.
+  for (let t = start; t <= end; t += DAY) {
+    const date = iso(t);
+    const dow = new Date(t).getUTCDay();
+    if (dow === 0 || dow === 6) continue; // weekends cost nothing
+    if (isClosureDay(date)) {
+      days[date] = { kind: "closed", note: "Office closed" };
+    } else {
+      const hol = holidayName.get(date);
+      if (hol) days[date] = { kind: "holiday", note: hol };
+    }
+  }
+
+  for (const r of requests) {
+    if (r.status !== "approved" && r.status !== "pending") continue;
+    const kind: DayKind =
+      r.status === "pending" ? "pending" : r.end_date < today ? "taken" : "booked";
+    const name = r.leave_types?.name ?? "Leave";
+    const label =
+      kind === "pending" ? `${name} — awaiting approval` : kind === "taken" ? `${name} — taken` : `${name} — booked`;
+    for (let t = parse(r.start_date); t <= parse(r.end_date); t += DAY) {
+      const date = iso(t);
+      if (t < start || t > end) continue;
+      const dow = new Date(t).getUTCDay();
+      if (dow === 0 || dow === 6) continue;
+      days[date] = { kind, note: label };
+    }
+  }
+
+  // Months the cycle spans, with a per-month count of days that cost leave.
+  const months: CalendarMonth[] = [];
+  const firstOfMonth = (t: number) => {
+    const d = new Date(t);
+    return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1);
+  };
+  for (let m = firstOfMonth(start); m <= end; ) {
+    const d = new Date(m);
+    const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+    let leaveDays = 0;
+    for (const [date, info] of Object.entries(days)) {
+      if (!date.startsWith(key)) continue;
+      if (info.kind === "taken" || info.kind === "booked" || info.kind === "pending") leaveDays++;
+    }
+    months.push({
+      key,
+      label: `${MONTHS[d.getUTCMonth()]} ${String(d.getUTCFullYear()).slice(2)}`,
+      leaveDays,
+    });
+    m = Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1);
+  }
+
+  const todayKey = today.slice(0, 7);
+  const initialMonth = months.some((m) => m.key === todayKey)
+    ? todayKey
+    : months[0]?.key ?? todayKey;
+
+  return { days, months, initialMonth };
 }
 
 export type Nudge = {

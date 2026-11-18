@@ -1,6 +1,7 @@
 import Link from "next/link";
+import Icon from "@/components/Icon";
 import RequestList from "@/components/RequestList";
-import YearStrip from "@/components/YearStrip";
+import LeaveCalendar from "@/components/LeaveCalendar";
 import { requireProfile } from "@/lib/auth";
 import {
   ensureCurrentBalances,
@@ -9,7 +10,7 @@ import {
   getThreadStats,
 } from "@/lib/data";
 import { getHolidays } from "@/lib/holidays";
-import { buildYearStrip, findNudge, type Nudge } from "@/lib/dashboard";
+import { buildCalendar, findNudge, type Nudge } from "@/lib/dashboard";
 import { describeDuration, formatDate, formatDateRange, leaveAccent, todaySA } from "@/lib/leave";
 import type { BalanceSummary, RequestWithRelations } from "@/lib/types";
 
@@ -111,7 +112,9 @@ export default async function DashboardPage() {
   const annual = bs.find((b) => b.leave_code === "annual");
   const closure = bs.find((b) => b.bookable === false);
   const others = bs.filter((b) => b.bookable !== false && b !== annual);
-  const strip = annual ? buildYearStrip(annual.cycle_start, annual.cycle_end, today, allReqs, holidays) : null;
+  const calendar = annual
+    ? buildCalendar(annual.cycle_start, annual.cycle_end, today, allReqs, holidays)
+    : null;
 
   const gifted = Number(closure?.entitled_days ?? 0);
   const held = Number(annual?.reserved_days ?? 0);
@@ -137,9 +140,10 @@ export default async function DashboardPage() {
         </div>
         <Link
           href="/apply"
-          className="inline-flex min-h-[44px] items-center rounded-full bg-brand-500 px-6 text-sm font-bold text-white transition hover:bg-brand-600"
+          className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-brand-500 px-6 text-sm font-bold text-white transition hover:bg-brand-600"
         >
-          Plot an escape →
+          Plot an escape
+          <Icon name="arrow-right" className="h-4 w-4" />
         </Link>
       </div>
 
@@ -197,7 +201,14 @@ export default async function DashboardPage() {
         {others.length ? <OtherLeave balances={others} /> : null}
       </div>
 
-      {strip && annual ? <YearStrip weeks={strip} cycleStart={annual.cycle_start} cycleEnd={annual.cycle_end} /> : null}
+      {calendar && annual ? (
+        <LeaveCalendar
+          data={calendar}
+          cycleStart={annual.cycle_start}
+          cycleEnd={annual.cycle_end}
+          today={today}
+        />
+      ) : null}
 
       <div className="grid gap-4 short:gap-3 lg:grid-cols-2">
         {closure || held ? (
@@ -243,8 +254,12 @@ export default async function DashboardPage() {
         <section className="flex flex-col rounded-3xl bg-white p-2">
           <div className="flex items-center justify-between px-4 pb-1 pt-3">
             <h2 className="text-base font-semibold text-ink-900">Recent requests</h2>
-            <Link href="/requests" className="text-sm font-medium text-brand-700 hover:underline">
-              All →
+            <Link
+              href="/requests"
+              className="inline-flex items-center gap-1 text-sm font-medium text-brand-700 hover:underline"
+            >
+              All
+              <Icon name="arrow-right" className="h-3.5 w-3.5" />
             </Link>
           </div>
           {reqs.length ? (
@@ -303,7 +318,10 @@ function NextUp({ req, today }: { req: RequestWithRelations | null; today: strin
     return (
       <Link href="/apply" className="block rounded-3xl bg-white p-5 transition hover:bg-sand-50 short:p-4">
         <p className="text-sm text-sand-600">Next up</p>
-        <p className="mt-1 text-base font-semibold text-ink-900">Nothing booked yet. Plot an escape →</p>
+        <p className="mt-1 inline-flex items-center gap-1.5 text-base font-semibold text-ink-900">
+          Nothing booked yet. Plot an escape
+          <Icon name="arrow-right" className="h-4 w-4" />
+        </p>
       </Link>
     );
   }

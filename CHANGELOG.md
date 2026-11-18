@@ -2,6 +2,87 @@
 
 What changed in TimeOff, newest first.
 
+## 2026-11-18 (leave cycle fixes, new calendar, real icons)
+
+### Fixed — carried-over leave (please read)
+
+Carried-over days were worked out **once**, the first time a leave cycle was
+opened, and then never looked at again. Whatever the previous cycle happened to
+look like at that moment was frozen in. Anything that arrived afterwards left
+the figure wrong:
+
+- past leave imported after the new cycle had already been opened,
+- a request approved after the rollover,
+- a corrected start date (every cycle boundary moves, the carry-over did not),
+- the previous cycle having no row at all, because balances were only ever
+  created for "today" — a year nobody signed in during left a hole in the chain.
+
+Depending on which happened, people ended up with **too few days** (days they
+were owed quietly disappeared) or **too many**.
+
+What changed:
+
+- Balances are now created for **every cycle from the employee's start date**,
+  not just the one happening today, so the chain of cycles has no holes.
+- Carry-over is settled **one cycle at a time, oldest first**. It used to be a
+  single statement covering every cycle at once, which read them all from the
+  same snapshot — so a run of cycles would all settle against nothing and years
+  of carry-over vanished.
+- A cycle now hands on **its own unused days only**, capped at one cycle's
+  worth. Days that already expired cannot be handed on a second time.
+- Pending requests are held back from what carries over.
+- Correcting a start date re-derives the carry-over instead of leaving the old
+  figure in place.
+- **On the first boot after this release, every employee's carried-over leave
+  is worked out again** from their start date and leave history. It runs once
+  and writes an entry to the audit trail. Expect some balances to change —
+  that is the point. Check a few against the audit trail.
+
+### New
+
+- **Adjust a balance (Admin → People → an employee):** add or take away days
+  with a reason. Kept as a separate signed entry rather than editing what
+  somebody was entitled to, so the entitlement stays intact and every
+  correction keeps its reason, its author and its date. Reverse one by adding
+  the opposite amount. Shows in the audit trail as `balance.adjusted`.
+- **Recalculate leave cycles (same place):** rebuilds one person's cycles and
+  carry-over from their start date and history. Use it after importing past
+  leave or correcting a start date. Safe to run twice.
+- **`npm run test:leave`** — 22 checks over the accrual, carry-over, expiry and
+  adjustment rules, run against a throwaway database. Run it after touching
+  anything in `db/schema.sql`.
+
+### Changed
+
+- **New dashboard calendar.** The year strip drew one 3-pixel square per
+  working day: you could see the shape of a year but not read a date off it.
+  It is now a row of month chips (the whole year, with a leave-day count per
+  month) above a real month grid with dates, weekday headings, today marked,
+  and a written list of what falls in the month — so the closure reads as
+  "18 – 31 Dec 2026 · Office closed" rather than ten identical lines. The
+  closure days now show on the calendar.
+- **Import past leave** no longer charges weekends and public holidays as
+  leave. Each entry is capped at the working days its dates actually hold, so a
+  Friday-to-Monday entry costs 2 days rather than 4. It only ever corrects an
+  over-count, never inflates a figure the report gave. The preview says how
+  many entries were recounted, and entries falling entirely on weekends or
+  public holidays are skipped.
+- **Icons are icons.** Emoji and typed arrows (👋, 🎉, →, ↓) are replaced by a
+  proper SVG set (`src/components/Icon.tsx`) drawn on one grid and inheriting
+  the colour and size of their surroundings. Emails still use text, which is
+  right for email.
+
+### Needs attention when deploying
+
+- Nothing to set up. The schema migrates itself on boot and the one-time
+  carry-over repair runs with it.
+- **Afterwards:** look at a few balances (Admin → People, or the balances
+  export) and confirm they read correctly. The audit trail entry
+  `leave.carry_resettled_v1` records how many employees were touched.
+- Leave rules themselves are unchanged (15 days a cycle, 5 held back for the
+  closure, carry-over expires after 6 months). Only the arithmetic that had
+  drifted is fixed. Worth a word with Jono before this reaches everyone.
+
 ## 2026-10-28 (dashboard v2)
 
 - **Your leave year at a glance:** a strip with one square per working day

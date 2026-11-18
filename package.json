@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "db:migrate": "node --env-file=.env.local scripts/migrate.mjs",
-    "db:local": "pglite-server --db=.pglite --port=5432 --max-connections=20"
+    "db:local": "pglite-server --db=.pglite --port=5432 --max-connections=20",
+    "test:leave": "node scripts/test-leave-cycle.mjs"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

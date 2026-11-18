@@ -1,5 +1,6 @@
 import "server-only";
 import { parseXlsxSheet, excelSerialToISO } from "@/lib/xlsx";
+import { workingDaysBetween } from "@/lib/leave";
 
 /**
  * Parser for the "Leave Transactions Report" .xlsx export (one row per leave
@@ -15,7 +16,8 @@ export interface ImportTxn {
   status: ImportStatus;
   startDate: string; // YYYY-MM-DD
   endDate: string; // YYYY-MM-DD
-  days: number;
+  days: number; // working days (weekends and public holidays removed)
+  reportedDays: number; // what the report itself claimed, for the preview
   reason: string | null;
 }
 
@@ -30,6 +32,10 @@ export interface ImportEmployee {
   approvedDays: number;
   pendingDays: number;
   unknownTypes: string[];
+  /** Transactions whose length changed once weekends/holidays came out. */
+  recountedDays: number;
+  /** Transactions that were nothing but weekends/holidays, so carry no leave. */
+  nonWorkingTxns: number;
 }
 
 const TYPE_MAP: Record<string, string> = {
@@ -73,8 +79,19 @@ function detectCompany(rows: string[][]): string {
   return "Unknown";
 }
 
-/** Parse one report file's bytes into grouped employees. */
-export function parseLeaveReport(buf: Uint8Array): ImportEmployee[] {
+/**
+ * Parse one report file's bytes into grouped employees.
+ *
+ * Where the report's "days" column counts calendar days, a Friday-to-Monday
+ * entry arrives as 4 when only 2 are working days. Each entry is therefore
+ * capped at the working days its dates hold, with weekends and South African
+ * public holidays taken out. The original figure is kept as `reportedDays` so
+ * the preview can show what changed.
+ */
+export function parseLeaveReport(
+  buf: Uint8Array,
+  holidays: ReadonlySet<string>
+): ImportEmployee[] {
   const rows = parseXlsxSheet(buf);
   const headerIdx = rows.findIndex((r) =>
     r.some((c) => (c || "").trim() === "Emp. Number")
@@ -115,6 +132,8 @@ export function parseLeaveReport(buf: Uint8Array): ImportEmployee[] {
         approvedDays: 0,
         pendingDays: 0,
         unknownTypes: [],
+        recountedDays: 0,
+        nonWorkingTxns: 0,
       };
       employees.set(key, emp);
     }
@@ -125,8 +144,20 @@ export function parseLeaveReport(buf: Uint8Array): ImportEmployee[] {
     if (!leaveCode && !emp.unknownTypes.includes(typeLabel)) {
       emp.unknownTypes.push(typeLabel);
     }
-    if (st === "approved") emp.approvedDays += days;
-    else if (st === "pending") emp.pendingDays += days;
+    // Cap the reported figure at the working days the dates actually hold, so
+    // weekends and public holidays can never be charged as leave.
+    //
+    // Deliberately a cap rather than a straight recount: some exports already
+    // count working days, and a few legitimately report less than the range
+    // holds (a half day, or someone back early). Taking the smaller of the two
+    // fixes over-charging without ever inflating what the report claimed.
+    const workable = workingDaysBetween(startISO, endISO, holidays);
+    const working = Math.min(days, workable);
+    if (working !== days) emp.recountedDays++;
+    if (working <= 0) emp.nonWorkingTxns++;
+
+    if (st === "approved") emp.approvedDays += working;
+    else if (st === "pending") emp.pendingDays += working;
 
     emp.transactions.push({
       leaveCode,
@@ -134,13 +165,17 @@ export function parseLeaveReport(buf: Uint8Array): ImportEmployee[] {
       status: st,
       startDate: startISO,
       endDate: endISO,
-      days,
+      days: working,
+      reportedDays: days,
       reason,
     });
   }
   return [...employees.values()];
 }
 
-export function parseLeaveReports(files: Uint8Array[]): ImportEmployee[] {
-  return files.flatMap((f) => parseLeaveReport(f));
+export function parseLeaveReports(
+  files: Uint8Array[],
+  holidays: ReadonlySet<string>
+): ImportEmployee[] {
+  return files.flatMap((f) => parseLeaveReport(f, holidays));
 }

@@ -2,37 +2,38 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { finishOnboarding } from "@/app/(app)/account/actions";
+import Icon, { type IconName } from "@/components/Icon";
 
-type Step = { icon: string; title: string; body: string; hint: string };
+type Step = { icon: IconName; title: string; body: string; hint: string };
 
 function stepsFor(role: string): Step[] {
   const steps: Step[] = [
     {
-      icon: "👋",
+      icon: "wave",
       title: "Welcome to TimeOff",
       body: "Book leave, see what you have left and talk to your manager, all in one place.",
       hint: "This takes about 30 seconds.",
     },
     {
-      icon: "📊",
+      icon: "chart",
       title: "Your dashboard",
       body: "The big card is your annual leave. The small cards show sick, family and parental leave.",
       hint: "Find it under Dashboard.",
     },
     {
-      icon: "🗓️",
+      icon: "calendar",
       title: "Booking leave",
       body: "Pick your dates. We count the working days and show what you'll have left, before you send it.",
       hint: "Find it under Apply.",
     },
     {
-      icon: "📎",
+      icon: "paperclip",
       title: "Add a document",
       body: "Attach a doctor's note or a signed parental leave letter. Sick leave over 2 days and parental leave need one.",
       hint: "PDF or photo, up to 5 MB.",
     },
     {
-      icon: "💬",
+      icon: "chat",
       title: "Follow your request",
       body: "Each request has its own chat. Your manager decides, you get an email, and your calendar updates itself.",
       hint: "Find it under My requests.",
@@ -40,7 +41,7 @@ function stepsFor(role: string): Step[] {
   ];
   if (role !== "employee") {
     steps.push({
-      icon: "✅",
+      icon: "check-circle",
       title: "Approving your team",
       body: "Requests from your team show up under Approvals. Approve or reject in one click, or straight from the email.",
       hint: "Find it under Approvals.",
@@ -97,8 +98,11 @@ export default function Onboarding({ role }: { role: string }) {
           </button>
         </div>
 
-        <div className="mt-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-sand-100 text-3xl" aria-hidden="true">
-          {s.icon}
+        <div
+          className="mt-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-sand-100 text-ink-900"
+          aria-hidden="true"
+        >
+          <Icon name={s.icon} className="h-7 w-7" />
         </div>
         <h2 id="onboarding-title" className="mt-4 text-xl font-bold tracking-tight text-ink-900">
           {s.title}

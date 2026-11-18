@@ -65,6 +65,18 @@ function EmployeeRow({
                 Unrecognised leave type: {emp.unknownTypes.join(", ")} (those entries are skipped)
               </span>
             ) : null}
+            {emp.recountedDays ? (
+              <span className="mt-0.5 block text-xs text-sand-600">
+                {emp.recountedDays} {emp.recountedDays === 1 ? "entry" : "entries"} recounted in
+                working days (weekends and public holidays taken out)
+              </span>
+            ) : null}
+            {emp.nonWorkingTxns ? (
+              <span className="mt-0.5 block text-xs font-medium text-amber-700">
+                {emp.nonWorkingTxns} {emp.nonWorkingTxns === 1 ? "entry falls" : "entries fall"}{" "}
+                entirely on weekends or public holidays — not imported
+              </span>
+            ) : null}
           </span>
         </label>
       </div>
@@ -80,7 +92,7 @@ function EmployeeRow({
             onChange={(e) => setMatch(e.target.value)}
             className="mt-1 block w-full rounded-xl border border-sand-300 px-3 py-2 text-sm text-ink-900"
           >
-            <option value="new">➕ Create new employee</option>
+            <option value="new">Create new employee</option>
             {profiles.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.full_name} ({p.email})

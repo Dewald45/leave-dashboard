@@ -229,6 +229,9 @@ export async function changeStartDate(
   for (const d of asOf) {
     await q("select public.provision_balances($1, $2::date)", [id, d]);
   }
+  // Every cycle boundary just moved, so the carry-over worked out against the
+  // old dates is stale. Force it to be derived again, oldest cycle first.
+  await q("select public.settle_carry($1, true)", [id]);
   await q("select public.sync_leave_eligibility($1)", [id]);
 
   await audit({
@@ -313,6 +316,182 @@ export async function updateBalance(formData: FormData): Promise<void> {
 
   revalidatePath("/admin");
   revalidatePath("/dashboard");
+}
+
+/**
+ * Take days off (or give them back on) one cycle's balance, with a reason.
+ *
+ * Recorded as a signed entry in `leave_adjustments` rather than by rewriting
+ * entitled_days, so the cycle's real entitlement stays intact and every
+ * correction keeps its reason, its author and its date. Reverse a mistake by
+ * adding the opposite entry.
+ */
+export async function adjustBalance(
+  _prev: AdminResult,
+  formData: FormData
+): Promise<AdminResult> {
+  let me: Profile;
+  try {
+    me = await assertAdmin();
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+
+  const id = String(formData.get("balance_id") || "");
+  if (!id) return { error: "No balance specified." };
+
+  const days = Number(formData.get("days"));
+  const reason = String(formData.get("reason") || "").trim();
+
+  if (!isFinite(days) || days === 0) {
+    return { error: "Enter how many days to add or take away (not zero)." };
+  }
+  if (Math.abs(days) > 365) return { error: "That's more days than a year holds." };
+  if (Math.round(days * 2) !== days * 2) {
+    return { error: "Use whole days or halves (for example -10 or -0.5)." };
+  }
+  if (reason.length < 3) {
+    return { error: "Please give a reason — it's recorded in the audit trail." };
+  }
+
+  const before = await q1<{
+    profile_id: string; full_name: string; leave_name: string; year: number;
+    available_days: number;
+  }>(
+    `select b.profile_id, p.full_name, lt.name as leave_name, b.year,
+            s.available_days::float8 as available_days
+       from leave_balances b
+       join profiles p on p.id = b.profile_id
+       join leave_types lt on lt.id = b.leave_type_id
+       left join balance_summary s on s.id = b.id
+      where b.id = $1`,
+    [id]
+  );
+  if (!before) return { error: "That leave balance no longer exists." };
+
+  await q(
+    `insert into leave_adjustments (balance_id, days, reason, created_by)
+     values ($1, $2, $3, $4)`,
+    [id, days, reason, me.id]
+  );
+
+  const after = await q1<{ available_days: number }>(
+    "select available_days::float8 as available_days from balance_summary where id = $1",
+    [id]
+  );
+
+  const verb = days < 0 ? "Took" : "Gave";
+  const preposition = days < 0 ? "from" : "to";
+  const summary =
+    `${verb} ${Math.abs(days)} day${Math.abs(days) === 1 ? "" : "s"} ` +
+    `${preposition} ${before.full_name}'s ${before.year} ${before.leave_name}`;
+
+  await audit({
+    actor: me,
+    action: "balance.adjusted",
+    entityType: "balance",
+    entityId: id,
+    subject: { id: before.profile_id, full_name: before.full_name },
+    summary,
+    details: {
+      leave_type: before.leave_name,
+      year: before.year,
+      days,
+      reason,
+      available_before: before.available_days,
+      available_after: after?.available_days ?? null,
+    },
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/dashboard");
+  revalidatePath("/team");
+  return {
+    success:
+      `${summary}. They now have ${after?.available_days ?? "?"} day` +
+      `${after?.available_days === 1 ? "" : "s"} available.`,
+  };
+}
+
+/**
+ * Rebuild one employee's leave cycles from their start date and their history.
+ *
+ * Carried-over days are worked out when a cycle opens and then left alone, so
+ * anything that lands later — imported history, a request approved after the
+ * rollover, a cycle that was never opened — can leave the figure stale. This
+ * backfills every cycle and derives the carry-over again, oldest cycle first.
+ * It reads nothing but the stored requests, so it is safe to run twice.
+ */
+export async function recalculateCycles(
+  _prev: AdminResult,
+  formData: FormData
+): Promise<AdminResult> {
+  let me: Profile;
+  try {
+    me = await assertAdmin();
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+
+  const id = String(formData.get("id") || "");
+  if (!id) return { error: "No employee specified." };
+
+  const who = await q1<{ full_name: string }>(
+    "select full_name from profiles where id = $1",
+    [id]
+  );
+  if (!who) return { error: "That employee no longer exists." };
+
+  const before = await q<{ year: number; leave_name: string; carried: number; available: number }>(
+    `select b.year, b.leave_name, b.carried_days::float8 as carried,
+            b.available_days::float8 as available
+       from balance_summary b where b.profile_id = $1 and b.is_current
+      order by b.leave_type_id`,
+    [id]
+  );
+
+  await q("select public.provision_balances($1, current_date)", [id]);
+  await q("select public.settle_carry($1, true)", [id]);
+
+  const after = await q<{ year: number; leave_name: string; carried: number; available: number }>(
+    `select b.year, b.leave_name, b.carried_days::float8 as carried,
+            b.available_days::float8 as available
+       from balance_summary b where b.profile_id = $1 and b.is_current
+      order by b.leave_type_id`,
+    [id]
+  );
+
+  const changed = after.filter((a) => {
+    const b = before.find((x) => x.leave_name === a.leave_name && x.year === a.year);
+    return !b || b.carried !== a.carried || b.available !== a.available;
+  });
+
+  await audit({
+    actor: me,
+    action: "balance.recalculated",
+    entityType: "balance",
+    entityId: id,
+    subject: { id, full_name: who.full_name },
+    summary:
+      `Recalculated ${who.full_name}'s leave cycles` +
+      (changed.length ? ` — ${changed.length} balance${changed.length === 1 ? "" : "s"} changed` : " (no change)"),
+    details: { before, after },
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/dashboard");
+  revalidatePath("/team");
+
+  if (!changed.length) {
+    return { success: `${who.full_name}'s balances were already correct.` };
+  }
+  return {
+    success:
+      `Rebuilt ${who.full_name}'s cycles. ` +
+      changed
+        .map((c) => `${c.leave_name}: ${c.available} available (${c.carried} carried over)`)
+        .join("; ") + ".",
+  };
 }
 
 export async function deleteEmployee(formData: FormData): Promise<AdminResult> {

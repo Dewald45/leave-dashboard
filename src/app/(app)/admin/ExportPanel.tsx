@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Icon from "@/components/Icon";
 
 const EXPORTS = [
   { kind: "monthly", label: "Monthly leave taken", hint: "Approved days per person, per type, per month — for payroll." },
@@ -39,7 +40,9 @@ export default function ExportPanel({ currentYear }: { currentYear: number }) {
           >
             <span className="flex items-center justify-between text-sm font-semibold text-ink-900">
               {e.label}
-              <span className="text-xs font-medium text-brand-700">CSV ↓</span>
+              <span className="inline-flex items-center gap-1 text-xs font-medium text-brand-700">
+                CSV <Icon name="download" className="h-3.5 w-3.5" />
+              </span>
             </span>
             <span className="mt-1 block text-xs text-sand-500">{e.hint}</span>
           </a>

@@ -12,6 +12,7 @@ import ScreenPage from "@/components/ScreenPage";
 import Panel from "@/components/Panel";
 import RequestList from "@/components/RequestList";
 import TeamTabs from "@/components/TeamTabs";
+import Icon from "@/components/Icon";
 
 export default async function ApprovalsPage() {
   const { profile } = await requireProfile();
@@ -57,7 +58,8 @@ export default async function ApprovalsPage() {
               ))
             ) : (
               <div className="rounded-3xl border border-dashed border-sand-300 bg-white/60 p-8 text-center text-sm text-sand-500">
-                Nothing awaiting your approval. 🎉
+                <Icon name="check-circle" className="mx-auto mb-2 h-7 w-7 text-emerald-600" />
+                Nothing awaiting your approval.
               </div>
             )}
           </div>

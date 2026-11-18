@@ -127,6 +127,23 @@ alter table public.leave_types add column if not exists carry_months int not nul
 alter table public.leave_balances add column if not exists carried_days numeric not null default 0;
 alter table public.leave_balances add column if not exists carry_settled boolean not null default false;
 
+-- ---------- Balance adjustments ----------
+-- A signed ledger of hand corrections to a cycle's balance: negative takes
+-- days away, positive gives them back. Append-only in practice (reverse a
+-- mistake by adding the opposite entry) so the reason for every number on a
+-- dashboard stays on the record. Kept apart from entitled_days so the cycle's
+-- actual entitlement is never rewritten to paper over a correction.
+create table if not exists public.leave_adjustments (
+  id          uuid primary key default gen_random_uuid(),
+  balance_id  uuid not null references public.leave_balances(id) on delete cascade,
+  days        numeric not null check (days <> 0),
+  reason      text not null,
+  created_by  uuid references public.profiles(id) on delete set null,
+  created_at  timestamptz not null default now()
+);
+create index if not exists idx_leave_adjustments_balance
+  on public.leave_adjustments(balance_id);
+
 -- One row per expiry reminder sent, so nobody is emailed twice for the same warning.
 create table if not exists public.leave_expiry_alerts (
   balance_id  uuid not null references public.leave_balances(id) on delete cascade,
@@ -205,6 +222,41 @@ create table if not exists public.profile_leave_entitlements (
   primary key (profile_id, leave_type_id)
 );
 
+-- Settle what each cycle inherits from the one before it.
+--
+-- Deliberately a loop, oldest cycle first: a single UPDATE would read every
+-- cycle from one snapshot, so a chain of cycles would all settle against
+-- carried_days = 0 and years of carry-over would silently vanish. One
+-- statement per cycle means each one sees the cycle before it already settled.
+--
+-- p_force re-settles cycles that were settled before (used when an employee's
+-- start date is corrected and every cycle boundary moves).
+create or replace function public.settle_carry(p_profile uuid, p_force boolean default false)
+returns void language plpgsql as $$
+declare r record;
+begin
+  for r in
+    select b.id
+      from public.leave_balances b
+      join public.leave_types lt on lt.id = b.leave_type_id
+     where b.profile_id = p_profile
+       and (p_force or not b.carry_settled)
+     order by b.year, b.leave_type_id
+  loop
+    update public.leave_balances b
+       set carry_settled = true,
+           carried_days = case when cur.carry_months > 0 then coalesce((
+             select pv.carry_forward
+               from public.balance_summary pv
+              where pv.profile_id = b.profile_id
+                and pv.leave_type_id = b.leave_type_id
+                and pv.cycle_end = cur.cycle_start - 1), 0) else 0 end
+      from public.balance_summary cur
+     where b.id = r.id and cur.id = b.id
+       and cur.cycle_start <= current_date;
+  end loop;
+end $$;
+
 create or replace function public.provision_balances(p_profile uuid, p_asof date default current_date)
 returns void language plpgsql as $$
 declare v_start date; v_gender text;
@@ -212,28 +264,33 @@ begin
   select employment_start_date, gender into v_start, v_gender from public.profiles where id = p_profile;
   if v_start is null then return; end if;
 
+  -- Every cycle from the employee's start date up to p_asof, not just the one
+  -- p_asof falls in. Carry-over is settled by chaining each cycle to the one
+  -- that ended the day before, so a missing year would break the chain and
+  -- silently zero out days the employee is still owed. Backfilling the whole
+  -- run keeps the chain complete however rarely someone signs in.
   insert into public.leave_balances (profile_id, leave_type_id, year, entitled_days, reserved_days)
-  select p_profile, lt.id,
-    extract(year from public.leave_cycle_start(v_start, lt.cycle_months, lt.cycle_anchor, p_asof))::int,
+  select p_profile, lt.id, d.year,
     coalesce(e.days, lt.default_days, 0), lt.default_reserved
   from public.leave_types lt
   left join public.profile_leave_entitlements e
     on e.profile_id = p_profile and e.leave_type_id = lt.id
+  cross join lateral (
+    select extract(year from public.leave_cycle_start(
+             v_start, lt.cycle_months, lt.cycle_anchor, s::date))::int as year
+      from generate_series(v_start, greatest(v_start, p_asof),
+                           make_interval(months => lt.cycle_months)) s
+    union
+    select extract(year from public.leave_cycle_start(
+             v_start, lt.cycle_months, lt.cycle_anchor, p_asof))::int
+  ) d
   where lt.applies_to = 'all' or lt.applies_to = v_gender
   on conflict (profile_id, leave_type_id, year) do nothing;
 
   -- Once a cycle has started, fix what it inherits from the cycle before it:
-  -- whatever was still bookable there (never the reserved closure days).
-  update public.leave_balances b
-     set carry_settled = true,
-         carried_days = case when cur.carry_months > 0 then coalesce((
-           select greatest(0, pv.available_days - pv.pending_days)
-             from public.balance_summary pv
-            where pv.profile_id = b.profile_id and pv.leave_type_id = b.leave_type_id
-              and pv.cycle_end = cur.cycle_start - 1), 0) else 0 end
-    from public.balance_summary cur
-   where cur.id = b.id and b.profile_id = p_profile
-     and not b.carry_settled and cur.cycle_start <= current_date;
+  -- that cycle's own unused bookable days (never the reserved closure days,
+  -- and never days it had inherited itself -- those expire).
+  perform public.settle_carry(p_profile, false);
 end $$;
 
 -- Drop balances a profile no longer qualifies for (gender change), then top up.
@@ -279,12 +336,28 @@ select
        then c.carried_days - least(c.carried_days,
               coalesce(sum(r.days) filter (where r.status in ('approved','pending') and r.start_date <= c.carry_expires),0))
        else 0 end as carry_left,
+  -- What this cycle hands to the next one: its OWN unused bookable days
+  -- (entitlement less the closure hold-back), never days it inherited itself.
+  -- Carried-in days are spent first, so only usage beyond them eats into this
+  -- cycle's own allowance. Pending requests are held back too, and the whole
+  -- thing is capped at one cycle's allowance so carry-over can never stack up
+  -- year after year (BCEA s20(4): it expires six months into the next cycle).
+  greatest(0, least(
+    c.entitled_days - c.reserved_days + c.adjusted_days,
+    (c.entitled_days - c.reserved_days + c.adjusted_days)
+      - greatest(0, coalesce(sum(r.days) filter (where r.status='approved'),0)
+          - least(c.carried_days,
+              coalesce(sum(r.days) filter (where r.status='approved' and r.start_date <= c.carry_expires),0)))
+      - coalesce(sum(r.days) filter (where r.status='pending'),0)
+  )) as carry_forward,
+  c.adjusted_days,
   c.entitled_days - c.reserved_days
     - coalesce(sum(r.days) filter (where r.status='approved'),0)
     + case when current_date <= c.carry_expires then c.carried_days
            else least(c.carried_days,
                   coalesce(sum(r.days) filter (where r.status='approved' and r.start_date <= c.carry_expires),0))
-      end as available_days
+      end
+    + c.adjusted_days as available_days
 from (
   select
     b.id, b.profile_id, b.leave_type_id, b.year, b.reserved_days,
@@ -299,6 +372,7 @@ from (
     case when lt.carry_months > 0 then
       (public.leave_cycle_start(p.employment_start_date, lt.cycle_months, lt.cycle_anchor, make_date(b.year,12,31))
         + make_interval(months => lt.carry_months))::date - 1 end as carry_expires,
+    coalesce((select sum(a.days) from public.leave_adjustments a where a.balance_id = b.id), 0) as adjusted_days,
     (current_date >= (p.employment_start_date + make_interval(months => lt.min_service_months))::date) as service_met,
     public.leave_cycle_start(p.employment_start_date, lt.cycle_months, lt.cycle_anchor, make_date(b.year,12,31)) as cycle_start,
     public.leave_cycle_end(p.employment_start_date, lt.cycle_months, lt.cycle_anchor, make_date(b.year,12,31))   as cycle_end
@@ -311,7 +385,7 @@ left join public.leave_requests r
   and r.start_date between c.cycle_start and c.cycle_end
 -- Ignore rows whose year no longer matches a real cycle (e.g. the start date was edited).
 where extract(year from c.cycle_start)::int = c.year
-group by c.id, c.profile_id, c.leave_type_id, c.year, c.reserved_days,
+group by c.id, c.profile_id, c.leave_type_id, c.year, c.reserved_days, c.adjusted_days,
          c.leave_code, c.leave_name, c.leave_color, c.deducts_balance, c.accrues, c.bookable,
          c.cycle_months, c.cycle_anchor, c.carry_months, c.min_service_months, c.entitled_days, c.full_entitled_days, c.service_met,
          c.carried_days, c.carry_expires, c.cycle_start, c.cycle_end;
@@ -744,3 +818,37 @@ end $$;
 -- Keep last year, this year and the next two years of public holidays filled in
 -- (also re-checked daily by the reminder job, so new years appear on their own).
 select public.ensure_sa_holidays(extract(year from current_date)::int - 1, 4);
+
+-- ============================================================================
+-- One-time repair: re-derive carried-over leave
+-- ============================================================================
+-- `carried_days` used to be worked out once, the first time a cycle was opened
+-- (carry_settled), and then left alone. Whatever the previous cycle happened to
+-- look like at that instant was frozen in. Anything that landed afterwards --
+-- imported history, a request approved later, a corrected start date, or simply
+-- the previous cycle's row not existing yet -- left the figure wrong, either
+-- short (days the employee was still owed, silently dropped) or over (days they
+-- were never owed).
+--
+-- Provisioning now backfills every cycle from the start date, and settlement
+-- walks the cycles oldest first, so the chain holds. This block applies that to
+-- the balances already stored. It runs once: the audit entry it writes is its
+-- own guard, so later boots skip it.
+do $$
+declare r record; n int := 0;
+begin
+  if exists (select 1 from public.audit_log where action = 'leave.carry_resettled_v1') then
+    return;
+  end if;
+
+  for r in select id from public.profiles where employment_start_date is not null loop
+    perform public.provision_balances(r.id, current_date);
+    perform public.settle_carry(r.id, true);
+    n := n + 1;
+  end loop;
+
+  insert into public.audit_log (action, entity_type, summary, details)
+  values ('leave.carry_resettled_v1', 'account',
+          'Re-derived carried-over leave for ' || n || ' employees (it had been frozen at the moment each cycle was first opened)',
+          jsonb_build_object('employees', n));
+end $$;

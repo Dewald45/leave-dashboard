@@ -99,6 +99,21 @@ export interface BalanceSummary {
   carry_expires: string | null;
   /** Carried-over days still unbooked and due to expire. */
   carry_left: number;
+  /** This cycle's own unused days, which is what may carry into the next one. */
+  carry_forward: number;
+  /** Net of hand corrections on this cycle: negative took days away. */
+  adjusted_days: number;
+}
+
+/** One hand correction to a cycle's balance (see `leave_adjustments`). */
+export interface LeaveAdjustment {
+  id: string;
+  balance_id: string;
+  /** Negative takes days away, positive gives them back. */
+  days: number;
+  reason: string;
+  created_at: string;
+  created_by_name: string | null;
 }
 
 /** Request joined with the requester profile and leave type — used in tables. */

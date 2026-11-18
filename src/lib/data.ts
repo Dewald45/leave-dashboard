@@ -22,7 +22,8 @@ const BALANCE_COLS = `
   b.accrued_days::float8 as accrued_days, b.used_days::float8 as used_days,
   b.pending_days::float8 as pending_days, b.available_days::float8 as available_days,
   b.carried_days::float8 as carried_days, b.carry_expires::text as carry_expires,
-  b.carry_left::float8 as carry_left`;
+  b.carry_left::float8 as carry_left, b.carry_forward::float8 as carry_forward,
+  b.adjusted_days::float8 as adjusted_days`;
 
 const REQUEST_SELECT = `
   select r.id, r.profile_id, r.leave_type_id,

@@ -6,6 +6,7 @@ import ScreenPage from "@/components/ScreenPage";
 import RequestFilters from "@/components/RequestFilters";
 import { todaySA } from "@/lib/leave";
 import type { RequestWithRelations } from "@/lib/types";
+import Icon from "@/components/Icon";
 
 const STATUSES = [
   { value: "all", label: "All" },
@@ -70,9 +71,10 @@ export default async function RequestsPage({
           <a
             href={`/api/export/mine?year=${new Date().getUTCFullYear()}`}
             download
-            className="inline-flex min-h-[44px] items-center rounded-full border border-sand-300 bg-white px-5 text-sm font-semibold text-ink-900 hover:bg-sand-50"
+            className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-sand-300 bg-white px-5 text-sm font-semibold text-ink-900 hover:bg-sand-50"
           >
-            Export my leave days (CSV) ↓
+            Export my leave days (CSV)
+            <Icon name="download" className="h-4 w-4" />
           </a>
         }
       >

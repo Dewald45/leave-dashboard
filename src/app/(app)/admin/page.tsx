@@ -4,6 +4,8 @@ import ImportEmployees from "./ImportEmployees";
 import DeleteEmployeeButton from "./DeleteEmployeeButton";
 import ResetPasswordForm from "./ResetPasswordForm";
 import StartDateEditor from "./StartDateEditor";
+import AdjustBalanceForm from "./AdjustBalanceForm";
+import RecalculateButton from "./RecalculateButton";
 import HolidayForm from "./HolidayForm";
 import ExportPanel from "./ExportPanel";
 import { updateEmployee, updateBalance, deleteHoliday, updateLeaveDefault } from "./actions";
@@ -293,6 +295,34 @@ export default async function AdminPage({
                           </button>
                         </form>
                       ))}
+                    </div>
+                  </div>
+
+                  {/* Rebuild the cycles */}
+                  <div className="mt-5">
+                    <RecalculateButton id={p.id} />
+                  </div>
+
+                  {/* Adjust a balance */}
+                  <div className="mt-5">
+                    <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-sand-500">
+                      Adjust a balance
+                    </h3>
+                    <p className="mb-2 text-[11px] text-sand-600">
+                      Add or take away days without touching what they were
+                      entitled to — for corrections, with a reason on the record.
+                    </p>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {bs
+                        .filter((b) => b.deducts_balance)
+                        .map((b) => (
+                          <AdjustBalanceForm
+                            key={b.id}
+                            balanceId={b.id}
+                            leaveName={b.leave_name}
+                            available={Number(b.available_days)}
+                          />
+                        ))}
                     </div>
                   </div>
 
