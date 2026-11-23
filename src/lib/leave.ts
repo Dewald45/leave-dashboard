@@ -214,3 +214,22 @@ export function dateEarning(
   const need = Math.ceil((days / entitled) * dates.length - 1e-9);
   return dates[Math.max(0, need - 1)] ?? null;
 }
+
+/**
+ * The one set of numbers every page uses for a leave year:
+ *   total = what may be booked this leave year (annual: 15 − 5 closure = 10,
+ *           plus carried-over days still valid and admin adjustments)
+ *   used  = approved days · pending = waiting on a manager
+ *   left  = total − used − pending
+ */
+export function yearAllowance(b: {
+  available_days: number | string;
+  used_days: number | string;
+  pending_days: number | string;
+}) {
+  const used = Number(b.used_days);
+  const pending = Number(b.pending_days);
+  const available = Number(b.available_days);
+  const r = (n: number) => Math.round(n * 100) / 100;
+  return { total: r(available + used), used: r(used), pending: r(pending), left: r(available - pending) };
+}

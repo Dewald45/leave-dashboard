@@ -1,4 +1,4 @@
-import { formatDays } from "@/lib/leave";
+import { formatDays, yearAllowance } from "@/lib/leave";
 import type { BalanceSummary } from "@/lib/types";
 
 /**
@@ -36,7 +36,7 @@ export default function ApproverBalance({
         {balance.leave_name} balance
       </p>
       <dl className="mt-1 grid grid-cols-3 gap-2">
-        {cell("Available", formatDays(available))}
+        {cell(`Left of ${formatDays(yearAllowance(balance).total)}`, formatDays(available))}
         {cell("Other pending", formatDays(otherPending))}
         {cell("If approved", formatDays(after), short ? "text-rose-700" : "text-ink-900")}
       </dl>

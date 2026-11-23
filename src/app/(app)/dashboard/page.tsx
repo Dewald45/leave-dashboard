@@ -11,7 +11,7 @@ import {
 } from "@/lib/data";
 import { getHolidays } from "@/lib/holidays";
 import { buildCalendar, earnedPosition, findNudge, type Nudge } from "@/lib/dashboard";
-import { describeDuration, formatDate, formatDateRange, leaveAccent, todaySA } from "@/lib/leave";
+import { describeDuration, formatDate, formatDateRange, leaveAccent, todaySA, yearAllowance } from "@/lib/leave";
 import type { BalanceSummary, RequestWithRelations } from "@/lib/types";
 
 const fmt = (n: number) =>
@@ -24,7 +24,7 @@ function Ring({ pct, pendingPct = 0, color }: { pct: number; pendingPct?: number
   const solid = (c * pct) / 100;
   const pending = (c * pendingPct) / 100;
   return (
-    <svg viewBox="0 0 120 120" className="h-24 w-24 shrink-0 -rotate-90 short:h-20 short:w-20" aria-hidden="true">
+    <svg viewBox="0 0 120 120" className="h-28 w-28 shrink-0 -rotate-90 short:h-24 short:w-24" aria-hidden="true">
       <circle cx="60" cy="60" r={r} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="10" />
       <circle
         cx="60"
@@ -57,7 +57,7 @@ function Ring({ pct, pendingPct = 0, color }: { pct: number; pendingPct?: number
 /** One line per other leave type: what's left, or why it isn't available yet. */
 function OtherLeave({ balances }: { balances: BalanceSummary[] }) {
   return (
-    <section aria-label="Your other leave" className="flex flex-col justify-center gap-2.5 rounded-3xl bg-white p-5 short:p-4">
+    <section aria-label="Your other leave" className="flex h-full flex-col justify-center gap-2.5 rounded-3xl bg-white p-5 short:p-4">
       {balances.map((b) => {
         const locked = b.service_met === false;
         const left = Number(b.available_days) - Number(b.pending_days);
@@ -133,6 +133,7 @@ export default async function DashboardPage() {
         reserved: held,
       })
     : null;
+  const year = annual ? yearAllowance(annual) : null;
   const left = pos ? pos.balance : 0;
   const negative = left < 0;
   const pct = total > 0 ? Math.max(0, Math.min(100, (left / total) * 100)) : 0;
@@ -148,7 +149,6 @@ export default async function DashboardPage() {
           <h1 className="text-2xl font-bold tracking-tight text-ink-900 sm:text-3xl">
             Right then, {profile.full_name.split(" ")[0]}.
           </h1>
-          <p className="mt-1 text-sm text-sand-600">Everything you&apos;re owed. No judgement. Some judgement.</p>
         </div>
         <Link
           href="/apply"
@@ -177,13 +177,13 @@ export default async function DashboardPage() {
       ) : null}
 
       {/* The numbers that matter */}
-      <div className="grid gap-4 short:gap-3 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-4 short:gap-3 md:grid-cols-2">
         {annual ? (
-          <section aria-label="Annual leave" className="flex items-center gap-5 rounded-3xl bg-ink-900 p-5 short:p-4">
+          <section aria-label="Annual leave" className="flex items-center gap-5 rounded-3xl bg-ink-900 p-5 short:p-4 md:col-start-1 md:row-start-1">
             <div className="relative">
               <Ring pct={pct} pendingPct={pendingPct} color={accent} />
               <span
-                className={`absolute inset-0 flex items-center justify-center text-xl font-bold ${
+                className={`absolute inset-0 flex items-center justify-center text-2xl font-bold ${
                   negative ? "text-rose-300" : "text-white"
                 }`}
               >
@@ -191,30 +191,47 @@ export default async function DashboardPage() {
               </span>
             </div>
             <div className="min-w-0">
-              <p className="text-sm text-sand-400">{negative ? "Annual leave: you're over" : "Annual leave you've earned"}</p>
-              <p className={`mt-0.5 text-3xl font-bold leading-tight ${negative ? "text-rose-300" : "text-white"}`}>
-                {fmt(left)} <span className="text-base font-medium text-sand-400">days</span>
+              <p className="text-sm text-sand-400">{negative ? "You are over" : "You have earned"}</p>
+              <p className={`mt-0.5 text-5xl font-bold leading-none tracking-tight ${negative ? "text-rose-300" : "text-white"}`}>
+                {fmt(Math.abs(left))} <span className="text-base font-medium text-sand-400">{Math.abs(left) === 1 ? "day" : "days"}</span>
               </p>
               {negative ? (
                 <p className="mt-1.5 rounded-2xl bg-rose-500/15 px-3 py-1.5 text-xs font-semibold text-rose-200">
                   {pos?.backToZero
-                    ? `No stress: you earn ${fmt(pos.step)} every month, so you'll be back to 0 on ${formatDate(pos.backToZero)}.`
-                    : `You earn ${fmt(pos?.step ?? 0)} a month, but that won't cover it this leave year. The rest comes off next year's leave.`}
+                    ? `Back to 0 on ${formatDate(pos.backToZero)}`
+                    : "Comes off next year's leave"}
                 </p>
               ) : null}
               {pos?.nextDate ? (
                 <p className="mt-1 text-xs text-sand-400">
                   +{fmt(pos.step)} on {formatDate(pos.nextDate)}
-                  {pending > 0 ? ` · ${fmt(pending)} pending` : ""}
                 </p>
               ) : null}
             </div>
           </section>
         ) : null}
 
-        <NextUp req={next} today={today} />
+        {year ? (
+          <section aria-label="Leave used this year" className="flex flex-col justify-center rounded-3xl bg-ink-900 p-5 short:p-4 md:col-start-1 md:row-start-2">
+            <p className="text-sm text-sand-400">You have used up</p>
+            <p className="mt-1 text-5xl font-bold leading-none tracking-tight text-white">
+              {fmt(year.used)} <span className="text-base font-medium text-sand-400">of {fmt(year.total)} days for the year</span>
+            </p>
+            <div className="mt-3 flex h-2 overflow-hidden rounded-full bg-white/10" aria-hidden>
+              <div className="bg-white" style={{ width: `${year.total > 0 ? Math.min(100, (year.used / year.total) * 100) : 0}%` }} />
+              <div className="bg-white/40" style={{ width: `${year.total > 0 ? Math.min(100, (year.pending / year.total) * 100) : 0}%` }} />
+            </div>
+          </section>
+        ) : null}
 
-        {others.length ? <OtherLeave balances={others} /> : null}
+        <div className="md:col-start-2 md:row-start-1">
+          <NextUp req={next} today={today} />
+        </div>
+        {others.length ? (
+          <div className="md:col-start-2 md:row-start-2">
+            <OtherLeave balances={others} />
+          </div>
+        ) : null}
       </div>
 
       <div className="grid items-start gap-4 short:gap-3 lg:grid-cols-2">
@@ -234,7 +251,7 @@ export default async function DashboardPage() {
               <h2 id="closure-h" className="text-base font-semibold text-ink-900">
                 Year-end closure: {fmt(gifted + held)} working days
               </h2>
-              <p className="mt-1 text-sm text-ink-800">Office closed 18 Dec – 6 Jan. Everyone&apos;s off. You don&apos;t need to apply.</p>
+              <p className="mt-1 text-sm text-ink-800">18 Dec – 6 Jan. No need to apply.</p>
               <dl className="mt-3 grid grid-cols-2 gap-3">
                 <div className="rounded-2xl bg-emerald-50 p-3">
                   <dt className="sr-only">Gifted</dt>
@@ -260,9 +277,7 @@ export default async function DashboardPage() {
                 <span className="font-semibold text-brand-700 group-open:hidden">Details</span>
               </summary>
               <p className="mt-2 text-sm text-ink-800">
-                The office closes from 18 Dec to 6 Jan ({fmt(gifted + held)} working days of your leave year). {fmt(gifted)} are a gift
-                from the company; {fmt(held)} are set aside from your annual leave at the start of your leave
-                year, so you can&apos;t book them for anything else.
+                18 Dec – 6 Jan. No need to apply. {fmt(held)} of your 15 days are kept for it, so you can book {fmt(Number(annual?.full_entitled_days ?? 15) - held)}.
               </p>
             </details>
           )
@@ -334,7 +349,7 @@ function NudgeBanner({ nudge }: { nudge: Nudge }) {
 function NextUp({ req, today }: { req: RequestWithRelations | null; today: string }) {
   if (!req) {
     return (
-      <Link href="/apply" className="block rounded-3xl bg-white p-5 transition hover:bg-sand-50 short:p-4">
+      <Link href="/apply" className="flex h-full flex-col justify-center rounded-3xl bg-white p-5 transition hover:bg-sand-50 short:p-4">
         <p className="text-sm text-sand-600">Next up</p>
         <p className="mt-1 inline-flex items-center gap-1.5 text-base font-semibold text-ink-900">
           Nothing booked yet. Plot an escape
@@ -347,7 +362,7 @@ function NextUp({ req, today }: { req: RequestWithRelations | null; today: strin
   const inDays = Math.round((Date.parse(req.start_date) - Date.parse(today)) / 86_400_000);
   const when = inDays <= 0 ? "on now" : inDays === 1 ? "tomorrow" : `in ${inDays} days`;
   return (
-    <Link href={`/requests/${req.id}`} className="block rounded-3xl bg-white p-5 transition hover:bg-sand-50 short:p-4">
+    <Link href={`/requests/${req.id}`} className="flex h-full flex-col justify-center rounded-3xl bg-white p-5 transition hover:bg-sand-50 short:p-4">
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm text-sand-600">Next up</p>
         <span

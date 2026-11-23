@@ -9,6 +9,7 @@ import {
   formatDays,
   formatDate,
   earnedBy,
+  yearAllowance,
   dateEarning,
 } from "@/lib/leave";
 import type { BalanceSummary, LeaveType } from "@/lib/types";
@@ -100,6 +101,7 @@ export default function ApplyForm({
     }
   }
   const showMaths = !!balance && deducts && !nextCycle;
+  const yearTotal = balance ? yearAllowance(balance).total : 0;
   const leftAfter = bookable - days;
   const overBalance = showMaths && days > bookable;
   const fmt = (n: number) =>
@@ -112,14 +114,26 @@ export default function ApplyForm({
     const entitled = Number(balance.entitled_days);
     const earned = earnedBy(start, balance.cycle_start, balance.cycle_end, entitled);
     // Carried-over days pay first, so they don't count as borrowing.
+    // The closure days count once the office has closed (18 Dec), same as the dashboard.
+    const y0 = Number(balance.cycle_start.slice(0, 4));
+    const closure = [`${y0}-12-18`, `${y0 + 1}-12-18`].find((d) => d >= balance.cycle_start && d <= balance.cycle_end);
+    const held = closure && start >= closure ? Number(balance.reserved_days) : 0;
     const committed =
-      Number(balance.used_days) + Number(balance.pending_days) + days - Number(balance.carried_days);
+      Number(balance.used_days) + Number(balance.pending_days) + days - Number(balance.carried_days) + held;
     const ahead = Math.round((committed - earned) * 100) / 100;
+    // If the closure lands before you've caught up, those days have to be earned back too.
+    const catchUpDate = () => {
+      const d = dateEarning(committed, balance.cycle_start, balance.cycle_end, entitled);
+      if (!held && closure && (d === null || d >= closure)) {
+        return dateEarning(committed + Number(balance.reserved_days), balance.cycle_start, balance.cycle_end, entitled);
+      }
+      return d;
+    };
     forecast = {
       earned,
       ahead,
       catchUp:
-        ahead > 0 ? dateEarning(committed, balance.cycle_start, balance.cycle_end, entitled) : null,
+        ahead > 0 ? catchUpDate() : null,
     };
   }
 
@@ -230,12 +244,11 @@ export default function ApplyForm({
                   .{" "}
                   {overBalance ? (
                     <span className="font-semibold text-rose-700">
-                      That&apos;s {fmt(days - bookable)} more than the {fmt(bookable)} you have.
+                      {fmt(days - bookable)} more than the {fmt(bookable)} you have left.
                     </span>
                   ) : (
                     <>
-                      You&apos;ll have{" "}
-                      <span className="font-semibold text-ink-900">{fmt(leftAfter)}</span> of {fmt(bookable)} left.
+                      <span className="font-semibold text-ink-900">{fmt(leftAfter)}</span> of {fmt(yearTotal)} left after this.
                     </>
                   )}
                 </>
@@ -264,9 +277,8 @@ export default function ApplyForm({
             ) : null}
             {forecast && forecast.ahead > 0 ? (
               <p className="mt-2 text-xs text-ink-700">
-                Heads up: by {formatDate(start)} you&apos;ll have earned {fmt(forecast.earned)} days, so this
-                borrows {fmt(forecast.ahead)} ahead. That&apos;s allowed
-                {forecast.catchUp ? <> and you&apos;ll catch up by {formatDate(forecast.catchUp)}</> : null}.
+                Booking {fmt(forecast.ahead)} ahead of what you&apos;ll have earned
+                {forecast.catchUp ? <>. Back to 0 on {formatDate(forecast.catchUp)}</> : null}.
               </p>
             ) : null}
           </>

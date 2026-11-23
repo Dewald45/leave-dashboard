@@ -2,6 +2,23 @@
 
 What changed in TimeOff, newest first.
 
+## 2026-11-23 (used-of-10 card, same numbers everywhere)
+
+### Changed
+- Dashboard: two black cards on the left. "You are over / You have earned X
+  days" (with back-to-0 date and next +1.25), and "You have used up X of 10
+  days for the year". Next up and the other leave totals sit to the right,
+  matching their heights. Bigger numbers, less text.
+- Every page now uses the same annual-leave numbers: 10 bookable days per leave
+  year (plus carry-over and adjustments), used, pending and left. Apply page,
+  Team page and the approver panel all show "X of 10".
+- "How your annual leave builds" lists the real 25th paydays.
+- The apply page's "back to 0" date now counts the December closure days, the
+  same as the dashboard.
+
+### Needs attention when deploying
+Nothing.
+
 ## 2026-11-23 (monthly leave on the 25th, leave history for admins)
 
 ### Changed — how annual leave is earned
