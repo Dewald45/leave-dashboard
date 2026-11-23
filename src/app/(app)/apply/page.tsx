@@ -5,7 +5,7 @@ import { getHolidayDates } from "@/lib/holidays";
 import type { LeaveType } from "@/lib/types";
 import PageHeader from "@/components/PageHeader";
 import ScreenPage from "@/components/ScreenPage";
-import { leaveAccent, earnedBy, formatDate } from "@/lib/leave";
+import { accrualDates, earnedBy, formatDate, leaveAccent, todaySA, yearAllowance } from "@/lib/leave";
 
 /** A yyyy-mm-dd query value, or undefined. */
 const isoDate = (v?: string) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : undefined);
@@ -37,28 +37,16 @@ export default async function ApplyPage({
   const initialTypeId =
     eligibleTypes.find((t) => t.id === wanted)?.id ?? eligibleTypes[0]?.id ?? 0;
 
-  // Month-end milestones for leave that builds up (annual), from now to the
-  // end of the leave year — at most six rows, always ending on the last day.
+  // The next few paydays (25th, or the Friday before) when 1.25 lands, and the year end.
   const annual = balanceRows.find((b) => b.accrues && b.deducts_balance && b.bookable !== false);
-  const forecast: Array<{ date: string; label: string; earned: number; yearEnd: boolean }> = [];
+  const forecast: Array<{ date: string; earned: number; yearEnd: boolean }> = [];
   if (annual) {
     const entitled = Number(annual.entitled_days);
-    const today = new Date().toISOString().slice(0, 10);
-    const monthEnds: string[] = [];
-    let d = new Date(today + "T00:00:00Z");
-    while (monthEnds.length < 4) {
-      const end = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).toISOString().slice(0, 10);
-      if (end >= annual.cycle_end) break;
-      monthEnds.push(end);
-      d = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1));
-    }
-    for (const date of [...monthEnds, annual.cycle_end]) {
-      forecast.push({
-        date,
-        label: formatDate(date),
-        yearEnd: date === annual.cycle_end,
-        earned: earnedBy(date, annual.cycle_start, annual.cycle_end, entitled),
-      });
+    const today = todaySA();
+    const next = accrualDates(annual.cycle_start, annual.cycle_end).filter((d) => d > today).slice(0, 4);
+    for (const date of [...next, annual.cycle_end]) {
+      if (forecast.some((f) => f.date === date)) continue;
+      forecast.push({ date, yearEnd: date === annual.cycle_end, earned: earnedBy(date, annual.cycle_start, annual.cycle_end, entitled) });
     }
   }
 
@@ -67,11 +55,7 @@ export default async function ApplyPage({
 
   return (
     <ScreenPage>
-      <PageHeader title="Plot your escape">
-        We count the working days for you. Weekends and South African public
-        holidays don&apos;t count against you, so no sneaky maths needed. Your
-        manager gets the final word.
-      </PageHeader>
+      <PageHeader title="Plot your escape">Weekends and public holidays don&apos;t count.</PageHeader>
       <div className="grid items-start gap-4 fit:min-h-0 fit:flex-1 lg:grid-cols-3 fit:grid-rows-[minmax(0,1fr)]">
         <div className="fit:max-h-full fit:overflow-y-auto fit:rounded-3xl lg:col-span-2">
           <ApplyForm
@@ -87,7 +71,7 @@ export default async function ApplyPage({
 
         <aside className="rounded-3xl bg-white p-6 fit:max-h-full fit:overflow-y-auto">
           <h2 className="text-sm font-semibold text-ink-900">
-            What you have left
+            Left this leave year
           </h2>
           <ul className="mt-3 divide-y divide-sand-100">
             {balanceRows
@@ -109,33 +93,23 @@ export default async function ApplyPage({
                   <span className="shrink-0 font-semibold text-ink-900">
                     {b.service_met === false
                       ? "Locked"
-                      : `${num(
-                          Math.max(
-                            0,
-                            Number(b.available_days) - Number(b.pending_days)
-                          )
-                        )} days`}
+                      : `${num(yearAllowance(b).left)} of ${num(yearAllowance(b).total)}`}
                   </span>
                 </li>
               ))}
           </ul>
-          <p className="mt-3 text-xs text-sand-600">
-            After requests still waiting on a manager.
-          </p>
 
           {forecast.length ? (
             <>
               <h2 className="mt-6 text-sm font-semibold text-ink-900">
                 How your annual leave builds
               </h2>
-              <p className="mt-1 text-xs text-sand-600">
-                Earned by the end of each month. You can book ahead of it.
-              </p>
+              <p className="mt-1 text-xs text-sand-600">+1.25 on each 25th.</p>
               <ul className="mt-2 divide-y divide-sand-100">
                 {forecast.map((f) => (
                   <li key={f.date} className="flex items-center justify-between gap-3 py-2 text-sm">
                     <span className="flex items-center gap-2 whitespace-nowrap text-ink-800">
-                      {f.label}
+                      {formatDate(f.date)}
                       {f.yearEnd ? (
                         <span className="rounded-full bg-sand-100 px-2 py-0.5 text-[11px] font-medium text-sand-600">
                           Year end

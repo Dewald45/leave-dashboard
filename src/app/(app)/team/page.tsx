@@ -1,3 +1,4 @@
+import { yearAllowance } from "@/lib/leave";
 import { redirect } from "next/navigation";
 import { requireProfile, isManagerOrAdmin } from "@/lib/auth";
 import {
@@ -14,9 +15,10 @@ import TeamTabs from "@/components/TeamTabs";
 import type { BalanceSummary } from "@/lib/types";
 
 /** Annual days still bookable: after pending requests, including carry-over. */
-const left = (b: { available_days: number; pending_days: number }) => {
-  const n = Math.max(0, Number(b.available_days) - Number(b.pending_days));
-  return Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/0$/, "");
+const left = (b: { available_days: number; pending_days: number; used_days: number }) => {
+  const y = yearAllowance(b);
+  const f = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/0$/, ""));
+  return `${f(y.left)} of ${f(y.total)}`;
 };
 
 export default async function TeamPage() {
