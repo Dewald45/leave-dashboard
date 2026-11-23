@@ -104,7 +104,6 @@ export default async function DashboardPage() {
   ]);
   const reqs = allReqs.slice(0, 3);
   const today = todaySA();
-  const next = nextUp(allReqs, today);
   const expiring = bs.filter((b) => carryExpiringSoon(b, today));
   const nudge = findNudge(today, allReqs, holidays, profile.employment_start_date ?? null);
   const stats = await getThreadStats(reqs.map((r) => r.id), userId);
@@ -177,9 +176,10 @@ export default async function DashboardPage() {
       ) : null}
 
       {/* The numbers that matter */}
-      <div className="grid gap-4 short:gap-3 md:grid-cols-2">
+      <div className="grid items-start gap-4 short:gap-3 lg:grid-cols-2">
+        <div className="grid gap-4 short:gap-3">
         {annual ? (
-          <section aria-label="Annual leave" className="flex items-center gap-5 rounded-3xl bg-ink-900 p-5 short:p-4 md:col-start-1 md:row-start-1">
+          <section aria-label="Annual leave" className="flex items-center gap-5 rounded-3xl bg-ink-900 p-5 short:p-4">
             <div className="relative">
               <Ring pct={pct} pendingPct={pendingPct} color={accent} />
               <span
@@ -212,7 +212,7 @@ export default async function DashboardPage() {
         ) : null}
 
         {year ? (
-          <section aria-label="Leave used this year" className="flex flex-col justify-center rounded-3xl bg-ink-900 p-5 short:p-4 md:col-start-1 md:row-start-2">
+          <section aria-label="Leave used this year" className="flex flex-col justify-center rounded-3xl bg-ink-900 p-5 short:p-4">
             <p className="text-sm text-sand-400">You have used up</p>
             <p className="mt-1 text-5xl font-bold leading-none tracking-tight text-white">
               {fmt(year.used)} <span className="text-base font-medium text-sand-400">of {fmt(year.total)} days for the year</span>
@@ -224,17 +224,6 @@ export default async function DashboardPage() {
           </section>
         ) : null}
 
-        <div className="md:col-start-2 md:row-start-1">
-          <NextUp req={next} today={today} />
-        </div>
-        {others.length ? (
-          <div className="md:col-start-2 md:row-start-2">
-            <OtherLeave balances={others} />
-          </div>
-        ) : null}
-      </div>
-
-      <div className="grid items-start gap-4 short:gap-3 lg:grid-cols-2">
       {calendar && annual ? (
         <LeaveCalendar
           data={calendar}
@@ -244,7 +233,10 @@ export default async function DashboardPage() {
         />
       ) : null}
 
-      <div className="grid gap-4 short:gap-3">
+        </div>
+
+        <div className="grid gap-4 short:gap-3">
+          {others.length ? <OtherLeave balances={others} /> : null}
         {closure || held ? (
           closureSeason ? (
             <section aria-labelledby="closure-h" className="rounded-3xl bg-white p-5 short:p-4">
@@ -300,18 +292,9 @@ export default async function DashboardPage() {
             <p className="px-4 py-6 text-center text-sm text-sand-600">Nothing yet.</p>
           )}
         </section>
-      </div>
+        </div>
       </div>
     </div>
-  );
-}
-
-/** The soonest approved or pending leave that hasn't finished yet. */
-function nextUp(rows: RequestWithRelations[], today: string) {
-  return (
-    rows
-      .filter((r) => (r.status === "approved" || r.status === "pending") && r.end_date >= today)
-      .sort((a, b) => a.start_date.localeCompare(b.start_date))[0] ?? null
   );
 }
 
@@ -343,41 +326,5 @@ function NudgeBanner({ nudge }: { nudge: Nudge }) {
         Book {formatDateRange(nudge.start, nudge.end)}
       </Link>
     </div>
-  );
-}
-
-function NextUp({ req, today }: { req: RequestWithRelations | null; today: string }) {
-  if (!req) {
-    return (
-      <Link href="/apply" className="flex h-full flex-col justify-center rounded-3xl bg-white p-5 transition hover:bg-sand-50 short:p-4">
-        <p className="text-sm text-sand-600">Next up</p>
-        <p className="mt-1 inline-flex items-center gap-1.5 text-base font-semibold text-ink-900">
-          Nothing booked yet. Plot an escape
-          <Icon name="arrow-right" className="h-4 w-4" />
-        </p>
-      </Link>
-    );
-  }
-  const accent = req.leave_types ? leaveAccent(req.leave_types.code, req.leave_types.color) : "#94a3b8";
-  const inDays = Math.round((Date.parse(req.start_date) - Date.parse(today)) / 86_400_000);
-  const when = inDays <= 0 ? "on now" : inDays === 1 ? "tomorrow" : `in ${inDays} days`;
-  return (
-    <Link href={`/requests/${req.id}`} className="flex h-full flex-col justify-center rounded-3xl bg-white p-5 transition hover:bg-sand-50 short:p-4">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-sm text-sand-600">Next up</p>
-        <span
-          className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-            req.status === "approved" ? "bg-emerald-50 text-emerald-800" : "bg-brand-50 text-brand-800"
-          }`}
-        >
-          {req.status === "approved" ? "Approved" : "Pending"}
-        </span>
-      </div>
-      <p className="mt-1 text-xl font-bold text-ink-900">{formatDateRange(req.start_date, req.end_date)}</p>
-      <p className="mt-0.5 flex items-center gap-1.5 text-sm text-sand-600">
-        <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: accent }} />
-        {req.leave_types?.name ?? "Leave"} · {describeDuration(Number(req.days), req.half_day)} · {when}
-      </p>
-    </Link>
   );
 }
