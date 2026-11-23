@@ -3,6 +3,7 @@
  * Plain functions over already-loaded rows, so they're easy to reason about.
  */
 import type { PublicHoliday, RequestWithRelations } from "@/lib/types";
+import { accrualDates, accrualStep, earnedBy } from "@/lib/leave";
 
 const DAY = 86_400_000;
 const iso = (t: number) => new Date(t).toISOString().slice(0, 10);
@@ -242,4 +243,61 @@ export function findNudge(
     return { monthsSince, holiday, start, end, cost, breakDays: p[2] };
   }
   return null;
+}
+
+/**
+ * Where someone stands on annual leave they've actually earned so far.
+ * Leave lands monthly (see accrualDates); the closure days come off on the
+ * day the office closes. When the result is negative, `backToZero` is the
+ * payday that brings it back up (null if not within this leave year).
+ */
+export type EarnedPosition = {
+  balance: number;
+  step: number;
+  nextDate: string | null;
+  backToZero: string | null;
+  closureDate: string | null;
+};
+
+export function earnedPosition(opts: {
+  today: string;
+  cycleStart: string;
+  cycleEnd: string;
+  entitled: number;
+  available: number;
+  pending: number;
+  reserved: number;
+}): EarnedPosition {
+  const { today, cycleStart, cycleEnd, entitled, available, pending, reserved } = opts;
+  const dates = accrualDates(cycleStart, cycleEnd);
+  const step = accrualStep(cycleStart, cycleEnd, entitled);
+  const earned = earnedBy(today, cycleStart, cycleEnd, entitled);
+  // The 18 Dec that falls inside this leave year.
+  const y0 = Number(cycleStart.slice(0, 4));
+  const closureDate =
+    [`${y0}-${CLOSURE.from}`, `${y0 + 1}-${CLOSURE.from}`].find((d) => d >= cycleStart && d <= cycleEnd) ?? null;
+  const closurePassed = closureDate !== null && today >= closureDate;
+  // available = entitled − reserved − used + carry + adjustments
+  const spent = entitled - available; // reserved + used − carry − adj
+  const round = (n: number) => Math.round(n * 100) / 100;
+  const balance = round(earned - spent - pending + (closurePassed ? 0 : reserved));
+
+  const nextDate = dates.find((d) => d > today) ?? null;
+  let backToZero: string | null = null;
+  if (balance < 0) {
+    let b = balance;
+    let closed = closurePassed;
+    for (const d of dates.filter((d) => d > today)) {
+      if (!closed && closureDate && closureDate <= d) {
+        b -= reserved;
+        closed = true;
+      }
+      b += step;
+      if (b >= -1e-9) {
+        backToZero = d;
+        break;
+      }
+    }
+  }
+  return { balance, step: round(step), nextDate, backToZero, closureDate };
 }

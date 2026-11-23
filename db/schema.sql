@@ -187,17 +187,30 @@ returns date language sql stable as $$
   end
 $$;
 
--- Days earned so far in a cycle: straight-line across the cycle (annual leave
--- = 15 days over 12 months = 1.25 a month). Informational only — see
--- available_days below for what may actually be booked.
+-- Days earned so far in a cycle: one equal step on each 25th of the month
+-- (or the Friday before when the 25th is a weekend) inside the cycle — for
+-- annual leave 15 days over 12 paydays = 1.25 a month. Informational only —
+-- see available_days below for what may actually be booked.
+create or replace function public.leave_accrual_day(p_month date)
+returns date language sql immutable as $$
+  select case extract(isodow from d)
+    when 6 then d - 1 when 7 then d - 2 else d end
+  from (select (date_trunc('month', p_month)::date + 24) as d) x
+$$;
+
 create or replace function public.leave_accrued(p_entitled numeric, p_accrues boolean, p_cycle_start date, p_cycle_end date)
 returns numeric language sql stable as $$
   select case
     when not p_accrues then p_entitled
-    else least(p_entitled, greatest(0, round(
-      p_entitled
-      * greatest(0, (least(current_date, p_cycle_end) - p_cycle_start + 1))::numeric
-      / (p_cycle_end - p_cycle_start + 1)::numeric, 2)))
+    else (
+      select case when count(*) = 0 then 0 else least(p_entitled, round(
+        p_entitled * count(*) filter (where d <= current_date)::numeric / count(*)::numeric, 2)) end
+      from (
+        select public.leave_accrual_day(m::date) as d
+        from generate_series(date_trunc('month', p_cycle_start), p_cycle_end, interval '1 month') m
+      ) x
+      where d between p_cycle_start and p_cycle_end
+    )
   end
 $$;
 

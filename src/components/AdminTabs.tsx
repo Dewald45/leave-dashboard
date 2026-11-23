@@ -1,12 +1,13 @@
 import Link from "next/link";
 
-export type AdminTab = "people" | "defaults" | "holidays" | "exports" | "audit";
+export type AdminTab = "people" | "defaults" | "holidays" | "exports" | "history" | "audit";
 
 const TABS: Array<{ key: AdminTab; href: string; label: string }> = [
   { key: "people", href: "/admin", label: "People" },
   { key: "defaults", href: "/admin?tab=defaults", label: "Leave defaults" },
   { key: "holidays", href: "/admin?tab=holidays", label: "Holidays" },
   { key: "exports", href: "/admin?tab=exports", label: "Exports" },
+  { key: "history", href: "/admin/history", label: "Leave history" },
   { key: "audit", href: "/admin/audit", label: "Audit trail" },
 ];
 
