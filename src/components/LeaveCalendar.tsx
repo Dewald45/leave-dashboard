@@ -34,6 +34,9 @@ const STYLE: Record<DayKind, string> = {
   pending: "bg-brand-50 text-brand-800 border border-dashed border-brand-400 font-semibold",
 };
 
+/** Kinds that merge with a same-kind neighbour into one continuous bar. */
+const JOINABLE = new Set<DayKind>(["holiday", "closed", "taken", "booked", "pending"]);
+
 const LEGEND: { kind: DayKind; label: string }[] = [
   { kind: "taken", label: "Taken" },
   { kind: "booked", label: "Booked" },
@@ -136,7 +139,7 @@ export default function LeaveCalendar({
   const totalLeave = data.months.reduce((n, m) => n + m.leaveDays, 0);
 
   return (
-    <section aria-labelledby="cal-h" className="rounded-3xl bg-white p-5 short:p-4">
+    <section aria-labelledby="cal-h" className="rounded-3xl bg-white p-4 short:p-3">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <h2 id="cal-h" className="text-base font-semibold text-ink-900">
           Your leave year
@@ -151,7 +154,7 @@ export default function LeaveCalendar({
       <div
         role="tablist"
         aria-label="Months in your leave year"
-        className="mt-3 flex gap-1.5 overflow-x-auto pb-1"
+        className="mt-3 flex gap-1 overflow-x-auto pb-1 lg:grid lg:grid-cols-7 lg:overflow-visible lg:pb-0"
       >
         {data.months.map((m) => {
           const selected = m.key === month;
@@ -163,7 +166,7 @@ export default function LeaveCalendar({
               role="tab"
               aria-selected={selected}
               onClick={() => setMonth(m.key)}
-              className={`flex min-h-[44px] shrink-0 flex-col items-center justify-center rounded-2xl px-3 text-xs transition ${
+              className={`flex min-h-[40px] shrink-0 flex-col items-center justify-center whitespace-nowrap rounded-xl px-2.5 text-[11px] lg:px-1 leading-tight transition ${
                 selected
                   ? "bg-ink-900 text-white"
                   : "bg-sand-100 text-ink-800 hover:bg-sand-200"
@@ -181,12 +184,12 @@ export default function LeaveCalendar({
       </div>
 
       {/* Level 2: the month itself. */}
-      <div className="mt-4 flex items-center justify-between gap-2">
+      <div className="mt-3 flex items-center justify-between gap-2">
         <button
           type="button"
           onClick={() => setMonth(data.months[Math.max(0, index - 1)].key)}
           disabled={index <= 0}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-sand-300 text-ink-900 transition hover:bg-sand-50 disabled:opacity-30"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-sand-300 text-ink-900 transition hover:bg-sand-50 disabled:opacity-30"
         >
           <Icon name="chevron-left" className="h-4 w-4" title="Previous month" />
         </button>
@@ -197,13 +200,13 @@ export default function LeaveCalendar({
           type="button"
           onClick={() => setMonth(data.months[Math.min(data.months.length - 1, index + 1)].key)}
           disabled={index >= data.months.length - 1}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-sand-300 text-ink-900 transition hover:bg-sand-50 disabled:opacity-30"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-sand-300 text-ink-900 transition hover:bg-sand-50 disabled:opacity-30"
         >
           <Icon name="chevron-right" className="h-4 w-4" title="Next month" />
         </button>
       </div>
 
-      <table className="mt-2 w-full table-fixed border-separate border-spacing-1">
+      <table className="mt-1 w-full table-fixed border-separate border-spacing-x-0 border-spacing-y-1">
         <caption className="sr-only">
           {current?.label ?? month}: your leave, public holidays and office closure days.
         </caption>
@@ -213,7 +216,7 @@ export default function LeaveCalendar({
               <th
                 key={i}
                 scope="col"
-                className="pb-1 text-[11px] font-medium uppercase tracking-wide text-sand-500"
+                className="pb-0.5 text-[10px] font-medium uppercase tracking-wide text-sand-500"
               >
                 <abbr title={d.full} className="no-underline">
                   {d.short}
@@ -233,6 +236,18 @@ export default function LeaveCalendar({
                   ? "out"
                   : info?.kind ?? (isWeekend(date) ? "weekend" : "free");
                 const isToday = date === today;
+                // Join same-kind neighbours in the week row into one bar.
+                const kindOf = (d: string | null): DayKind | null => {
+                  if (!d || d < cycleStart || d > cycleEnd) return null;
+                  return data.days[d]?.kind ?? null;
+                };
+                const marked = JOINABLE.has(kind);
+                const joinL = marked && kindOf(week[di - 1] ?? null) === kind;
+                const joinR = marked && kindOf(week[di + 1] ?? null) === kind;
+                const shape = [
+                  joinL ? "rounded-l-none border-l-0" : "rounded-l-lg ml-0.5",
+                  joinR ? "rounded-r-none border-r-0" : "rounded-r-lg mr-0.5",
+                ].join(" ");
                 const label = outside
                   ? `${formatDate(date)} — outside your leave year`
                   : `${formatDate(date)}${info ? ` — ${info.note}` : ""}`;
@@ -241,9 +256,9 @@ export default function LeaveCalendar({
                     <span
                       title={label}
                       aria-label={label}
-                      className={`flex h-9 items-center justify-center rounded-xl text-sm tabular-nums short:h-8 ${
+                      className={`relative flex h-7 items-center justify-center text-[13px] tabular-nums ${shape} ${
                         STYLE[kind]
-                      } ${isToday ? "outline outline-2 outline-offset-1 outline-brand-500" : ""}`}
+                      } ${isToday ? "z-10 outline outline-2 outline-offset-[-2px] outline-brand-500 rounded-lg" : ""}`}
                     >
                       {Number(date.slice(8, 10))}
                     </span>

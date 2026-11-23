@@ -201,6 +201,7 @@ export default async function DashboardPage() {
         {others.length ? <OtherLeave balances={others} /> : null}
       </div>
 
+      <div className="grid items-start gap-4 short:gap-3 lg:grid-cols-2">
       {calendar && annual ? (
         <LeaveCalendar
           data={calendar}
@@ -210,7 +211,7 @@ export default async function DashboardPage() {
         />
       ) : null}
 
-      <div className="grid gap-4 short:gap-3 lg:grid-cols-2">
+      <div className="grid gap-4 short:gap-3">
         {closure || held ? (
           closureSeason ? (
             <section aria-labelledby="closure-h" className="rounded-3xl bg-white p-5 short:p-4">
@@ -268,6 +269,7 @@ export default async function DashboardPage() {
             <p className="px-4 py-6 text-center text-sm text-sand-600">Nothing yet.</p>
           )}
         </section>
+      </div>
       </div>
     </div>
   );
