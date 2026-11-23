@@ -15,7 +15,7 @@ import TeamTabs from "@/components/TeamTabs";
 import type { BalanceSummary } from "@/lib/types";
 
 /** Annual days still bookable: after pending requests, including carry-over. */
-const left = (b: { available_days: number; pending_days: number; used_days: number }) => {
+const left = (b: Parameters<typeof yearAllowance>[0]) => {
   const y = yearAllowance(b);
   const f = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/0$/, ""));
   return `${f(y.left)} of ${f(y.total)}`;
