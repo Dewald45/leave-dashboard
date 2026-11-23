@@ -2,6 +2,16 @@
 
 What changed in TimeOff, newest first.
 
+## 2026-11-23 (fixed "of 10")
+
+### Fixed
+"You have used up X of 10 days" (and "of 10" on the Apply and Team pages) now
+always shows the standard 10 days (15 less the 5 for the closure). Carry-over
+and admin adjustments no longer change that number.
+
+### Needs attention when deploying
+Nothing.
+
 ## 2026-11-23 (used-of-10 card, same numbers everywhere)
 
 ### Changed

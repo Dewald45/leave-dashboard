@@ -217,19 +217,25 @@ export function dateEarning(
 
 /**
  * The one set of numbers every page uses for a leave year:
- *   total = what may be booked this leave year (annual: 15 − 5 closure = 10,
- *           plus carried-over days still valid and admin adjustments)
+ *   total = the standard bookable days for the year — annual: 15 − 5 closure = 10.
+ *           The same for everyone; carry-over and adjustments don't change it.
  *   used  = approved days · pending = waiting on a manager
- *   left  = total − used − pending
+ *   left  = what can still be booked (includes any carry-over / adjustments)
  */
 export function yearAllowance(b: {
   available_days: number | string;
   used_days: number | string;
   pending_days: number | string;
+  entitled_days: number | string;
+  full_entitled_days?: number | string | null;
+  reserved_days: number | string;
 }) {
-  const used = Number(b.used_days);
-  const pending = Number(b.pending_days);
-  const available = Number(b.available_days);
   const r = (n: number) => Math.round(n * 100) / 100;
-  return { total: r(available + used), used: r(used), pending: r(pending), left: r(available - pending) };
+  const full = Number(b.full_entitled_days ?? b.entitled_days);
+  return {
+    total: r(full - Number(b.reserved_days)),
+    used: r(Number(b.used_days)),
+    pending: r(Number(b.pending_days)),
+    left: r(Number(b.available_days) - Number(b.pending_days)),
+  };
 }
