@@ -10,7 +10,7 @@ import {
   getThreadStats,
 } from "@/lib/data";
 import { getHolidays } from "@/lib/holidays";
-import { buildCalendar, findNudge, type Nudge } from "@/lib/dashboard";
+import { buildCalendar, earnedPosition, findNudge, type Nudge } from "@/lib/dashboard";
 import { describeDuration, formatDate, formatDateRange, leaveAccent, todaySA } from "@/lib/leave";
 import type { BalanceSummary, RequestWithRelations } from "@/lib/types";
 
@@ -121,10 +121,22 @@ export default async function DashboardPage() {
   const total = Number(annual?.full_entitled_days ?? annual?.entitled_days ?? 0);
   const available = annual ? Number(annual.available_days) : 0;
   const pending = annual ? Number(annual.pending_days) : 0;
-  const left = available - pending; // what's left once pending requests are approved
+  // What you've actually earned so far (1.25 lands on each 25th), less what's used or booked.
+  const pos = annual
+    ? earnedPosition({
+        today,
+        cycleStart: annual.cycle_start,
+        cycleEnd: annual.cycle_end,
+        entitled: Number(annual.entitled_days),
+        available,
+        pending,
+        reserved: held,
+      })
+    : null;
+  const left = pos ? pos.balance : 0;
   const negative = left < 0;
   const pct = total > 0 ? Math.max(0, Math.min(100, (left / total) * 100)) : 0;
-  const pendingPct = total > 0 ? Math.max(0, Math.min(100 - pct, (Math.min(pending, Math.max(available, 0)) / total) * 100)) : 0;
+  const pendingPct = 0;
   const accent = negative ? "#f43f5e" : annual ? leaveAccent("annual", annual.leave_color) : "#22c55e";
   // The closure only matters as December approaches: full card Oct–Dec, one line otherwise.
   const closureSeason = Number(today.slice(5, 7)) >= 10;
@@ -179,17 +191,21 @@ export default async function DashboardPage() {
               </span>
             </div>
             <div className="min-w-0">
-              <p className="text-sm text-sand-400">{negative ? "Annual leave: you're over" : "Annual leave left"}</p>
+              <p className="text-sm text-sand-400">{negative ? "Annual leave: you're over" : "Annual leave you've earned"}</p>
               <p className={`mt-0.5 text-3xl font-bold leading-tight ${negative ? "text-rose-300" : "text-white"}`}>
-                {fmt(left)} <span className="text-base font-medium text-sand-400">of {fmt(total)}</span>
+                {fmt(left)} <span className="text-base font-medium text-sand-400">days</span>
               </p>
               {negative ? (
-                <p className="mt-1.5 inline-flex rounded-full bg-rose-500/15 px-3 py-1 text-xs font-semibold text-rose-200">
-                  {fmt(-left)} {Math.abs(left) === 1 ? "day" : "days"} into next year&apos;s leave
+                <p className="mt-1.5 rounded-2xl bg-rose-500/15 px-3 py-1.5 text-xs font-semibold text-rose-200">
+                  {pos?.backToZero
+                    ? `No stress: you earn ${fmt(pos.step)} every month, so you'll be back to 0 on ${formatDate(pos.backToZero)}.`
+                    : `You earn ${fmt(pos?.step ?? 0)} a month, but that won't cover it this leave year. The rest comes off next year's leave.`}
                 </p>
-              ) : pending > 0 ? (
+              ) : null}
+              {pos?.nextDate ? (
                 <p className="mt-1 text-xs text-sand-400">
-                  {fmt(available)} now · {fmt(pending)} pending
+                  +{fmt(pos.step)} on {formatDate(pos.nextDate)}
+                  {pending > 0 ? ` · ${fmt(pending)} pending` : ""}
                 </p>
               ) : null}
             </div>

@@ -2,6 +2,25 @@
 
 What changed in TimeOff, newest first.
 
+## 2026-11-23 (monthly leave on the 25th, leave history for admins)
+
+### Changed — how annual leave is earned
+Annual leave now lands as **1.25 days on the 25th of each month** (or the
+Friday before, when the 25th is a weekend), instead of a little every day.
+The dashboard card shows the leave you've earned so far and when the next
+1.25 arrives. If you're in the negative, it tells you the date you'll be back
+to 0. The December closure days come off that figure when the office closes.
+
+What you may **book** hasn't changed: 10 days per leave year (15 less the 5
+held for the closure), plus carried-over days and admin adjustments.
+
+### New — Admin › Leave history
+A new tab where admins pick an employee and see every leave request they've
+ever made, grouped by leave year, with earned / taken / held / left per year.
+
+### Needs attention when deploying
+Nothing. The database update (`leave_accrued`) applies itself on boot.
+
 ## 2026-11-18 (leave cycle fixes, new calendar, real icons)
 
 ### Fixed — carried-over leave (please read)

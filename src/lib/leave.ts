@@ -153,8 +153,41 @@ export function formatDateTime(isoTimestamp: string): string {
 }
 
 /**
- * Leave earned by the end of `dateISO` within a cycle — straight-line, the same
- * rule as `leave_accrued()` in schema.sql (15 days over 12 months ≈ 1.25 a month).
+ * The day leave lands each month: the 25th, or the Friday before when the
+ * 25th is a Saturday or Sunday. Same rule as `leave_accrued()` in schema.sql.
+ */
+export function accrualDay(year: number, month: number): string {
+  const d = new Date(Date.UTC(year, month - 1, 25));
+  const dow = d.getUTCDay();
+  if (dow === 6) d.setUTCDate(24);
+  if (dow === 0) d.setUTCDate(23);
+  return toISO(d);
+}
+
+/** Every accrual date inside a cycle, in order. */
+export function accrualDates(cycleStart: string, cycleEnd: string): string[] {
+  const out: string[] = [];
+  let y = Number(cycleStart.slice(0, 4));
+  let m = Number(cycleStart.slice(5, 7));
+  for (let i = 0; i < 400; i++) {
+    const d = accrualDay(y, m);
+    if (d > cycleEnd) break;
+    if (d >= cycleStart) out.push(d);
+    m++;
+    if (m > 12) { m = 1; y++; }
+  }
+  return out;
+}
+
+/** Leave per accrual date (15 days over 12 paydays = 1.25). */
+export function accrualStep(cycleStart: string, cycleEnd: string, entitled: number): number {
+  const n = accrualDates(cycleStart, cycleEnd).length;
+  return n > 0 ? entitled / n : 0;
+}
+
+/**
+ * Leave earned by the end of `dateISO` within a cycle: one step (1.25 days for
+ * annual leave) on each 25th — or the Friday before — that has come round.
  */
 export function earnedBy(
   dateISO: string,
@@ -162,12 +195,10 @@ export function earnedBy(
   cycleEnd: string,
   entitled: number
 ): number {
-  const day = (iso: string) => Date.parse(iso + "T00:00:00Z") / 86_400_000;
-  const length = day(cycleEnd) - day(cycleStart) + 1;
-  const elapsed = Math.min(day(dateISO), day(cycleEnd)) - day(cycleStart) + 1;
-  if (length <= 0) return 0;
-  const v = Math.round(((entitled * Math.max(0, elapsed)) / length) * 100) / 100;
-  return Math.min(entitled, Math.max(0, v));
+  const dates = accrualDates(cycleStart, cycleEnd);
+  if (!dates.length) return 0;
+  const got = dates.filter((d) => d <= dateISO).length;
+  return Math.min(entitled, Math.round(((entitled * got) / dates.length) * 100) / 100);
 }
 
 /** First date in the cycle by which at least `days` have been earned (ISO), or null if never. */
@@ -178,8 +209,8 @@ export function dateEarning(
   entitled: number
 ): string | null {
   if (days > entitled || entitled <= 0) return null;
-  const start = Date.parse(cycleStart + "T00:00:00Z");
-  const length = (Date.parse(cycleEnd + "T00:00:00Z") - start) / 86_400_000 + 1;
-  const n = Math.max(1, Math.ceil((days / entitled) * length - 1e-9));
-  return new Date(start + (n - 1) * 86_400_000).toISOString().slice(0, 10);
+  if (days <= 0) return cycleStart;
+  const dates = accrualDates(cycleStart, cycleEnd);
+  const need = Math.ceil((days / entitled) * dates.length - 1e-9);
+  return dates[Math.max(0, need - 1)] ?? null;
 }
