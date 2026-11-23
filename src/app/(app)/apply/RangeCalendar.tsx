@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Icon from "@/components/Icon";
 
-const WEEKDAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
+const WEEKDAYS = ["M", "T", "W", "T", "F", "S", "S"];
 
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 const parse = (s: string) => new Date(s + "T00:00:00Z");
@@ -58,31 +59,29 @@ export default function RangeCalendar({
 
   return (
     <div className="rounded-2xl border border-sand-200 p-3">
-      <div className="mb-2 flex items-center justify-between">
+      <div className="mb-1 flex items-center justify-between">
         <button
           type="button"
           onClick={() => shift(-1)}
-          aria-label="Previous month"
-          className="flex h-10 w-10 items-center justify-center rounded-full text-ink-800 hover:bg-sand-100"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-sand-300 text-ink-900 transition hover:bg-sand-50"
         >
-          ←
+          <Icon name="chevron-left" className="h-4 w-4" title="Previous month" />
         </button>
         <p className="text-sm font-semibold text-ink-900" aria-live="polite">
-          {month.toLocaleDateString("en-ZA", { month: "long", year: "numeric", timeZone: "UTC" })}
+          {month.toLocaleDateString("en-ZA", { month: "short", year: "2-digit", timeZone: "UTC" })}
         </p>
         <button
           type="button"
           onClick={() => shift(1)}
-          aria-label="Next month"
-          className="flex h-10 w-10 items-center justify-center rounded-full text-ink-800 hover:bg-sand-100"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-sand-300 text-ink-900 transition hover:bg-sand-50"
         >
-          →
+          <Icon name="chevron-right" className="h-4 w-4" title="Next month" />
         </button>
       </div>
 
       <div className="grid grid-cols-7 gap-y-1 text-center" onMouseLeave={() => setHover("")}>
-        {WEEKDAYS.map((w) => (
-          <div key={w} className="pb-1 text-xs font-medium text-sand-500" aria-hidden="true">
+        {WEEKDAYS.map((w, i) => (
+          <div key={`${w}${i}`} className="pb-0.5 text-[10px] font-medium uppercase tracking-wide text-sand-500" aria-hidden="true">
             {w}
           </div>
         ))}
@@ -92,48 +91,56 @@ export default function RangeCalendar({
           const off = dow === 0 || dow === 6 || holidays.has(d);
           const isStart = d === start;
           const isEnd = d === rangeEnd;
-          const inRange = !!start && !!rangeEnd && d > start && d < rangeEnd;
           const label = parse(d).toLocaleDateString("en-ZA", {
             weekday: "long",
             day: "numeric",
             month: "long",
             timeZone: "UTC",
           });
+          const sel = (x: string | null) => !!x && !!start && !!rangeEnd && x >= start && x <= rangeEnd;
+          const hol = (x: string | null) => !!x && holidays.has(x);
+          const col = i % 7;
+          const prev = col > 0 ? cells[i - 1] : null;
+          const next = col < 6 ? cells[i + 1] ?? null : null;
+          const selected = sel(d);
+          const holiday = !selected && hol(d);
+          const joinL = selected ? sel(prev) : holiday && hol(prev) && !sel(prev);
+          const joinR = selected ? sel(next) : holiday && hol(next) && !sel(next);
+          const fill = selected
+            ? isStart || isEnd
+              ? "bg-ink-900 text-white font-semibold"
+              : "bg-brand-500 text-white font-semibold"
+            : holiday
+              ? "bg-amber-100 text-amber-900 border border-amber-300 font-semibold"
+              : off
+                ? "text-sand-300 hover:bg-sand-100"
+                : "text-ink-800 hover:bg-sand-100";
+          const shape = [
+            joinL ? "rounded-l-none border-l-0" : "rounded-l-lg ml-0.5",
+            joinR ? "rounded-r-none border-r-0" : "rounded-r-lg mr-0.5",
+          ].join(" ");
           return (
-            <div
+            <button
               key={d}
-              className={`flex justify-center ${inRange ? "bg-brand-50" : ""} ${
-                isStart && rangeEnd > start ? "rounded-l-full bg-brand-50" : ""
-              } ${isEnd && rangeEnd > start ? "rounded-r-full bg-brand-50" : ""}`}
+              type="button"
+              onClick={() => choose(d)}
+              onMouseEnter={() => setHover(d)}
+              aria-pressed={selected}
+              aria-label={`${label}${holidays.has(d) ? `, public holiday${holidayNames[d] ? `: ${holidayNames[d]}` : ""}` : ""}`}
+              title={holidayNames[d]}
+              className={`relative flex h-8 items-center justify-center text-[13px] tabular-nums transition ${shape} ${fill} ${
+                d === today ? "z-10 rounded-lg outline outline-2 outline-offset-[-2px] outline-brand-500" : ""
+              }`}
             >
-              <button
-                type="button"
-                onClick={() => choose(d)}
-                onMouseEnter={() => setHover(d)}
-                aria-pressed={isStart || isEnd || inRange}
-                aria-label={`${label}${holidays.has(d) ? `, public holiday${holidayNames[d] ? `: ${holidayNames[d]}` : ""}` : ""}`}
-                title={holidayNames[d]}
-                className={`relative flex h-10 w-10 items-center justify-center rounded-full text-sm tabular-nums transition ${
-                  isStart || isEnd
-                    ? "bg-ink-900 font-semibold text-white"
-                    : off
-                      ? "text-sand-400 hover:bg-sand-100"
-                      : "text-ink-900 hover:bg-sand-100"
-                } ${d === today && !(isStart || isEnd) ? "ring-1 ring-inset ring-sand-300" : ""}`}
-              >
-                {Number(d.slice(8))}
-                {holidays.has(d) ? (
-                  <span aria-hidden="true" className="absolute bottom-1 h-1 w-1 rounded-full bg-brand-500" />
-                ) : null}
-              </button>
-            </div>
+              {Number(d.slice(8))}
+            </button>
           );
         })}
       </div>
 
       <p className="mt-2 text-xs text-sand-500">
         {picking ? "Now pick your last day off (or the same day for one day)." : "Pick your first day off."}{" "}
-        Weekends and public holidays (dotted) are free.
+        Weekends and public holidays are free.
       </p>
     </div>
   );
