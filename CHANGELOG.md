@@ -2,6 +2,16 @@
 
 What changed in TimeOff, newest first.
 
+## 2026-11-23 (no more "Next up")
+
+### Changed
+Dashboard: the "Next up" block is gone. Left column: the two leave cards and
+the calendar. Right column: other leave totals, the year-end closure and
+recent requests.
+
+### Needs attention when deploying
+Nothing.
+
 ## 2026-11-23 (fixed "of 10")
 
 ### Fixed
